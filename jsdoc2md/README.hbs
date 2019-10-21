@@ -1,0 +1,34 @@
+---
+title: DID
+description: The DID javascript API.
+---
+
+# elastos-trinity-plugins-did
+
+This plugin defines a global `cordova.hivePlugin` object, which provides an API for hive library.
+
+Although in the global scope, it is not available until after the `deviceready` event.
+
+```js
+document.addEventListener("deviceready", onDeviceReady, false);
+function onDeviceReady() {
+    console.log(hivePlugin);
+}
+```
+---
+
+## Installation
+
+```bash
+    cordova plugin add elastos-trinity-plugins-hive
+```
+
+## Supported Platforms
+
+- Android
+- iOS
+
+# API Reference <a name="reference"></a>
+
+{{>main}}
+

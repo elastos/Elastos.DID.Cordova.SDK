@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugin id="elastos-trinity-plugins-did" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+    <name>DID</name>
+    <js-module name="DIDPlugin" src="www/did.js">
+        <clobbers target="DIDPlugin" />
+    </js-module>
+    <platform name="android">
+        <config-file target="config.xml" parent="/*">
+           <feature name="DIDPlugin">
+                <param name="android-package" value="org.elastos.trinity.plugins.did.DIDPlugin" />
+            </feature>
+        </config-file>
+        <source-file src="src/android/DIDPlugin.java" target-dir="src/org/elastos/trinity/plugins/did" />
+        <source-file src="src/android/FakeConsoleAdaptor.java" target-dir="src/org/elastos/trinity/plugins/did" />
+        <source-file src="src/android/JSONObjectHolder.java" target-dir="src/org/elastos/trinity/plugins/did" />
+        <framework src="src/android/did.gradle" custom="true" type="gradleReference"/>
+    </platform>
+        <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="DIDPlugin">
+                <param name="ios-package" value="DIDPlugin" />
+            </feature>
+        </config-file>
+    </platform>
+</plugin>
+

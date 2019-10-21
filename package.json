@@ -1,0 +1,34 @@
+{
+  "name": "did",
+  "version": "0.0.1",
+  "description": "Elastos DID Plugin",
+  "cordova": {
+    "id": "elastos-trinity-plugins-did",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elastos/Elastos.Trinity.Plugins.DID.git"
+  },
+  "keywords": [
+    "cordova",
+    "did",
+    "elastos",
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios",
+    "cordova-browser"
+  ],
+  "author": "elastos team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/elastos/Elastos.Trinity.Plugins.DID/issues"
+  },
+  "homepage": "https://github.com/elastos/Elastos.Trinity.Plugins.DID#README.md",
+  "scripts": {
+    "gen-docs": "jsdoc2md --template \"jsdoc2md/README.hbs\" \"www/did.js\" > README.md"
+  }
+}
