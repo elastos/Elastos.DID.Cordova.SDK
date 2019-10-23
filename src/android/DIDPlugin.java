@@ -625,13 +625,8 @@ public class DIDPlugin extends TrinityPlugin {
     private void getDefaultPublicKey(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Integer id = args.getInt(0);
         DIDDocument didDocument = mDocumentMap.get(id);
-        PublicKey publicKey = didDocument.getDefaultPublicKey();
-        Integer objId = System.identityHashCode(publicKey);
-
-        mPublicKeyMap.put(objId, publicKey);
-        JSONObject r = new JSONObject();
-        r.put("id", objId);
-        callbackContext.success(r);
+        DIDURL publicKeyId = didDocument.getDefaultPublicKey();
+        callbackContext.success(publicKeyId.toString());
     }
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {

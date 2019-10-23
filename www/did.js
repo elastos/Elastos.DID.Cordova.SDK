@@ -136,16 +136,7 @@ DIDDocument.prototype = {
     },
 
     getDefaultPublicKey: function(onSuccess, onError) {
-        var publicKey = new PublicKey();
-        var plugin = this.plugin;
-
-        var _onSuccess = function(ret) {
-            publicKey.objId = ret.id;
-            publicKey.plugin = plugin;
-            if (onSuccess) onSuccess(publicKey);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'getDefaultPublicKey', [this.objId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'getDefaultPublicKey', [this.objId]);
     },
 
     getPublicKey: function(onSuccess, onError, didString) {
@@ -318,4 +309,3 @@ DIDPlugin.prototype = {
 }
 
 module.exports = new DIDPlugin();
-
