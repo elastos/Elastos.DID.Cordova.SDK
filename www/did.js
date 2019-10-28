@@ -24,7 +24,7 @@ var exec = require('cordova/exec');
 
 function VerifiableCredential() {
     this.objId  = null;
-    this.clazz  = 4;
+    this.clazz  = 5;
 }
 
 VerifiableCredential.prototype = {
@@ -57,7 +57,7 @@ VerifiableCredential.prototype = {
 
 function PublicKey() {
     this.objId  = null;
-    this.clazz  = 3;
+    this.clazz  = 4;
 }
 
 PublicKey.prototype = {
@@ -83,7 +83,7 @@ PublicKey.prototype = {
 
 function DID() {
     this.objId  = null;
-    this.clazz  = 2;
+    this.clazz  = 3;
 }
 
 DID.prototype = {
@@ -108,7 +108,7 @@ DID.prototype = {
 
 function DIDDocument() {
     this.objId  = null;
-    this.clazz  = 1;
+    this.clazz  = 2;
 }
 
 DIDDocument.prototype = {
@@ -173,6 +173,111 @@ DIDDocument.prototype = {
     },
 }
 
+function DIDStore() {
+    this.objId  = null;
+    this.clazz  = 1;
+}
+
+DIDStore.prototype = {
+    constructor: DIDStore,
+
+    initPrivateIdentity: function(onSuccess, onError, mnemonic, passphrase, storepass, force) {
+        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, mnemonic, passphrase, storepass, force]);
+    },
+
+    hasPrivateIdentity: function(onSuccess, onError) {
+        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', [this.objId, ]);
+    },
+
+    deleteDid: function(onSuccess, onError, didString) {
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [this.objId, didString]);
+    },
+
+    newDid: function(onSuccess, onError, passphrase, hint) {
+         var diddoc = new DIDDocument();
+
+         var _onSuccess = function(ret) {
+             diddoc.objId = ret.id;
+             if (onSuccess) onSuccess(diddoc);
+         }
+
+         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, hint]);
+    },
+
+    listDids: function(onSuccess, onError, filter) {
+        exec(onSuccess, onError, 'DIDPlugin', 'listDids', [this.objId, filter]);
+    },
+
+    loadDid: function(onSuccess, onError, didString) {
+         var diddoc = new DIDDocument();
+
+         var _onSuccess = function(ret) {
+             diddoc.objId = ret.id;
+             if (onSuccess) onSuccess(diddoc);
+         }
+
+         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
+    },
+
+    publishDid: function(onSuccess, onError, didDocumentId, didUrlString, storepass) {
+        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.objId, didDocumentId, didUrlString, storepass]);
+    },
+
+    resolveDid: function(onSuccess, onError, didString) {
+        var diddoc = new DIDDocument();
+
+        var _onSuccess = function(ret) {
+            diddoc.objId = ret.id;
+            if (onSuccess) onSuccess(diddoc);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [this.objId, didString]);
+    },
+
+    storeDid: function(onSuccess, onError, didDocumentId, hint) {
+        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [this.objId, didDocumentId, hint]);
+    },
+
+    updateDid: function(onSuccess, onError, didDocumentId, didUrlString, storepass) {
+        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocumentId, didUrlString, storepass]);
+    },
+
+    CreateCredential: function(onSuccess, onError, didString, credentialId, type, expirationDate, properties, passphrase) {
+        var credential = new VerifiableCredential();
+
+        var _onSuccess = function(ret) {
+            credential.objId = ret.id;
+            if (onSuccess) onSuccess(credential);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
+                   [this.objId, didString, credentialId, type, expirationDate, properties, passphrase]);
+    },
+
+    deleteCredential: function(onSuccess, onError, didString, didUrlString) {
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.objId, didString, didUrlString]);
+    },
+
+    listCredentials: function(onSuccess, onError, didString) {
+        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.objId, didString]);
+    },
+
+    loadCredential: function(onSuccess, onError, didString, credId) {
+        var credential = new VerifiableCredential();
+
+        var _onSuccess = function(ret) {
+            credential.objId = ret.id;
+            if (onSuccess) onSuccess(credential);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, didString, credId]);
+    },
+
+    storeCredential: function(onSuccess, onError, credentialId) {
+        exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.objId, credentialId]);
+    }
+}
+
 function DIDPlugin() {
     this.DIDStoreFilter = {
         DID_HAS_PRIVATEKEY: 0,
@@ -180,11 +285,24 @@ function DIDPlugin() {
         DID_ALL: 2,
     };
 
+    this.Mnemonic = {
+        ENGLISH: 0,
+        FRENCH: 1,
+        SPANISH: 2,
+        CHINESE_SIMPLIFIED: 3,
+        CHINESE_TRADITIONAL: 4,
+        JAPANESE: 5,
+    }
+
     Object.freeze(DIDPlugin.prototype);
+    Object.freeze(DIDStore.prototype);
     Object.freeze(DIDDocument.prototype);
     Object.freeze(DID.prototype);
     Object.freeze(PublicKey.prototype);
     Object.freeze(VerifiableCredential.prototype);
+
+    Object.freeze(this.DIDStoreFilter);
+    Object.freeze(this.Mnemonic);
 
     exec(function () {}, null, 'DIDPlugin', 'initVal', []);
 }
@@ -197,106 +315,16 @@ DIDPlugin.prototype = {
     },
 
     initDidStore: function(onSuccess, onError, passphrase="") {
-        exec(onSuccess, onError, 'DIDPlugin', 'initDidStore', ["DIDStore", passphrase]);
-    },
-
-    initPrivateIdentity: function(onSuccess, onError, mnemonic, passphrase, storepass, force) {
-        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [mnemonic, passphrase, storepass, force]);
-    },
-
-    hasPrivateIdentity: function(onSuccess, onError) {
-        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', []);
-    },
-
-    deleteDid: function(onSuccess, onError, didString) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
-    },
-
-    newDid: function(onSuccess, onError, passphrase, hint) {
-         var diddoc = new DIDDocument();
-
-         var _onSuccess = function(ret) {
-             diddoc.objId = ret.id;
-             if (onSuccess) onSuccess(diddoc);
-         }
-
-         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, hint]);
-    },
-
-    listDids: function(onSuccess, onError, filter) {
-        exec(onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
-    },
-
-    loadDid: function(onSuccess, onError, didString) {
-         var diddoc = new DIDDocument();
-
-         var _onSuccess = function(ret) {
-             diddoc.objId = ret.id;
-             if (onSuccess) onSuccess(diddoc);
-         }
-
-         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [didString]);
-    },
-
-    publishDid: function(onSuccess, onError, didDocumentId, didUrlString, storepass) {
-        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [didDocumentId, didUrlString, storepass]);
-    },
-
-    resolveDid: function(onSuccess, onError, didString) {
-        var diddoc = new DIDDocument();
+        var didStore = new DIDStore();
 
         var _onSuccess = function(ret) {
-            diddoc.objId = ret.id;
-            if (onSuccess) onSuccess(diddoc);
+            didStore.objId = ret.id;
+            if (onSuccess) onSuccess(didStore);
         }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [didString]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', ["DIDStore", passphrase]);
     },
 
-    storeDid: function(onSuccess, onError, didDocumentId, hint) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocumentId, hint]);
-    },
-
-    updateDid: function(onSuccess, onError, didDocumentId, didUrlString, storepass) {
-        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocumentId, didUrlString, storepass]);
-    },
-
-    CreateCredential: function(onSuccess, onError, didString, credentialId, type, expirationDate, properties, passphrase) {
-        var credential = new VerifiableCredential();
-
-        var _onSuccess = function(ret) {
-            credential.objId = ret.id;
-            if (onSuccess) onSuccess(credential);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-                   [didString, credentialId, type, expirationDate, properties, passphrase]);
-    },
-
-    deleteCredential: function(onSuccess, onError, didString, didUrlString) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [didString, didUrlString]);
-    },
-
-    listCredentials: function(onSuccess, onError, didString) {
-        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [didString]);
-    },
-
-    loadCredential: function(onSuccess, onError, didString, credId) {
-        var credential = new VerifiableCredential();
-
-        var _onSuccess = function(ret) {
-            credential.objId = ret.id;
-            if (onSuccess) onSuccess(credential);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [didString, credId]);
-    },
-
-    storeCredential: function(onSuccess, onError, credentialId) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [credentialId]);
-    },
-
-    CreateDIDDocumentFromJson: function(onSuccess, onError, json) {
+    createDIDDocumentFromJson: function(onSuccess, onError, json) {
         var didDocument = new DIDDocument();
 
         var _onSuccess = function(ret) {
@@ -306,6 +334,15 @@ DIDPlugin.prototype = {
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateDIDDocumentFromJson', [json]);
     },
+
+    generateMnemonic: function(onSuccess, onError, language) {
+        exec(onSuccess, onError, 'DIDPlugin', 'generateMnemonic', [language]);
+    },
+
+    isMnemonicValid: function(onSuccess, onError, language, mnemonic) {
+        exec(onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+    },
+
 }
 
 module.exports = new DIDPlugin();

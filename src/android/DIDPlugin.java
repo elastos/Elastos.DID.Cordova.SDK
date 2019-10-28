@@ -27,6 +27,7 @@ import org.apache.cordova.CallbackContext;
 import org.elastos.credential.Issuer;
 import org.elastos.credential.VerifiableCredential;
 import org.elastos.did.backend.DIDBackend;
+import org.elastos.did.util.Mnemonic;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -47,8 +48,7 @@ import org.elastos.did.*;
 public class DIDPlugin extends TrinityPlugin {
     private static String TAG = "DIDPlugin";
 
-    private DIDStore didStore = null;
-
+    private HashMap<Integer, DIDStore> mDidStoreMap;
     private HashMap<Integer, DIDDocument> mDocumentMap;
     private HashMap<Integer, DID> mDIDMap;
     private HashMap<Integer, PublicKey> mPublicKeyMap;
@@ -77,6 +77,7 @@ public class DIDPlugin extends TrinityPlugin {
     private int errCodeDidException               = 20000;
 
     public DIDPlugin() {
+        mDidStoreMap = new HashMap<>();
         mDocumentMap = new HashMap<>();
         mDIDMap = new HashMap<>();
         mPublicKeyMap = new HashMap<>();
@@ -128,14 +129,21 @@ public class DIDPlugin extends TrinityPlugin {
             case "initDidStore":
                 this.initDidStore(args, callbackContext);
                 break;
+            case "CreateDIDDocumentFromJson":
+                this.CreateDIDDocumentFromJson(args, callbackContext);
+                break;
+            case "generateMnemonic":
+                this.generateMnemonic(args, callbackContext);
+                break;
+            case "isMnemonicValid":
+                this.isMnemonicValid(args, callbackContext);
+                break;
+            //DidStore
             case "hasPrivateIdentity":
                 this.hasPrivateIdentity(args, callbackContext);
                 break;
             case "initPrivateIdentity":
                 this.initPrivateIdentity(args, callbackContext);
-                break;
-            case "CreateDIDDocumentFromJson":
-                this.CreateDIDDocumentFromJson(args, callbackContext);
                 break;
             case "deleteDid":
                 this.deleteDid(args, callbackContext);
@@ -269,34 +277,6 @@ public class DIDPlugin extends TrinityPlugin {
         callbackContext.success(version);
     }
 
-    private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(0);
-        String passphrase = args.getString(1);
-
-        Log.i("DIDPlugin", "dataDir:" + dataDir + " passphrase:" + passphrase);
-
-        try {
-            DIDStore.initialize("filesystem", dataDir, passphrase);
-            didStore = DIDStore.getInstance();
-            callbackContext.success();
-        }
-        catch(DIDException e) {
-            exceptionProcess(e, callbackContext, "initDidStore ");
-        }
-    }
-
-    private void hasPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        try {
-            Boolean ret = didStore.hasPrivateIdentity();
-            JSONObject r = new JSONObject();
-            r.put("result", ret);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "hasPrivateIdentity ");
-        }
-    }
-
     private void CreateDIDDocumentFromJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
         String json = args.getString(0);
 
@@ -314,16 +294,231 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(0);
+        String passphrase = args.getString(1);
+
+        Log.i("DIDPlugin", "dataDir:" + dataDir + " passphrase:" + passphrase);
+
+        try {
+            DIDStore.initialize("filesystem", dataDir, passphrase);
+            DIDStore didStore = DIDStore.getInstance();
+            Integer objId = System.identityHashCode(didStore);
+            mDidStoreMap.put(objId, didStore);
+            JSONObject ret = new JSONObject();
+            ret.put("id", objId);
+            callbackContext.success(ret);
+        }
+        catch(DIDException e) {
+            exceptionProcess(e, callbackContext, "initDidStore ");
+        }
+    }
+
+    private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer language = args.getInt(0);
+        String mnemonic = Mnemonic.generate(language);
+        callbackContext.success(mnemonic);
+    }
+
+    private void isMnemonicValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer language = args.getInt(0);
+        String mnemonic = args.getString(1);
+        Boolean ret = Mnemonic.isValid(language, mnemonic);
+        callbackContext.success(ret.toString());
+    }
+
+    private void hasPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        try {
+            Boolean ret = didStore.hasPrivateIdentity();
+            callbackContext.success(ret.toString());
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "hasPrivateIdentity ");
+        }
+    }
+
+    private void initPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String mnemonic = args.getString(1);
+        String passphrase = args.getString(2);
+        String storepass = args.getString(3);
+        boolean force = args.getBoolean(4);
+
+        try {
+            didStore.initPrivateIdentity(mnemonic, passphrase, storepass, force);
+            callbackContext.success();
+        }
+        catch(DIDException e) {
+            exceptionProcess(e, callbackContext, "initPrivateIdentity ");
+        }
+    }
+
+    private void deleteDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+
+        try {
+            didStore.deleteDid(didString);
+            callbackContext.success();
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "deleteDid ");
+        }
+    }
+
+    private void newDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String passphrase = args.getString(1);
+        String hint = args.getString(2);
+
+        try {
+            DIDDocument didDocument = didStore.newDid(passphrase, hint);
+            Integer objId = System.identityHashCode(didDocument);
+
+            mDocumentMap.put(objId, didDocument);
+            JSONObject r = new JSONObject();
+            r.put("id", objId);
+            callbackContext.success(r);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "newDid ");
+        }
+    }
+
+    private void loadDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+
+        try {
+            DIDDocument didDocument = didStore.loadDid(didString);
+            Integer objId = System.identityHashCode(didDocument);
+
+            mDocumentMap.put(objId, didDocument);
+            JSONObject r = new JSONObject();
+            r.put("id", objId);
+            callbackContext.success(r);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "loadDid ");
+        }
+    }
+
+    private void listDids(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        Integer filter = args.getInt(1);
+
+        try {
+            List<DIDStore.Entry<DID, String>> dids = didStore.listDids(filter);
+
+            JSONObject r = JSONObjectHolder.getDIDsInfoJson(dids);
+            callbackContext.success(r);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "listDids ");
+        }
+    }
+
+    private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        Integer didId = args.getInt(1);
+        DIDDocument didDocument = mDocumentMap.get(didId);
+        String didUrlString = args.getString(2);
+        String storepass = args.getString(3);
+
+        try {
+            DIDURL signKey = new DIDURL(didUrlString);
+            boolean ret = didStore.publishDid(didDocument, signKey, storepass);
+            if (ret) {
+                callbackContext.success();
+            }
+            else {
+                errorProcess(callbackContext, errCodePublishDid, "publishDid return false!");
+            }
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "publishDid ");
+        }
+    }
+
+    private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+
+        try {
+            DID did = new DID(didString);
+            DIDDocument didDocument = didStore.resolveDid(did);
+            Integer objId = System.identityHashCode(did);
+
+            mDocumentMap.put(objId, didDocument);
+            JSONObject r = new JSONObject();
+            r.put("id", objId);
+            callbackContext.success(r);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "resolveDid ");
+        }
+    }
+
+    private void storeDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        Integer didId = args.getInt(1);
+        DIDDocument didDocument = mDocumentMap.get(didId);
+        String hint = args.getString(2);
+
+        try {
+            didStore.storeDid(didDocument, hint);
+            callbackContext.success("true");
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "storeDid ");
+        }
+    }
+
+    private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        Integer didId = args.getInt(1);
+        DIDDocument didDocument = mDocumentMap.get(didId);
+        String didUrlString = args.getString(2);
+        String storepass = args.getString(3);
+
+        try {
+            DIDURL signKey = new DIDURL(didUrlString);
+            boolean ret = didStore.updateDid(didDocument, signKey, storepass);
+            if (ret) {
+                callbackContext.success();
+            }
+            else {
+                errorProcess(callbackContext, errCodeUpdateDid, "updateDid return false!");
+            }
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "updateDid ");
+        }
+    }
+
     private void CreateCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-        String credentialId = args.getString(1);
-        JSONArray type = args.getJSONArray(2);
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+        String credentialId = args.getString(2);
+        JSONArray type = args.getJSONArray(3);
         String[] typeArray = JSONArray2Array(type);
 
-        Integer year = args.getInt(3);
-        JSONObject properties = args.getJSONObject(4);
+        Integer year = args.getInt(4);
+        JSONObject properties = args.getJSONObject(5);
         Map<String, String> props = JSONObject2Map(properties);
-        String passphrase = args.getString(5);
+        String passphrase = args.getString(6);
 
         try {
             DID did = new DID(didString);
@@ -352,159 +547,11 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
-    private void initPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String mnemonic = args.getString(0);
-        String passphrase = args.getString(1);
-        String storepass = args.getString(2);
-        boolean force = args.getBoolean(3);
-
-        try {
-            didStore.initPrivateIdentity(mnemonic, passphrase, storepass, force);
-            callbackContext.success();
-        }
-        catch(DIDException e) {
-            exceptionProcess(e, callbackContext, "initPrivateIdentity ");
-        }
-    }
-
-    private void deleteDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-
-        try {
-            didStore.deleteDid(didString);
-            callbackContext.success();
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "deleteDid ");
-        }
-    }
-
-    private void newDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String passphrase = args.getString(0);
-        String hint = args.getString(1);
-
-        try {
-            DIDDocument didDocument = didStore.newDid(passphrase, hint);
-            Integer objId = System.identityHashCode(didDocument);
-
-            mDocumentMap.put(objId, didDocument);
-            JSONObject r = new JSONObject();
-            r.put("id", objId);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "newDid ");
-        }
-    }
-
-    private void loadDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-
-        try {
-            DIDDocument didDocument = didStore.loadDid(didString);
-            Integer objId = System.identityHashCode(didDocument);
-
-            mDocumentMap.put(objId, didDocument);
-            JSONObject r = new JSONObject();
-            r.put("id", objId);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "loadDid ");
-        }
-    }
-
-    private void listDids(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer filter = args.getInt(0);
-
-        try {
-            List<DIDStore.Entry<DID, String>> dids = didStore.listDids(filter);
-
-            JSONObject r = JSONObjectHolder.getDIDsInfoJson(dids);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "listDids ");
-        }
-    }
-
-    private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer didId = args.getInt(0);
-        DIDDocument didDocument = mDocumentMap.get(didId);
-        String didUrlString = args.getString(1);
-        String storepass = args.getString(2);
-
-        try {
-            DIDURL signKey = new DIDURL(didUrlString);
-            boolean ret = didStore.publishDid(didDocument, signKey, storepass);
-            if (ret) {
-                callbackContext.success();
-            }
-            else {
-                errorProcess(callbackContext, errCodePublishDid, "publishDid return false!");
-            }
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "publishDid ");
-        }
-    }
-
-    private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-
-        try {
-            DID did = new DID(didString);
-            DIDDocument didDocument = didStore.resolveDid(did);
-            Integer objId = System.identityHashCode(did);
-
-            mDocumentMap.put(objId, didDocument);
-            JSONObject r = new JSONObject();
-            r.put("id", objId);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "resolveDid ");
-        }
-    }
-
-    private void storeDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer didId = args.getInt(0);
-        DIDDocument didDocument = mDocumentMap.get(didId);
-        String hint = args.getString(1);
-
-        try {
-            didStore.storeDid(didDocument, hint);
-            callbackContext.success("true");
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "storeDid ");
-        }
-    }
-
-    private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer didId = args.getInt(0);
-        DIDDocument didDocument = mDocumentMap.get(didId);
-        String didUrlString = args.getString(1);
-        String storepass = args.getString(2);
-
-        try {
-            DIDURL signKey = new DIDURL(didUrlString);
-            boolean ret = didStore.updateDid(didDocument, signKey, storepass);
-            if (ret) {
-                callbackContext.success();
-            }
-            else {
-                errorProcess(callbackContext, errCodeUpdateDid, "updateDid return false!");
-            }
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "updateDid ");
-        }
-    }
-
     private void loadCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-        String credId = args.getString(1);
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+        String credId = args.getString(2);
 
         try {
             VerifiableCredential vc = didStore.loadCredential(didString, didString + "#" + credId);
@@ -521,7 +568,9 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void storeCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer credentialId = args.getInt(0);
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        Integer credentialId = args.getInt(1);
         VerifiableCredential credential = mCredentialMap.get(credentialId);
 
         try {
@@ -534,8 +583,10 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
-        String didUrlString = args.getString(1);
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
+        String didUrlString = args.getString(2);
 
         try {
             boolean ret = didStore.deleteCredential(didString, didUrlString);
@@ -552,7 +603,9 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void listCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didString = args.getString(0);
+        Integer id = args.getInt(0);
+        DIDStore didStore = mDidStoreMap.get(id);
+        String didString = args.getString(1);
 
         try {
             DID did = new DID(didString);
