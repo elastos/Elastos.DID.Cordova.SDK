@@ -380,9 +380,13 @@ public class DIDPlugin extends TrinityPlugin {
             DIDDocument didDocument = didStore.newDid(passphrase, hint);
             Integer objId = System.identityHashCode(didDocument);
 
+            DID did = didDocument.getSubject();
+            String didString = did.toString();
+
             mDocumentMap.put(objId, didDocument);
             JSONObject r = new JSONObject();
             r.put("id", objId);
+            r.put("DidString", didString);
             callbackContext.success(r);
         }
         catch (DIDException e) {

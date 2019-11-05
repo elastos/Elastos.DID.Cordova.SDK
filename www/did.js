@@ -109,6 +109,7 @@ DID.prototype = {
 function DIDDocument() {
     this.objId  = null;
     this.clazz  = 2;
+    this.DidString = "";
 }
 
 DIDDocument.prototype = {
@@ -198,6 +199,7 @@ DIDStore.prototype = {
 
          var _onSuccess = function(ret) {
              diddoc.objId = ret.id;
+             diddoc.DidString = ret.DidString;
              if (onSuccess) onSuccess(diddoc);
          }
 
@@ -242,7 +244,7 @@ DIDStore.prototype = {
         exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocumentId, didUrlString, storepass]);
     },
 
-    CreateCredential: function(onSuccess, onError, didString, credentialId, type, expirationDate, properties, passphrase) {
+    createCredential: function(onSuccess, onError, didString, credentialId, type, expirationDate, properties, passphrase) {
         var credential = new VerifiableCredential();
 
         var _onSuccess = function(ret) {
@@ -314,7 +316,7 @@ DIDPlugin.prototype = {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     },
 
-    initDidStore: function(onSuccess, onError, passphrase="") {
+    initDidStore: function(onSuccess, onError, passphrase) {
         var didStore = new DIDStore();
 
         var _onSuccess = function(ret) {
