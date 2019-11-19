@@ -199,7 +199,7 @@ DIDStore.prototype = {
 
          var _onSuccess = function(ret) {
              diddoc.objId = ret.id;
-             diddoc.DidString = ret.DidString;
+             diddoc.did = ret.did;
              if (onSuccess) onSuccess(diddoc);
          }
 
@@ -264,15 +264,16 @@ DIDStore.prototype = {
         exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.objId, didString]);
     },
 
-    loadCredential: function(onSuccess, onError, didString, credId) {
+    loadCredential: function(onSuccess, onError, didString, didUrlString) {
         var credential = new VerifiableCredential();
 
         var _onSuccess = function(ret) {
             credential.objId = ret.id;
+            credential.info = ret;
             if (onSuccess) onSuccess(credential);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, didString, credId]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, didString, didUrlString]);
     },
 
     storeCredential: function(onSuccess, onError, credentialId) {
@@ -316,14 +317,14 @@ DIDPlugin.prototype = {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     },
 
-    initDidStore: function(onSuccess, onError, passphrase) {
+    initDidStore: function(onSuccess, onError, location, passphrase) {
         var didStore = new DIDStore();
 
         var _onSuccess = function(ret) {
             didStore.objId = ret.id;
             if (onSuccess) onSuccess(didStore);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', ["DIDStore", passphrase]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [location, passphrase]);
     },
 
     createDIDDocumentFromJson: function(onSuccess, onError, json) {

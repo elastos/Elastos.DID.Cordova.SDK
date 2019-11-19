@@ -386,7 +386,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDocumentMap.put(objId, didDocument);
             JSONObject r = new JSONObject();
             r.put("id", objId);
-            r.put("DidString", didString);
+            r.put("did", didString);
             callbackContext.success(r);
         }
         catch (DIDException e) {
@@ -555,15 +555,31 @@ public class DIDPlugin extends TrinityPlugin {
         Integer id = args.getInt(0);
         DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(1);
-        String credId = args.getString(2);
+        String didUrlString = args.getString(2);
 
         try {
-            VerifiableCredential vc = didStore.loadCredential(didString, didString + "#" + credId);
+            VerifiableCredential vc = didStore.loadCredential(didString, didUrlString);
             Integer objId = System.identityHashCode(vc);
+
+            DIDURL didUrl = vc.getId();
+            String fragment = didUrl.getFragment();
+
+            String type = vc.getType();
+            Date issuance = vc.getIssuanceDate();
+            Date expiration = vc.getExpirationDate();
+
+            VerifiableCredential.CredentialSubject cs = vc.getSubject();
+            Map<String, String> props = cs.getProperties();
+            JSONObject info = new JSONObject(props);
 
             mCredentialMap.put(objId, vc);
             JSONObject ret= new JSONObject();
             ret.put("id", objId);
+            ret.put("fragment", fragment);
+            ret.put("type", type);
+            ret.put("issuance", issuance.toString());
+            ret.put("expiration", expiration.toString());
+            ret.put("props", info);
             callbackContext.success(ret);
         }
         catch (DIDException e) {
