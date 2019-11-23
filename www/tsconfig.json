@@ -16,8 +16,7 @@
       ],
       "types": [
       ],
-      "outDir": ".",
-      "noImplicitAny": true
+      "outDir": "."
     },
     "include": [
       "*.ts"
