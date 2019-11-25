@@ -2,7 +2,7 @@
 <plugin id="elastos-trinity-plugins-did" version="0.0.1" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>DID</name>
     <js-module name="DIDPlugin" src="www/did.js">
-        <clobbers target="DIDPlugin" />
+        <clobbers target="didManager" />
     </js-module>
     <platform name="android">
         <config-file target="config.xml" parent="/*">
