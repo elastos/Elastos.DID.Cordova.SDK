@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
- declare module DID {
+ declare module DIDPlugin {
     type DIDStoreFilter = {
         DID_HAS_PRIVATEKEY: 0,
         DID_NO_PRIVATEKEY: 1,
@@ -93,7 +93,7 @@
         storeCredential: (credentialId: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
     }
 
-    interface DIDPlugin {
+    interface DIDManager {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getVersion: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         initDidStore: (location: string, passphrase: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;

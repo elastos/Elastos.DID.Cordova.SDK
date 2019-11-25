@@ -22,7 +22,7 @@
 
 var exec = cordova.exec;
 
-class VerifiableCredentialImpl implements DID.VerifiableCredential {
+class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     objId = null;
     clazz = 5;
     info: any = null;
@@ -52,18 +52,18 @@ class VerifiableCredentialImpl implements DID.VerifiableCredential {
     }
 }
 
-class PublicKeyImpl implements DID.PublicKey {
+class PublicKeyImpl implements DIDPlugin.PublicKey {
     objId = null;
     clazz = 4;
-    plugin: DID.DIDPlugin = null;
+    manager: DIDPlugin.DIDManager = null;
 
     getController(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         var did = new DIDImpl();
-        var plugin = this.plugin;
+        var manager = this.manager;
 
         var _onSuccess = function(ret) {
             did.objId = ret.id;
-            did.plugin = plugin;
+            did.manager = manager;
             if (onSuccess) onSuccess(did);
         }
 
@@ -75,10 +75,10 @@ class PublicKeyImpl implements DID.PublicKey {
     }
 }
 
-class DIDImpl implements DID.DID {
+class DIDImpl implements DIDPlugin.DID {
     objId = null;
     clazz = 3;
-    plugin: DID.DIDPlugin = null;
+    manager: DIDPlugin.DIDManager = null;
 
     getMethod(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getMethod', [this.objId]);
@@ -97,12 +97,12 @@ class DIDImpl implements DID.DID {
     }
 }
 
-class DIDDocumentImpl implements DID.DIDDocument {
+class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     objId  = null;
     clazz  = 2;
     DidString = "";
-    plugin: DID.DIDPlugin = null;
-    did: DID.DID = null;
+    manager: DIDPlugin.DIDManager = null;
+    did: DIDPlugin.DID = null;
 
     setSubject(subject: any, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'setSubject', [this.objId, subject]);
@@ -110,11 +110,11 @@ class DIDDocumentImpl implements DID.DIDDocument {
 
     getSubject(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         var did = new DIDImpl();
-        var plugin = this.plugin;
+        var manager = this.manager;
 
         var _onSuccess = function(ret) {
             did.objId = ret.id;
-            did.plugin = plugin;
+            did.manager = manager;
             if (onSuccess) onSuccess(did);
         }
 
@@ -131,11 +131,11 @@ class DIDDocumentImpl implements DID.DIDDocument {
 
     getPublicKey(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         var publicKey = new PublicKeyImpl();
-        var plugin = this.plugin;
+        var manager = this.manager;
 
         var _onSuccess = function(ret) {
             publicKey.objId = ret.id;
-            publicKey.plugin = plugin;
+            publicKey.manager = manager;
             if (onSuccess) onSuccess(publicKey);
         }
 
@@ -163,7 +163,7 @@ class DIDDocumentImpl implements DID.DIDDocument {
     }
 }
 
-class DIDStoreImpl implements DID.DIDStore {
+class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
     clazz  = 1;
 
@@ -266,9 +266,9 @@ class DIDStoreImpl implements DID.DIDStore {
     }
 }
 
-class DIDPluginImpl implements DID.DIDPlugin {
+class DIDManagerImpl implements DIDPlugin.DIDManager {
     constructor() {
-        Object.freeze(DIDPluginImpl.prototype);
+        Object.freeze(DIDManagerImpl.prototype);
         Object.freeze(DIDStoreImpl.prototype);
         Object.freeze(DIDDocumentImpl.prototype);
         Object.freeze(DIDImpl.prototype);
@@ -312,4 +312,4 @@ class DIDPluginImpl implements DID.DIDPlugin {
     }
 }
 
-export = new DIDPluginImpl();
+export = new DIDManagerImpl();
