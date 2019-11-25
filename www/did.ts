@@ -22,7 +22,7 @@
 
 var exec = cordova.exec;
 
-class VerifiableCredentialImpl implements VerifiableCredential {
+class VerifiableCredentialImpl implements DID.VerifiableCredential {
     objId = null;
     clazz = 5;
     info: any = null;
@@ -52,10 +52,10 @@ class VerifiableCredentialImpl implements VerifiableCredential {
     }
 }
 
-class PublicKeyImpl implements PublicKey {
+class PublicKeyImpl implements DID.PublicKey {
     objId = null;
     clazz = 4;
-    plugin: DIDPlugin = null;
+    plugin: DID.DIDPlugin = null;
 
     getController(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         var did = new DIDImpl();
@@ -75,10 +75,10 @@ class PublicKeyImpl implements PublicKey {
     }
 }
 
-class DIDImpl implements DID {
+class DIDImpl implements DID.DID {
     objId = null;
     clazz = 3;
-    plugin: DIDPlugin = null;
+    plugin: DID.DIDPlugin = null;
 
     getMethod(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getMethod', [this.objId]);
@@ -97,12 +97,12 @@ class DIDImpl implements DID {
     }
 }
 
-class DIDDocumentImpl implements DIDDocument {
+class DIDDocumentImpl implements DID.DIDDocument {
     objId  = null;
     clazz  = 2;
     DidString = "";
-    plugin: DIDPlugin = null;
-    did: DID = null;
+    plugin: DID.DIDPlugin = null;
+    did: DID.DID = null;
 
     setSubject(subject: any, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'setSubject', [this.objId, subject]);
@@ -163,7 +163,7 @@ class DIDDocumentImpl implements DIDDocument {
     }
 }
 
-class DIDStoreImpl implements DIDStore {
+class DIDStoreImpl implements DID.DIDStore {
     objId  = null;
     clazz  = 1;
 
@@ -266,7 +266,7 @@ class DIDStoreImpl implements DIDStore {
     }
 }
 
-class DIDPluginImpl implements DIDPlugin {
+class DIDPluginImpl implements DID.DIDPlugin {
     constructor() {
         Object.freeze(DIDPluginImpl.prototype);
         Object.freeze(DIDStoreImpl.prototype);
