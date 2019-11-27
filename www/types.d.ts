@@ -21,19 +21,19 @@
  */
 
  declare module DIDPlugin {
-    type DIDStoreFilter = {
-        DID_HAS_PRIVATEKEY: 0,
-        DID_NO_PRIVATEKEY: 1,
-        DID_ALL: 2
+    const enum DIDStoreFilter {
+        DID_HAS_PRIVATEKEY = 0,
+        DID_NO_PRIVATEKEY = 1,
+        DID_ALL = 2
     }
 
-    type Mnemonic = {
-        ENGLISH: 0,
-        FRENCH: 1,
-        SPANISH: 2,
-        CHINESE_SIMPLIFIED: 3,
-        CHINESE_TRADITIONAL: 4,
-        JAPANESE: 5
+    const enum Mnemonic {
+        ENGLISH = 0,
+        FRENCH = 1,
+        SPANISH = 2,
+        CHINESE_SIMPLIFIED = 3,
+        CHINESE_TRADITIONAL = 4,
+        JAPANESE = 5
     }
 
     interface VerifiableCredential {
