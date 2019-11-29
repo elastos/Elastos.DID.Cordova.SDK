@@ -50,6 +50,10 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     getProperties(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getProperties', [this.objId]);
     }
+
+    toString(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'credential2string', [this.objId]);
+    }
 }
 
 class PublicKeyImpl implements DIDPlugin.PublicKey {
@@ -274,7 +278,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(DIDImpl.prototype);
         Object.freeze(PublicKeyImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
-    
+
         exec(function () {}, null, 'DIDPlugin', 'initVal', []);
     }
 

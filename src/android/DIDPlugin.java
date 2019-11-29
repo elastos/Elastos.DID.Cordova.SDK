@@ -242,6 +242,9 @@ public class DIDPlugin extends TrinityPlugin {
             case "getProperties":
                 this.getProperties(args, callbackContext);
                 break;
+            case "credential2string":
+                this.credential2string(args, callbackContext);
+                break;
             default:
                 errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
                 return false;
@@ -823,5 +826,11 @@ public class DIDPlugin extends TrinityPlugin {
         Map<String, String> props = cs.getProperties();
         JSONObject r = new JSONObject(props);
         callbackContext.success(r);
+    }
+
+    private void credential2string(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        Integer id = args.getInt(0);
+        VerifiableCredential credential = mCredentialMap.get(id);
+        callbackContext.success(credential.toString());
     }
 }

@@ -44,6 +44,7 @@
         getIssuanceDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getExpirationDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getProperties: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface PublicKey {
