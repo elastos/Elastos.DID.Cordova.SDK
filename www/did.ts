@@ -171,12 +171,12 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
     clazz  = 1;
 
-    initPrivateIdentity(mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, mnemonic, passphrase, storepass, force]);
+    initPrivateIdentity(language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
     }
 
     hasPrivateIdentity(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', [this.objId, ]);
+        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', [this.objId]);
     }
 
     deleteDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
@@ -242,7 +242,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-                   [this.objId, didString, credentialId, type, expirationDate, properties, passphrase]);
+                   [didString, credentialId, type, expirationDate, properties, passphrase]);
     }
 
     deleteCredential(didString: string, didUrlString: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
@@ -286,14 +286,14 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     }
 
-    initDidStore(location: string, passphrase: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void) {
+    initDidStore(location: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void) {
         var didStore = new DIDStoreImpl();
 
         var _onSuccess = function(ret: any) {
             didStore.objId = ret.id;
             if (onSuccess) onSuccess(didStore);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [location, passphrase]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [location]);
     }
 
     createDIDDocumentFromJson(json: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void){

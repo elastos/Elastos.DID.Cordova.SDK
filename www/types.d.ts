@@ -77,7 +77,7 @@
 
     interface DIDStore {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        initPrivateIdentity: (mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        initPrivateIdentity: (language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         hasPrivateIdentity: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         newDid: (passphrase: string, hint: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
@@ -97,7 +97,7 @@
     interface DIDManager {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getVersion: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        initDidStore: (location: string, passphrase: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        initDidStore: (location: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
         createDIDDocumentFromJson: (json: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
         generateMnemonic: (language: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
         isMnemonicValid: (language: any, mnemonic: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type

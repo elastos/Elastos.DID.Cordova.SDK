@@ -26,13 +26,13 @@ import java.io.IOException;
 
 import org.elastos.did.DIDException;
 import org.elastos.did.MalformedDocumentException;
-import org.elastos.did.backend.DIDAdaptor;
+import org.elastos.did.DIDAdapter;
 import org.elastos.did.util.Base64;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class FakeConsoleAdaptor implements DIDAdaptor {
+public class FakeConsoleAdaptor implements DIDAdapter {
 	@Override
 	public boolean createIdTransaction(String payload, String memo)
 			throws DIDException {

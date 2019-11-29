@@ -27,7 +27,7 @@ import org.apache.cordova.CallbackContext;
 import org.elastos.credential.Issuer;
 import org.elastos.credential.VerifiableCredential;
 import org.elastos.did.backend.DIDBackend;
-import org.elastos.did.util.Mnemonic;
+import org.elastos.did.Mnemonic;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,7 +83,7 @@ public class DIDPlugin extends TrinityPlugin {
         mPublicKeyMap = new HashMap<>();
         mCredentialMap = new HashMap<>();
 
-        DIDBackend.initialize(new FakeConsoleAdaptor());
+//        DIDBackend.initialize(new FakeConsoleAdaptor());
     }
 
     private void exceptionProcess(DIDException e, CallbackContext cc, String msg) throws JSONException {
@@ -281,7 +281,13 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void CreateDIDDocumentFromJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String json = args.getString(0);
+        int idx = 0;
+        String json = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DIDDocument didDocument = DIDDocument.fromJson(json);
@@ -298,13 +304,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(0);
-        String passphrase = args.getString(1);
+        int idx = 0;
+        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
 
-        Log.i("DIDPlugin", "dataDir:" + dataDir + " passphrase:" + passphrase);
-
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
         try {
-            DIDStore.initialize("filesystem", dataDir, passphrase);
+            DIDStore.initialize("filesystem", dataDir, new FakeConsoleAdaptor());
             DIDStore didStore = DIDStore.getInstance();
             Integer objId = System.identityHashCode(didStore);
             mDidStoreMap.put(objId, didStore);
@@ -318,21 +326,37 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer language = args.getInt(0);
+        int idx = 0;
+        Integer language = args.getInt(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
         String mnemonic = Mnemonic.generate(language);
         callbackContext.success(mnemonic);
     }
 
     private void isMnemonicValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer language = args.getInt(0);
-        String mnemonic = args.getString(1);
+        int idx = 0;
+        Integer language = args.getInt(idx++);
+        String mnemonic = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
         Boolean ret = Mnemonic.isValid(language, mnemonic);
         callbackContext.success(ret.toString());
     }
 
     private void hasPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
+
         try {
             Boolean ret = didStore.hasPrivateIdentity();
             callbackContext.success(ret.toString());
@@ -343,15 +367,23 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void initPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String mnemonic = args.getString(1);
-        String passphrase = args.getString(2);
-        String storepass = args.getString(3);
-        boolean force = args.getBoolean(4);
+        int language = args.getInt(idx++);
+        String mnemonic = args.getString(idx++);
+        String passphrase = args.getString(idx++);
+        String storepass = args.getString(idx++);
+        boolean force = args.getBoolean(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
-            didStore.initPrivateIdentity(mnemonic, passphrase, storepass, force);
+            didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
             callbackContext.success();
         }
         catch(DIDException e) {
@@ -360,9 +392,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void deleteDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             didStore.deleteDid(didString);
@@ -374,10 +412,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void newDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String passphrase = args.getString(1);
-        String hint = args.getString(2);
+        String passphrase = args.getString(idx++);
+        String hint = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DIDDocument didDocument = didStore.newDid(passphrase, hint);
@@ -398,9 +442,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void loadDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DIDDocument didDocument = didStore.loadDid(didString);
@@ -417,9 +467,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void listDids(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer filter = args.getInt(1);
+        Integer filter = args.getInt(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             List<DIDStore.Entry<DID, String>> dids = didStore.listDids(filter);
@@ -433,12 +489,18 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer didId = args.getInt(1);
+        Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
-        String didUrlString = args.getString(2);
-        String storepass = args.getString(3);
+        String didUrlString = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DIDURL signKey = new DIDURL(didUrlString);
@@ -456,9 +518,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DID did = new DID(didString);
@@ -476,11 +544,17 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void storeDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer didId = args.getInt(1);
+        Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
-        String hint = args.getString(2);
+        String hint = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             didStore.storeDid(didDocument, hint);
@@ -492,12 +566,18 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer didId = args.getInt(1);
+        Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
-        String didUrlString = args.getString(2);
-        String storepass = args.getString(3);
+        String didUrlString = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DIDURL signKey = new DIDURL(didUrlString);
@@ -515,17 +595,21 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void CreateCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
-        String credentialId = args.getString(2);
-        JSONArray type = args.getJSONArray(3);
+        int idx = 0;
+        String didString = args.getString(idx++);
+        String credentialId = args.getString(idx++);
+        JSONArray type = args.getJSONArray(idx++);
         String[] typeArray = JSONArray2Array(type);
 
-        Integer year = args.getInt(4);
-        JSONObject properties = args.getJSONObject(5);
+        Integer year = args.getInt(idx++);
+        JSONObject properties = args.getJSONObject(idx++);
         Map<String, String> props = JSONObject2Map(properties);
-        String passphrase = args.getString(6);
+        String passphrase = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DID did = new DID(didString);
@@ -555,10 +639,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void loadCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
-        String didUrlString = args.getString(2);
+        String didString = args.getString(idx++);
+        String didUrlString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             VerifiableCredential vc = didStore.loadCredential(didString, didUrlString);
@@ -591,10 +681,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void storeCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer credentialId = args.getInt(1);
+        Integer credentialId = args.getInt(idx++);
         VerifiableCredential credential = mCredentialMap.get(credentialId);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             didStore.storeCredential(credential);
@@ -606,10 +702,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
-        String didUrlString = args.getString(2);
+        String didString = args.getString(idx++);
+        String didUrlString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             boolean ret = didStore.deleteCredential(didString, didUrlString);
@@ -626,9 +728,15 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void listCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        String didString = args.getString(1);
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         try {
             DID did = new DID(didString);
@@ -643,8 +751,10 @@ public class DIDPlugin extends TrinityPlugin {
 
     // DIDDocument
     private void getSubject(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(id);
+
         try {
             DID did = didDocument.getSubject();
             Integer objId = System.identityHashCode(did);
@@ -660,15 +770,23 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void getPublicKeyCount(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(id);
         Integer keyCount = didDocument.getPublicKeyCount();
         callbackContext.success(keyCount);
     }
 
     private void getPublicKey(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        String didString = args.getString(1);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
         try {
             DIDDocument didDocument = mDocumentMap.get(id);
             PublicKey publicKey = didDocument.getPublicKey(didString);
@@ -706,10 +824,11 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(id);
 
-        Integer credentialId = args.getInt(1);
+        Integer credentialId = args.getInt(idx++);
         VerifiableCredential vc = mCredentialMap.get(credentialId);
         didDocument.addCredential(vc);
 
@@ -717,22 +836,34 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
-        Integer id = args.getInt(0);
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(id);
 
-        String storepass = args.getString(1);
-        String originString = args.getString(2);
+        String storepass = args.getString(idx++);
+        String originString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         String signString = didDocument.sign(storepass, originString.getBytes());
         callbackContext.success(signString);
     }
 
-    private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
-        Integer id = args.getInt(0);
+    private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDException {
+        int idx = 0;
+        Integer id = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(id);
 
-        String signString = args.getString(1);
-        String originString = args.getString(2);
+        String signString = args.getString(idx++);
+        String originString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
         boolean ret = didDocument.verify(signString, originString.getBytes());
         if (ret) {
