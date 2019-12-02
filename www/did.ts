@@ -57,7 +57,7 @@ class DIDImpl implements DIDPlugin.DID {
 
         var _onSuccess = function(ret) {
             credential.objId = ret.id;
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(credential);
         }
 
@@ -66,11 +66,11 @@ class DIDImpl implements DIDPlugin.DID {
     }
 
     deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.objId, this.didString, credentialId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.didString, credentialId]);
     }
 
     listCredentials(onSuccess: (credentials: DIDPlugin.VerifiableCredential[])=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.objId, this.didString]);
+        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.didString]);
     }
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
@@ -79,16 +79,16 @@ class DIDImpl implements DIDPlugin.DID {
         var _onSuccess = function(ret) {
             credential.objId = ret.id;
             credential.info = ret;
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(credential);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, this.didString, credentialId]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.didString, credentialId]);
     }
 
     storeCredential(credential: DIDPlugin.VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void) {
         credential.toString((credentialJson)=>{
-            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.objId, credentialJson]);
+            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [credentialJson]);
         }, (err)=> {
             onerror(err);
         });
@@ -174,15 +174,15 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     initPrivateIdentity(language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
+        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [language, mnemonic, passphrase, storepass, force]);
     }
 
     hasPrivateIdentity(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', [this.objId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', []);
     }
 
     deleteDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [this.objId, didString]);
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
     }
 
     newDid(passphrase: string, hint: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
@@ -194,11 +194,11 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
              if (onSuccess) onSuccess(diddoc);
          }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, hint]);
+         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, hint]);
     }
 
     listDids(filter: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'listDids', [this.objId, filter]);
+        exec(onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
     }
 
     loadDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
@@ -209,11 +209,11 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
              if (onSuccess) onSuccess(diddoc);
          }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
+         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [didString]);
     }
 
     publishDid(didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.objId, didDocumentId, didUrlString, storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [didDocumentId, didUrlString, storepass]);
     }
 
     resolveDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
@@ -224,15 +224,15 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
             if (onSuccess) onSuccess(diddoc);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [this.objId, didString]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [didString]);
     }
 
     storeDid(didDocumentId: string, hint: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [this.objId, didDocumentId, hint]);
+        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocumentId, hint]);
     }
 
     updateDid(didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocumentId, didUrlString, storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocumentId, didUrlString, storepass]);
     }
 }
 
@@ -256,8 +256,8 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         var didStore = new DIDStoreImpl();
 
         var _onSuccess = function(ret: any) {
-            didStore.objId = ret.id;
-            if (onSuccess) 
+            // didStore.objId = ret.id;
+            if (onSuccess)
                 onSuccess(didStore);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [location]);
@@ -268,7 +268,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 
         var _onSuccess = function(ret) {
             didDocument.objId = ret.id;
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(didDocument);
         }
 
@@ -341,7 +341,7 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
         var manager = this.manager;
 
         var _onSuccess = function(ret) {
-            var did = new DIDImpl(ret.didstring);        
+            var did = new DIDImpl(ret.didstring);
             did.objId = ret.id;
             did.manager = manager;
             if (onSuccess) onSuccess(did);

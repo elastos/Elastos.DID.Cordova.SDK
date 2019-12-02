@@ -58,7 +58,7 @@ declare module DIDPlugin {
     }
 
     /**
-     * This is the most usual format when talking about DIDs. 
+     * This is the most usual format when talking about DIDs.
      * Format: did:elastos:abcdef
      */
     type DIDString = string;
@@ -90,10 +90,10 @@ declare module DIDPlugin {
         toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
 
         /**
-         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to 
+         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
          * a student). After this credential is issued locally on the issuer's device, it can be shared to the
          * subject, and the subject can add it to his DIDStore.
-         * 
+         *
          * @param subjectDID DIDString of the target subject that will own this credential.
          * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
          * @param types List of credential type names that help categorizing this credential.

@@ -26,7 +26,6 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.elastos.credential.Issuer;
 import org.elastos.credential.VerifiableCredential;
-import org.elastos.did.backend.DIDBackend;
 import org.elastos.did.Mnemonic;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
@@ -48,7 +47,8 @@ import org.elastos.did.*;
 public class DIDPlugin extends TrinityPlugin {
     private static String TAG = "DIDPlugin";
 
-    private HashMap<Integer, DIDStore> mDidStoreMap;
+    private DIDStore didStore = null;
+
     private HashMap<Integer, DIDDocument> mDocumentMap;
     private HashMap<Integer, DID> mDIDMap;
     private HashMap<Integer, PublicKey> mPublicKeyMap;
@@ -77,13 +77,10 @@ public class DIDPlugin extends TrinityPlugin {
     private int errCodeDidException               = 20000;
 
     public DIDPlugin() {
-        mDidStoreMap = new HashMap<>();
         mDocumentMap = new HashMap<>();
         mDIDMap = new HashMap<>();
         mPublicKeyMap = new HashMap<>();
         mCredentialMap = new HashMap<>();
-
-//        DIDBackend.initialize(new FakeConsoleAdaptor());
     }
 
     private void exceptionProcess(DIDException e, CallbackContext cc, String msg) throws JSONException {
@@ -313,12 +310,8 @@ public class DIDPlugin extends TrinityPlugin {
         }
         try {
             DIDStore.initialize("filesystem", dataDir, new FakeConsoleAdaptor());
-            DIDStore didStore = DIDStore.getInstance();
-            Integer objId = System.identityHashCode(didStore);
-            mDidStoreMap.put(objId, didStore);
-            JSONObject ret = new JSONObject();
-            ret.put("id", objId);
-            callbackContext.success(ret);
+            didStore = DIDStore.getInstance();
+            callbackContext.success();
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
@@ -353,10 +346,6 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void hasPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
-
         try {
             Boolean ret = didStore.hasPrivateIdentity();
             callbackContext.success(ret.toString());
@@ -368,9 +357,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void initPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         int language = args.getInt(idx++);
         String mnemonic = args.getString(idx++);
         String passphrase = args.getString(idx++);
@@ -393,8 +379,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void deleteDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -413,8 +397,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void newDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String passphrase = args.getString(idx++);
         String hint = args.getString(idx++);
 
@@ -443,8 +425,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void loadDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -468,8 +448,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void listDids(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         Integer filter = args.getInt(idx++);
 
         if (args.length() != idx) {
@@ -490,8 +468,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
         String didUrlString = args.getString(idx++);
@@ -519,8 +495,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -545,8 +519,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void storeDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
         String hint = args.getString(idx++);
@@ -567,8 +539,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
         String didUrlString = args.getString(idx++);
@@ -640,8 +610,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void loadCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
         String didUrlString = args.getString(idx++);
 
@@ -682,8 +650,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void storeCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String credentialJson = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -699,15 +665,10 @@ public class DIDPlugin extends TrinityPlugin {
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "storeCredential ");
         }
-        catch (JSONException e) {
-            exceptionProcess(e, callbackContext, "storeCredential ");
-        }
     }
 
     private void deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
         String didUrlString = args.getString(idx++);
 
@@ -732,8 +693,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void listCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDStore didStore = mDidStoreMap.get(id);
         String didString = args.getString(idx++);
 
         if (args.length() != idx) {
