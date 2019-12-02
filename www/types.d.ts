@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
- declare module DIDPlugin {
+declare module DIDPlugin {
     const enum DIDStoreFilter {
         DID_HAS_PRIVATEKEY = 0,
         DID_NO_PRIVATEKEY = 1,
@@ -36,6 +36,10 @@
         JAPANESE = 5
     }
 
+    class VerifiableCredentialBuilder {
+        static fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
+    }
+
     interface VerifiableCredential {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getFragment: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
@@ -44,7 +48,7 @@
         getIssuanceDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getExpirationDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getProperties: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        toString: (onSuccess: (credentialJson: string)=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface PublicKey {
@@ -53,6 +57,30 @@
         getPublicKeyBase58: (method: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: define "method" type
     }
 
+    /**
+     * This is the most usual format when talking about DIDs. 
+     * Format: did:elastos:abcdef
+     */
+    type DIDString = string;
+
+    /**
+     * A DIDURLFragment is the part that comes after the DIDString, in a DIDURL.
+     * Ex: "my-special-use" in "did:elastos:abcdef#my-special-use"
+     */
+    type DIDURLFragment = string;
+
+    /**
+     * A DIDURL is a DIDString with an additional fragment part.
+     * Ex: did:elastos:abcdef#my-special-use
+     */
+    type DIDURL = string;
+
+    /**
+     * A CredentialID can have the form of either a full DIDURL, or just the short fragment part.
+     * Ex: "did:elastos:abcdef#twitter" or "twitter"
+     */
+    type CredentialID = DIDURL | DIDURLFragment;
+
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getId: ()=>string;
@@ -60,6 +88,27 @@
         getMethodSpecificId: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         resolve: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+
+        /**
+         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to 
+         * a student). After this credential is issued locally on the issuer's device, it can be shared to the
+         * subject, and the subject can add it to his DIDStore.
+         * 
+         * @param subjectDID DIDString of the target subject that will own this credential.
+         * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
+         * @param types List of credential type names that help categorizing this credential.
+         * @param expirationDate Date at which the credential will become invalid.
+         * @param properties Any multi-level object that contains the actual information about this credential.
+         * @param passphrase Password of the issuer's DIDStore, used to sign the created credential with the issuer's DID.
+         * @param onSuccess Callback returning the created VerifiableCredential object in case of success.
+         * @param onError Callback returning an error object in case of error.
+         */
+        issueCredential: (subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO: types for all "any"
+
+        deleteCredential: (credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
+        listCredentials: (onSuccess: (credentials: VerifiableCredential[])=>void, onError?: (err: any)=>void)=>void;
+        loadCredential: (credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void;
+        storeCredential: (credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDDocument {
@@ -71,8 +120,8 @@
         getDefaultPublicKey: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getPublicKey: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getPublicKeys: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        addCredential: (credentialId: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
-        getCredential: (credentialId: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
+        addCredential: (credential: VerifiableCredential, onSuccess?: (d)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
+        getCredential: (credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
         sign: (storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;  // TODO: What is "originString" ?
         verify: (signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
     }
@@ -90,11 +139,6 @@
         resolveDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         storeDid: (didDocumentId: string, hint:string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         updateDid: (didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        createCredential: (didString: string, credentialId: string, type: any, expirationDate: any, properties: any, passphrase: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: types for all "any"
-        deleteCredential: (didString: string, didUrlString: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        listCredentials: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        loadCredential: (didString: string, didUrlString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        storeCredential: (credentialId: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDManager {

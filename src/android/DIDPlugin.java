@@ -684,8 +684,7 @@ public class DIDPlugin extends TrinityPlugin {
         int idx = 0;
         Integer id = args.getInt(idx++);
         DIDStore didStore = mDidStoreMap.get(id);
-        Integer credentialId = args.getInt(idx++);
-        VerifiableCredential credential = mCredentialMap.get(credentialId);
+        String credentialJson = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -693,10 +692,14 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
+            VerifiableCredential credential = VerifiableCredential.fromJson(credentialJson);
             didStore.storeCredential(credential);
             callbackContext.success();
         }
         catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "storeCredential ");
+        }
+        catch (JSONException e) {
             exceptionProcess(e, callbackContext, "storeCredential ");
         }
     }
@@ -762,6 +765,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDIDMap.put(objId, did);
             JSONObject r = new JSONObject();
             r.put("id", objId);
+            r.put("didstring", did.toString());
             callbackContext.success(r);
         } catch (NullPointerException e) {
             e.printStackTrace();
@@ -905,6 +909,7 @@ public class DIDPlugin extends TrinityPlugin {
         mDIDMap.put(objId, did);
         JSONObject r = new JSONObject();
         r.put("id", objId);
+        r.put("didstring", did.toString());
         callbackContext.success(r);
     }
 

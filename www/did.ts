@@ -22,67 +22,15 @@
 
 var exec = cordova.exec;
 
-class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
-    objId = null;
-    clazz = 5;
-    info: any = null;
-
-    getFragment(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getFragment', [this.objId]);
-    }
-
-    getType(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getType', [this.objId]);
-    }
-
-    getIssuer(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getIssuer', [this.objId]);
-    }
-
-    getIssuanceDate(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getIssuanceDate', [this.objId]);
-    }
-
-    getExpirationDate(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getExpirationDate', [this.objId]);
-    }
-
-    getProperties(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getProperties', [this.objId]);
-    }
-
-    toString(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'credential2string', [this.objId]);
-    }
-}
-
-class PublicKeyImpl implements DIDPlugin.PublicKey {
-    objId = null;
-    clazz = 4;
-    manager: DIDPlugin.DIDManager = null;
-
-    getController(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        var did = new DIDImpl();
-        var manager = this.manager;
-
-        var _onSuccess = function(ret) {
-            did.objId = ret.id;
-            did.manager = manager;
-            if (onSuccess) onSuccess(did);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'getController', [this.objId]);
-    }
-
-    getPublicKeyBase58(method: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId, method]);
-    }
-}
-
 class DIDImpl implements DIDPlugin.DID {
     objId = null;
+    didString: string = null;
     clazz = 3;
     manager: DIDPlugin.DIDManager = null;
+
+    constructor(didString: string) {
+        this.didString = didString;
+    }
 
     getId(): string {
         return this.objId;
@@ -103,6 +51,48 @@ class DIDImpl implements DIDPlugin.DID {
     toString(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'didToString', [this.objId]);
     }
+
+    issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
+        var credential = new VerifiableCredentialImpl();
+
+        var _onSuccess = function(ret) {
+            credential.objId = ret.id;
+            if (onSuccess) 
+                onSuccess(credential);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
+            [this.didString, credentialId, types, expirationDate, properties, passphrase]);
+    }
+
+    deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.objId, this.didString, credentialId]);
+    }
+
+    listCredentials(onSuccess: (credentials: DIDPlugin.VerifiableCredential[])=>void, onError?: (err: any)=>void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.objId, this.didString]);
+    }
+
+    loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
+        var credential = new VerifiableCredentialImpl();
+
+        var _onSuccess = function(ret) {
+            credential.objId = ret.id;
+            credential.info = ret;
+            if (onSuccess) 
+                onSuccess(credential);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, this.didString, credentialId]);
+    }
+
+    storeCredential(credential: DIDPlugin.VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+        credential.toString((credentialJson)=>{
+            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.objId, credentialJson]);
+        }, (err)=> {
+            onerror(err);
+        });
+    }
 }
 
 class DIDDocumentImpl implements DIDPlugin.DIDDocument {
@@ -121,10 +111,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     getSubject(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        var did = new DIDImpl();
         var manager = this.manager;
 
         var _onSuccess = function(ret) {
+            var did = new DIDImpl(ret.didstring);
             did.objId = ret.id;
             did.manager = manager;
             if (onSuccess) onSuccess(did);
@@ -244,42 +234,6 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     updateDid(didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocumentId, didUrlString, storepass]);
     }
-
-    createCredential(didString: string, credentialId: string, type: any, expirationDate: any, properties: any, passphrase: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        var credential = new VerifiableCredentialImpl();
-
-        var _onSuccess = function(ret) {
-            credential.objId = ret.id;
-            if (onSuccess) onSuccess(credential);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-                   [didString, credentialId, type, expirationDate, properties, passphrase]);
-    }
-
-    deleteCredential(didString: string, didUrlString: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.objId, didString, didUrlString]);
-    }
-
-    listCredentials(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.objId, didString]);
-    }
-
-    loadCredential(didString: string, didUrlString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        var credential = new VerifiableCredentialImpl();
-
-        var _onSuccess = function(ret) {
-            credential.objId = ret.id;
-            credential.info = ret;
-            if (onSuccess) onSuccess(credential);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.objId, didString, didUrlString]);
-    }
-
-    storeCredential(credentialId: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.objId, credentialId]);
-    }
 }
 
 class DIDManagerImpl implements DIDPlugin.DIDManager {
@@ -327,6 +281,77 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 
     isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+    }
+}
+
+class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialBuilder {
+    static fromJson(credentialJson: string): DIDPlugin.VerifiableCredential {
+        try {
+            let jsonObj = JSON.parse(credentialJson);
+            let credential = new VerifiableCredentialImpl();
+            credential.objId = jsonObj.id;
+            return credential;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+}
+
+class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
+    objId = null;
+    clazz = 5;
+    info: any = null;
+
+    getFragment(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getFragment', [this.objId]);
+    }
+
+    getType(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getType', [this.objId]);
+    }
+
+    getIssuer(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getIssuer', [this.objId]);
+    }
+
+    getIssuanceDate(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getIssuanceDate', [this.objId]);
+    }
+
+    getExpirationDate(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getExpirationDate', [this.objId]);
+    }
+
+    getProperties(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getProperties', [this.objId]);
+    }
+
+    toString(onSuccess: (credentialJson: string) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'credential2string', [this.objId]);
+    }
+}
+
+class PublicKeyImpl implements DIDPlugin.PublicKey {
+    objId = null;
+    clazz = 4;
+    manager: DIDPlugin.DIDManager = null;
+
+    getController(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        var manager = this.manager;
+
+        var _onSuccess = function(ret) {
+            var did = new DIDImpl(ret.didstring);        
+            did.objId = ret.id;
+            did.manager = manager;
+            if (onSuccess) onSuccess(did);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'getController', [this.objId]);
+    }
+
+    getPublicKeyBase58(method: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId, method]);
     }
 }
 
