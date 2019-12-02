@@ -55,6 +55,7 @@
 
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
+        getId: ()=>string;
         getMethod: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getMethodSpecificId: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         resolve: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
@@ -63,6 +64,7 @@
 
     interface DIDDocument {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
+        getId: ()=>string;
         setSubject: (subject: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "subject" type
         getSubject: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getPublicKeyCount: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
@@ -77,6 +79,7 @@
 
     interface DIDStore {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
+        getId: ()=>string;
         initPrivateIdentity: (language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         hasPrivateIdentity: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
@@ -96,10 +99,10 @@
 
     interface DIDManager {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getVersion: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        initDidStore: (location: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        createDIDDocumentFromJson: (json: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
-        generateMnemonic: (language: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
-        isMnemonicValid: (language: any, mnemonic: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
+        getVersion: (onSuccess: (version: string)=>void, onError?: (err: any)=>void)=>void;
+        initDidStore: (location: string, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
+        createDIDDocumentFromJson: (json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
+        generateMnemonic: (language: any, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
+        isMnemonicValid: (language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
     }
 }

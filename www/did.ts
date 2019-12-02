@@ -84,6 +84,10 @@ class DIDImpl implements DIDPlugin.DID {
     clazz = 3;
     manager: DIDPlugin.DIDManager = null;
 
+    getId(): string {
+        return this.objId;
+    }
+
     getMethod(onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getMethod', [this.objId]);
     }
@@ -107,6 +111,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     DidString = "";
     manager: DIDPlugin.DIDManager = null;
     did: DIDPlugin.DID = null;
+
+    getId(): string {
+        return this.objId;
+    }
 
     setSubject(subject: any, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'setSubject', [this.objId, subject]);
@@ -170,6 +178,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
     clazz  = 1;
+
+    getId(): string {
+        return this.objId;
+    }
 
     initPrivateIdentity(language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
@@ -282,36 +294,38 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(function () {}, null, 'DIDPlugin', 'initVal', []);
     }
 
-    getVersion(onSuccess: (data: any)=>void, onError?: (err: any)=>void) {
+    getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     }
 
-    initDidStore(location: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void) {
+    initDidStore(location: string, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
         var didStore = new DIDStoreImpl();
 
         var _onSuccess = function(ret: any) {
             didStore.objId = ret.id;
-            if (onSuccess) onSuccess(didStore);
+            if (onSuccess) 
+                onSuccess(didStore);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [location]);
     }
 
-    createDIDDocumentFromJson(json: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void){
+    createDIDDocumentFromJson(json: any, onSuccess?: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
         var didDocument = new DIDDocumentImpl();
 
         var _onSuccess = function(ret) {
             didDocument.objId = ret.id;
-            if (onSuccess) onSuccess(didDocument);
+            if (onSuccess) 
+                onSuccess(didDocument);
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateDIDDocumentFromJson', [json]);
     }
 
-    generateMnemonic(language: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void) {
+    generateMnemonic(language: any, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'generateMnemonic', [language]);
     }
 
-    isMnemonicValid(language: any, mnemonic: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void) {
+    isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
     }
 }
