@@ -44,7 +44,7 @@ class DIDImpl implements DIDPlugin.DID {
         exec(onSuccess, onError, 'DIDPlugin', 'getMethodSpecificId', [this.objId]);
     }
 
-    resolve(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'resolve', [this.objId]);
     }
 
@@ -163,6 +163,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     verify(signString: string, originString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'verify', [this.objId, signString, originString]);
     }
+
+    publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.objId, this.objId, this.DidString, storepass]);
+    }
 }
 
 class DIDStoreImpl implements DIDPlugin.DIDStore {
@@ -185,23 +189,24 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
     }
 
-    newDid(passphrase: string, hint: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    newDid(passphrase: string, hint: string, onSuccess: (didString: DIDPlugin.DIDString, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
          var diddoc = new DIDDocumentImpl();
 
          var _onSuccess = function(ret) {
              diddoc.objId = ret.id;
              diddoc.did = ret.did;
-             if (onSuccess) onSuccess(diddoc);
+             if (onSuccess) 
+                onSuccess(ret.did, diddoc);
          }
 
          exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, hint]);
     }
 
-    listDids(filter: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    listDids(filter: any, onSuccess: (didString: DIDPlugin.DIDString[])=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
     }
 
-    loadDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
          var diddoc = new DIDDocumentImpl();
 
          var _onSuccess = function(ret) {
@@ -216,23 +221,24 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [didDocumentId, didUrlString, storepass]);
     }
 
-    resolveDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
         var diddoc = new DIDDocumentImpl();
 
         var _onSuccess = function(ret) {
             diddoc.objId = ret.id;
-            if (onSuccess) onSuccess(diddoc);
+            if (onSuccess) 
+                onSuccess(diddoc);
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [didString]);
     }
 
-    storeDid(didDocumentId: string, hint: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocumentId, hint]);
+    storeDidDocument(didDocument: DIDDocumentImpl, hint: string, onSuccess: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocument.objId, hint]);
     }
 
-    updateDid(didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocumentId, didUrlString, storepass]);
+    updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocument.objId, didDocument.DidString, storepass]);
     }
 }
 

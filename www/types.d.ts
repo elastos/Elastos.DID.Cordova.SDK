@@ -86,7 +86,7 @@ declare module DIDPlugin {
         getId: ()=>string;
         getMethod: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getMethodSpecificId: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        resolve: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        resolveDidDocument: (onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
 
         /**
@@ -124,21 +124,21 @@ declare module DIDPlugin {
         getCredential: (credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
         sign: (storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;  // TODO: What is "originString" ?
         verify: (signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        publish: (storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDStore {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getId: ()=>string;
-        initPrivateIdentity: (language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        hasPrivateIdentity: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        deleteDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        newDid: (passphrase: string, hint: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        listDids: (filter: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
-        loadDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        publishDid: (didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        resolveDid: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        storeDid: (didDocumentId: string, hint:string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        updateDid: (didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        initPrivateIdentity: (language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        hasPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
+        deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        newDid: (passphrase: string, hint: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        listDids: (filter: any, onSuccess: (didString: DIDString[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
+        loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        storeDidDocument: (didDocument: DIDDocument, hint:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        updateDidDocument: (didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDManager {
