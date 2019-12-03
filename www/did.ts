@@ -193,10 +193,10 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          var diddoc = new DIDDocumentImpl();
 
          var _onSuccess = function(ret) {
+             let didString = ret.did;
              diddoc.objId = ret.id;
-             diddoc.did = ret.did;
              if (onSuccess) 
-                onSuccess(ret.did, diddoc);
+                onSuccess(didString, diddoc);
          }
 
          exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, hint]);
