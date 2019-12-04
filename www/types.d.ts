@@ -27,7 +27,7 @@ declare module DIDPlugin {
         DID_ALL = 2
     }
 
-    const enum Mnemonic {
+    const enum MnemonicLanguage {
         ENGLISH = 0,
         FRENCH = 1,
         SPANISH = 2,
@@ -40,15 +40,25 @@ declare module DIDPlugin {
         static fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
     }
 
+    type UnloadedVerifiableCredential = {
+        credentialId: CredentialID;
+        hint: string;
+    }
+
     interface VerifiableCredential {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getFragment: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getType: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getIssuer: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getIssuanceDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getExpirationDate: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getProperties: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        toString: (onSuccess: (credentialJson: string)=>void, onError?: (err: any)=>void)=>void;
+        getId: ()=>string;
+        getFragment: ()=>string;
+        getType: ()=>string
+        getIssuer: ()=>string;
+        getIssuanceDate: ()=>Date;
+        getExpirationDate: ()=>Date;
+        getProperties: ()=>any;
+        toString: ()=>Promise<string>;
+    }
+
+    type UnloadedDID = {
+        did: DIDString;
+        hint: string;
     }
 
     interface PublicKey {
@@ -58,7 +68,7 @@ declare module DIDPlugin {
     }
 
     /**
-     * This is the most usual format when talking about DIDs.
+     * This is the most usual format when talking about DIDs. 
      * Format: did:elastos:abcdef
      */
     type DIDString = string;
@@ -90,10 +100,10 @@ declare module DIDPlugin {
         toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
 
         /**
-         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
+         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to 
          * a student). After this credential is issued locally on the issuer's device, it can be shared to the
          * subject, and the subject can add it to his DIDStore.
-         *
+         * 
          * @param subjectDID DIDString of the target subject that will own this credential.
          * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
          * @param types List of credential type names that help categorizing this credential.
@@ -106,7 +116,7 @@ declare module DIDPlugin {
         issueCredential: (subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO: types for all "any"
 
         deleteCredential: (credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
-        listCredentials: (onSuccess: (credentials: VerifiableCredential[])=>void, onError?: (err: any)=>void)=>void;
+        listCredentials: (onSuccess: (credentials: UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void)=>void;
         loadCredential: (credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void;
         storeCredential: (credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
@@ -130,11 +140,11 @@ declare module DIDPlugin {
     interface DIDStore {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getId: ()=>string;
-        initPrivateIdentity: (language: any, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        initPrivateIdentity: (language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         hasPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         newDid: (passphrase: string, hint: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        listDids: (filter: any, onSuccess: (didString: DIDString[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
+        listDids: (filter: any, onSuccess: (didString: UnloadedDID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
         loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         storeDidDocument: (didDocument: DIDDocument, hint:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
@@ -144,9 +154,9 @@ declare module DIDPlugin {
     interface DIDManager {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getVersion: (onSuccess: (version: string)=>void, onError?: (err: any)=>void)=>void;
-        initDidStore: (location: string, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
+        initDidStore: (didStoreId: string, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
         createDIDDocumentFromJson: (json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
-        generateMnemonic: (language: any, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
-        isMnemonicValid: (language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void; // TODO: "language" type
+        generateMnemonic: (language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void;
+        isMnemonicValid: (language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
     }
 }

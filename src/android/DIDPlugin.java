@@ -42,8 +42,8 @@ import org.elastos.did.*;
 
 
 /**
-* This class echoes a string called from JavaScript.
-*/
+ * This class echoes a string called from JavaScript.
+ */
 public class DIDPlugin extends TrinityPlugin {
     private static String TAG = "DIDPlugin";
 
@@ -83,7 +83,12 @@ public class DIDPlugin extends TrinityPlugin {
         mCredentialMap = new HashMap<>();
     }
 
-    private void exceptionProcess(DIDException e, CallbackContext cc, String msg) throws JSONException {
+    private void exceptionProcess(Exception e, CallbackContext cc, String msg) {
+        e.printStackTrace();
+        cc.error(e.toString());
+    }
+
+    private void exceptionProcess(DIDException e, CallbackContext cc, String msg) {
         e.printStackTrace();
 
         try {
@@ -93,12 +98,9 @@ public class DIDPlugin extends TrinityPlugin {
             Log.e(TAG, errJson.toString());
             cc.error(errJson);
         } catch (JSONException je) {
-            JSONObject errJson = new JSONObject();
-            errJson.put(keyCode, errCodeDidException);
-            errJson.put(keyMessage, msg);
-            errJson.put(keyException, e.toString());
-            Log.e(TAG, errJson.toString());
-            cc.error(errJson);
+            Log.e(TAG, je.toString());
+            Log.e(TAG, e.toString());
+            cc.error(e.toString());
         }
     }
 
@@ -120,131 +122,131 @@ public class DIDPlugin extends TrinityPlugin {
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         try {
             switch(action) {
-            case "getVersion":
-                this.getVersion(args, callbackContext);
-                break;
-            case "initDidStore":
-                this.initDidStore(args, callbackContext);
-                break;
-            case "CreateDIDDocumentFromJson":
-                this.CreateDIDDocumentFromJson(args, callbackContext);
-                break;
-            case "generateMnemonic":
-                this.generateMnemonic(args, callbackContext);
-                break;
-            case "isMnemonicValid":
-                this.isMnemonicValid(args, callbackContext);
-                break;
-            //DidStore
-            case "hasPrivateIdentity":
-                this.hasPrivateIdentity(args, callbackContext);
-                break;
-            case "initPrivateIdentity":
-                this.initPrivateIdentity(args, callbackContext);
-                break;
-            case "deleteDid":
-                this.deleteDid(args, callbackContext);
-                break;
-            case "newDid":
-                this.newDid(args, callbackContext);
-                break;
-            case "listDids":
-                this.listDids(args, callbackContext);
-                break;
-            case "loadDid":
-                this.loadDid(args, callbackContext);
-                break;
-            case "publishDid":
-                this.publishDid(args, callbackContext);
-                break;
-            case "resolveDid":
-                this.resolveDid(args, callbackContext);
-                break;
-            case "storeDid":
-                this.storeDid(args, callbackContext);
-                break;
-            case "updateDid":
-                this.updateDid(args, callbackContext);
-                break;
-            case "CreateCredential":
-                this.CreateCredential(args, callbackContext);
-                break;
-            case "deleteCredential":
-                this.deleteCredential(args, callbackContext);
-                break;
-            case "listCredentials":
-                this.listCredentials(args, callbackContext);
-                break;
-            case "loadCredential":
-                this.loadCredential(args, callbackContext);
-                break;
-            case "storeCredential":
-                this.storeCredential(args, callbackContext);
-                break;
-            //DIDDocument
-            case "getSubject":
-                this.getSubject(args, callbackContext);
-                break;
-            case "getPublicKeyCount":
-                this.getPublicKeyCount(args, callbackContext);
-                break;
-            case "getDefaultPublicKey":
-                this.getDefaultPublicKey(args, callbackContext);
-                break;
-            case "getPublicKey":
-                this.getPublicKey(args, callbackContext);
-                break;
-            case "getPublicKeys":
-                this.getPublicKeys(args, callbackContext);
-                break;
-            case "addCredential":
-                this.addCredential(args, callbackContext);
-                break;
-            case "sign":
-                this.sign(args, callbackContext);
-                break;
-            case "verify":
-                this.verify(args, callbackContext);
-                break;
-            //DID
-            case "getMethod":
-                this.getMethod(args, callbackContext);
-                break;
-            case "getMethodSpecificId":
-                this.getMethodSpecificId(args, callbackContext);
-                break;
-            case "didToString":
-                this.didToString(args, callbackContext);
-                break;
-            //PublicKey
-            case "getController":
-                this.getController(args, callbackContext);
-                break;
-            case "getPublicKeyBase58":
-                this.getPublicKeyBase58(args, callbackContext);
-                break;
-            //credential
-            case "getFragment":
-                this.getFragment(args, callbackContext);
-                break;
-            case "getType":
-                this.getType(args, callbackContext);
-                break;
-            case "getIssuanceDate":
-                this.getIssuanceDate(args, callbackContext);
-                break;
-            case "getExpirationDate":
-                this.getExpirationDate(args, callbackContext);
-                break;
-            case "getProperties":
-                this.getProperties(args, callbackContext);
-                break;
-            case "credential2string":
-                this.credential2string(args, callbackContext);
-                break;
-            default:
-                errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
-                return false;
+                case "getVersion":
+                    this.getVersion(args, callbackContext);
+                    break;
+                case "initDidStore":
+                    this.initDidStore(args, callbackContext);
+                    break;
+                case "CreateDIDDocumentFromJson":
+                    this.CreateDIDDocumentFromJson(args, callbackContext);
+                    break;
+                case "generateMnemonic":
+                    this.generateMnemonic(args, callbackContext);
+                    break;
+                case "isMnemonicValid":
+                    this.isMnemonicValid(args, callbackContext);
+                    break;
+                //DidStore
+                case "hasPrivateIdentity":
+                    this.hasPrivateIdentity(args, callbackContext);
+                    break;
+                case "initPrivateIdentity":
+                    this.initPrivateIdentity(args, callbackContext);
+                    break;
+                case "deleteDid":
+                    this.deleteDid(args, callbackContext);
+                    break;
+                case "newDid":
+                    this.newDid(args, callbackContext);
+                    break;
+                case "listDids":
+                    this.listDids(args, callbackContext);
+                    break;
+                case "loadDid":
+                    this.loadDid(args, callbackContext);
+                    break;
+                case "publishDid":
+                    this.publishDid(args, callbackContext);
+                    break;
+                case "resolveDid":
+                    this.resolveDid(args, callbackContext);
+                    break;
+                case "storeDid":
+                    this.storeDid(args, callbackContext);
+                    break;
+                case "updateDid":
+                    this.updateDid(args, callbackContext);
+                    break;
+                case "CreateCredential":
+                    this.CreateCredential(args, callbackContext);
+                    break;
+                case "deleteCredential":
+                    this.deleteCredential(args, callbackContext);
+                    break;
+                case "listCredentials":
+                    this.listCredentials(args, callbackContext);
+                    break;
+                case "loadCredential":
+                    this.loadCredential(args, callbackContext);
+                    break;
+                case "storeCredential":
+                    this.storeCredential(args, callbackContext);
+                    break;
+                //DIDDocument
+                case "getSubject":
+                    this.getSubject(args, callbackContext);
+                    break;
+                case "getPublicKeyCount":
+                    this.getPublicKeyCount(args, callbackContext);
+                    break;
+                case "getDefaultPublicKey":
+                    this.getDefaultPublicKey(args, callbackContext);
+                    break;
+                case "getPublicKey":
+                    this.getPublicKey(args, callbackContext);
+                    break;
+                case "getPublicKeys":
+                    this.getPublicKeys(args, callbackContext);
+                    break;
+                case "addCredential":
+                    this.addCredential(args, callbackContext);
+                    break;
+                case "sign":
+                    this.sign(args, callbackContext);
+                    break;
+                case "verify":
+                    this.verify(args, callbackContext);
+                    break;
+                //DID
+                case "getMethod":
+                    this.getMethod(args, callbackContext);
+                    break;
+                case "getMethodSpecificId":
+                    this.getMethodSpecificId(args, callbackContext);
+                    break;
+                case "didToString":
+                    this.didToString(args, callbackContext);
+                    break;
+                //PublicKey
+                case "getController":
+                    this.getController(args, callbackContext);
+                    break;
+                case "getPublicKeyBase58":
+                    this.getPublicKeyBase58(args, callbackContext);
+                    break;
+                //credential
+                case "getFragment":
+                    this.getFragment(args, callbackContext);
+                    break;
+                case "getType":
+                    this.getType(args, callbackContext);
+                    break;
+                case "getIssuanceDate":
+                    this.getIssuanceDate(args, callbackContext);
+                    break;
+                case "getExpirationDate":
+                    this.getExpirationDate(args, callbackContext);
+                    break;
+                case "getProperties":
+                    this.getProperties(args, callbackContext);
+                    break;
+                case "credential2string":
+                    this.credential2string(args, callbackContext);
+                    break;
+                default:
+                    errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
+                    return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -372,8 +374,8 @@ public class DIDPlugin extends TrinityPlugin {
             didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
             callbackContext.success();
         }
-        catch(DIDException e) {
-            exceptionProcess(e, callbackContext, "initPrivateIdentity ");
+        catch(Exception e) {
+            exceptionProcess(e, callbackContext, "initPrivateIdentity");
         }
     }
 
@@ -512,7 +514,7 @@ public class DIDPlugin extends TrinityPlugin {
             r.put("id", objId);
             callbackContext.success(r);
         }
-        catch (DIDException e) {
+        catch (Exception e) {
             exceptionProcess(e, callbackContext, "resolveDid ");
         }
     }
