@@ -52,7 +52,7 @@ class JSONObjectHolder {
     public static JSONObject getCredentialInfoJson(DIDStore.Entry<DIDURL, String> entry) throws JSONException {
         JSONObject r = new JSONObject();
         r.put("didurl", entry.getKey().toString());
-        r.put("hint", entry.getValue().toString());
+        r.put("hint", entry.getValue());
         return r;
     }
 

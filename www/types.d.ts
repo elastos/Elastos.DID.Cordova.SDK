@@ -52,7 +52,8 @@ declare module DIDPlugin {
         getIssuer: ()=>string;
         getIssuanceDate: ()=>Date;
         getExpirationDate: ()=>Date;
-        getProperties: ()=>any;
+        getSubject: ()=>any;
+        getProof: ()=>any;
         toString: ()=>Promise<string>;
     }
 

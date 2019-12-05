@@ -52,7 +52,7 @@ public class DIDPlugin extends TrinityPlugin {
     private HashMap<Integer, DIDDocument> mDocumentMap;
     private HashMap<Integer, DID> mDIDMap;
     private HashMap<Integer, PublicKey> mPublicKeyMap;
-    private HashMap<Integer, VerifiableCredential> mCredentialMap;
+    private HashMap<String, VerifiableCredential> mCredentialMap;
 
     private String keyCode      = "code";
     private String keyMessage   = "message";
@@ -226,7 +226,7 @@ public class DIDPlugin extends TrinityPlugin {
                     this.getPublicKeyBase58(args, callbackContext);
                     break;
                 //credential
-                case "getFragment":
+                /*case "getFragment":
                     this.getFragment(args, callbackContext);
                     break;
                 case "getType":
@@ -240,7 +240,7 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "getProperties":
                     this.getProperties(args, callbackContext);
-                    break;
+                    break;*/
                 case "credential2string":
                     this.credential2string(args, callbackContext);
                     break;
@@ -569,6 +569,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void CreateCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didString = args.getString(idx++);
+        String subjectDidString = args.getString(idx++);
         String credentialId = args.getString(idx++);
         JSONArray type = args.getJSONArray(idx++);
         String[] typeArray = JSONArray2Array(type);
@@ -584,6 +585,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
+            DID subjectDid = new DID(subjectDidString);
             DID did = new DID(didString);
             Issuer issuer = new Issuer(did);
 
@@ -591,18 +593,19 @@ public class DIDPlugin extends TrinityPlugin {
             cal.set(Calendar.YEAR, cal.get(Calendar.YEAR) + year);
             Date expire = cal.getTime();
 
-            VerifiableCredential vc = issuer.issueFor(did)
+            VerifiableCredential vc = issuer.issueFor(subjectDid)
                     .id(credentialId)
                     .type(typeArray)
                     .expirationDate(expire)
                     .properties(props)
                     .sign(passphrase);
 
-            Integer objId = System.identityHashCode(vc);
+            //Integer objId = System.identityHashCode(vc);
 
-            mCredentialMap.put(objId, vc);
+            //mCredentialMap.put(objId, vc);
             JSONObject ret= new JSONObject();
-            ret.put("id", objId);
+            ret.put("credential", vc.toExternalForm(false));
+            System.out.println("credential="+vc.toExternalForm(false));
             callbackContext.success(ret);
         }
         catch(DIDException e) {
@@ -622,27 +625,14 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             VerifiableCredential vc = didStore.loadCredential(didString, didUrlString);
-            Integer objId = System.identityHashCode(vc);
+            if (vc == null) {
+                errorProcess(callbackContext, errCodeInvalidArg, " Null credential returned for didString "+didString+" and didUrlString "+didUrlString);
+                return;
+            }
 
-            DIDURL didUrl = vc.getId();
-            String fragment = didUrl.getFragment();
-
-            String type = vc.getType();
-            Date issuance = vc.getIssuanceDate();
-            Date expiration = vc.getExpirationDate();
-
-            VerifiableCredential.CredentialSubject cs = vc.getSubject();
-            Map<String, String> props = cs.getProperties();
-            JSONObject info = new JSONObject(props);
-
-            mCredentialMap.put(objId, vc);
+            mCredentialMap.put(didUrlString, vc);
             JSONObject ret= new JSONObject();
-            ret.put("id", objId);
-            ret.put("fragment", fragment);
-            ret.put("type", type);
-            ret.put("issuance", issuance.toString());
-            ret.put("expiration", expiration.toString());
-            ret.put("props", info);
+            ret.put("credential", vc.toExternalForm(false));
             callbackContext.success(ret);
         }
         catch (DIDException e) {
@@ -662,6 +652,7 @@ public class DIDPlugin extends TrinityPlugin {
         try {
             VerifiableCredential credential = VerifiableCredential.fromJson(credentialJson);
             didStore.storeCredential(credential);
+            mCredentialMap.put(credential.getId().toString(), credential);
             callbackContext.success();
         }
         catch (DIDException e) {
@@ -882,7 +873,7 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     //Credential
-    private void getFragment(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    /*private void getFragment(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Integer id = args.getInt(0);
         VerifiableCredential credential = mCredentialMap.get(id);
 
@@ -923,11 +914,16 @@ public class DIDPlugin extends TrinityPlugin {
         Map<String, String> props = cs.getProperties();
         JSONObject r = new JSONObject(props);
         callbackContext.success(r);
-    }
+    }*/
 
     private void credential2string(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
+        String didUrl = args.getString(0);
+        VerifiableCredential credential = mCredentialMap.get(didUrl);
+        if (credential == null) {
+            errorProcess(callbackContext, errCodeInvalidArg, "No credential found in map for id "+didUrl);
+            return;
+        }
+        
         callbackContext.success(credential.toString());
     }
 }

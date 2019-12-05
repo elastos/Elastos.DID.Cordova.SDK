@@ -53,16 +53,14 @@ class DIDImpl implements DIDPlugin.DID {
     }
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
-        var credential = new VerifiableCredentialImpl();
-
         var _onSuccess = function(ret) {
-            credential.objId = ret.id;
+            let credential = VerifiableCredentialBuilderImpl.fromJson(ret.credential);
             if (onSuccess)
                 onSuccess(credential);
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-            [this.didString, credentialId, types, expirationDate, properties, passphrase]);
+            [this.didString, subjectDID, credentialId, types, expirationDate, properties, passphrase]);
     }
 
     deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
@@ -85,15 +83,8 @@ class DIDImpl implements DIDPlugin.DID {
     }
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
-        var credential = new VerifiableCredentialImpl();
-
         var _onSuccess = function(ret) {
-            credential.objId = ret.id;
-            credential.fragment = ret.fragment;
-            credential.type = ret.type;
-            credential.issuanceDate = new Date(ret.issuance);
-            credential.expirationDate = new Date(ret.expiration);
-            credential.properties = ret.props;
+            let credential = VerifiableCredentialBuilderImpl.fromJson(ret.credential);
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -101,10 +92,20 @@ class DIDImpl implements DIDPlugin.DID {
         exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.didString, credentialId]);
     }
 
-    async storeCredential(credential: DIDPlugin.VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+    async storeCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
         try {
-            let credentialJson = await credential.toString();
-            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [credentialJson]);
+            let passedCredential = JSON.parse(JSON.stringify(credential));
+
+            // The native part needs a id field, not credentialId, so we just give it.
+            passedCredential.id = credential.credentialId;
+            // JS Date format is ISO format, including milliseconds, but Java side is expecting
+            // no milliseconds, so we make a dirty convertion here.
+            passedCredential.expirationDate = credential.expirationDate.toISOString().replace(".000Z","Z");
+            passedCredential.issuanceDate = credential.issuanceDate.toISOString().replace(".000Z","Z");
+
+            console.log("passedCredential", passedCredential);
+
+            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [passedCredential]);
         }
         catch (err) {
             if (onError)
@@ -280,8 +281,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(DIDImpl.prototype);
         Object.freeze(PublicKeyImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
-
-        exec(function () {}, null, 'DIDPlugin', 'initVal', []);
+        Object.freeze(UnloadedVerifiableCredentialImpl.prototype);
     }
 
     getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void) {
@@ -325,7 +325,14 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
         try {
             let jsonObj = JSON.parse(credentialJson);
             let credential = new VerifiableCredentialImpl();
-            credential.objId = jsonObj.id;
+            credential.credentialId = jsonObj.id;
+            credential.expirationDate = new Date(jsonObj.expirationDate);
+            credential.fragment = new URL(jsonObj.id).hash.replace("#","");
+            credential.issuanceDate = new Date(jsonObj.issuanceDate);
+            credential.issuer = jsonObj.issuer;
+            credential.credentialSubject = jsonObj.credentialSubject;
+            credential.proof = jsonObj.proof;
+            credential.type = jsonObj.type;
             return credential;
         }
         catch (e) {
@@ -334,18 +341,24 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
     }
 }
 
+class UnloadedVerifiableCredentialImpl implements DIDPlugin.UnloadedVerifiableCredential {
+    credentialId: string = null;
+    hint: string = null;
+}
+
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
-    objId = null;
+    credentialId: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR just fragment
     clazz = 5;
     fragment: string = null;
     type: string = null;
     issuer: string = null;
     issuanceDate: Date = null;
     expirationDate: Date = null;
-    properties: any = null;
+    credentialSubject: any = null;
+    proof: any = null;
 
-    getId(): string {
-        return this.objId;
+    getId(): DIDPlugin.CredentialID {
+        return this.credentialId;
     }
 
     getFragment() : string {
@@ -368,8 +381,12 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
         return this.expirationDate;
     }
 
-    getProperties() : any {
-        return this.properties;
+    getSubject() : any {
+        return this.credentialSubject;
+    }
+
+    getProof() : any {
+        return this.proof;
     }
 
     toString() : Promise<string> {
@@ -378,7 +395,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
                 resolve(ret);
             }, function(err) {
                 reject(err);
-            }, 'DIDPlugin', 'credential2string', [this.objId]);
+            }, 'DIDPlugin', 'credential2string', [this.credentialId]);
         });
     }
 }
