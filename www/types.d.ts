@@ -69,7 +69,7 @@ declare module DIDPlugin {
     }
 
     /**
-     * This is the most usual format when talking about DIDs. 
+     * This is the most usual format when talking about DIDs.
      * Format: did:elastos:abcdef
      */
     type DIDString = string;
@@ -101,10 +101,10 @@ declare module DIDPlugin {
         toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
 
         /**
-         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to 
+         * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
          * a student). After this credential is issued locally on the issuer's device, it can be shared to the
          * subject, and the subject can add it to his DIDStore.
-         * 
+         *
          * @param subjectDID DIDString of the target subject that will own this credential.
          * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
          * @param types List of credential type names that help categorizing this credential.
@@ -156,6 +156,7 @@ declare module DIDPlugin {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getVersion: (onSuccess: (version: string)=>void, onError?: (err: any)=>void)=>void;
         initDidStore: (didStoreId: string, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
+        deleteDidStore: (didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
         createDIDDocumentFromJson: (json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
         generateMnemonic: (language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void;
         isMnemonicValid: (language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;

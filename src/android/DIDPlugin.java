@@ -31,6 +31,8 @@ import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -127,6 +129,9 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "initDidStore":
                     this.initDidStore(args, callbackContext);
+                    break;
+                case "deleteDidStore":
+                    this.deleteDidStore(args, callbackContext);
                     break;
                 case "CreateDIDDocumentFromJson":
                     this.CreateDIDDocumentFromJson(args, callbackContext);
@@ -274,6 +279,16 @@ public class DIDPlugin extends TrinityPlugin {
         return strArray;
     }
 
+    private void deleteFile(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            for (File child : children)
+                deleteFile(child);
+        }
+
+        file.delete();
+    }
+
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
         String version = "ElastosDIDSDK-v0.1";
         callbackContext.success(version);
@@ -318,6 +333,20 @@ public class DIDPlugin extends TrinityPlugin {
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
         }
+    }
+
+    private void deleteDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        java.io.File dirFile = new java.io.File(dataDir);
+        deleteFile(dirFile);
+        callbackContext.success();
     }
 
     private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -923,7 +952,7 @@ public class DIDPlugin extends TrinityPlugin {
             errorProcess(callbackContext, errCodeInvalidArg, "No credential found in map for id "+didUrl);
             return;
         }
-        
+
         callbackContext.success(credential.toString());
     }
 }

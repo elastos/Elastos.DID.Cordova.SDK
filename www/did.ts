@@ -214,7 +214,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          var _onSuccess = function(ret) {
              let didString = ret.did;
              diddoc.objId = ret.id;
-             if (onSuccess) 
+             if (onSuccess)
                 onSuccess(didString, diddoc);
          }
 
@@ -230,7 +230,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
                     hint: item.hint
                 })
             });
-            if (onSuccess) 
+            if (onSuccess)
                onSuccess(udids);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
@@ -241,7 +241,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
          var _onSuccess = function(ret) {
              diddoc.objId = ret.id;
-             if (onSuccess) 
+             if (onSuccess)
                 onSuccess(diddoc);
          }
 
@@ -257,7 +257,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
         var _onSuccess = function(ret) {
             diddoc.objId = ret.id;
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(diddoc);
         }
 
@@ -297,6 +297,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
                 onSuccess(didStore);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [didStoreId]);
+    }
+
+    deleteDidStore(didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteDidStore', [didStoreId]);
     }
 
     createDIDDocumentFromJson(json: any, onSuccess?: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
