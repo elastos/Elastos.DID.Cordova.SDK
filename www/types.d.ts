@@ -143,7 +143,7 @@ declare module DIDPlugin {
         getDefaultPublicKey: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getPublicKey: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getPublicKeys: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        addCredential: (credential: VerifiableCredential, onSuccess?: (d)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
+        addCredential: (credential: VerifiableCredential, storePass: string, onSuccess?: (d)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
         getCredential: (credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
         sign: (storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;  // TODO: What is "originString" ?
         verify: (signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;

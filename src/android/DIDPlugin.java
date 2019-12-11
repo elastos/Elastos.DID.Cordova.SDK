@@ -42,6 +42,8 @@ import java.util.HashMap;
 
 import org.elastos.did.*;
 
+import static org.elastos.did.Constants.issuer;
+
 
 /**
  * This class echoes a string called from JavaScript.
@@ -603,7 +605,7 @@ public class DIDPlugin extends TrinityPlugin {
         JSONArray type = args.getJSONArray(idx++);
         String[] typeArray = JSONArray2Array(type);
 
-        Integer year = args.getInt(idx++);
+        Integer days = args.getInt(idx++);
         JSONObject properties = args.getJSONObject(idx++);
         Map<String, String> props = JSONObject2Map(properties);
         String passphrase = args.getString(idx++);
@@ -619,7 +621,7 @@ public class DIDPlugin extends TrinityPlugin {
             Issuer issuer = new Issuer(did);
 
             Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.YEAR, cal.get(Calendar.YEAR) + year);
+            cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);
             Date expire = cal.getTime();
 
             VerifiableCredential vc = issuer.issueFor(subjectDid)
@@ -627,7 +629,7 @@ public class DIDPlugin extends TrinityPlugin {
                     .type(typeArray)
                     .expirationDate(expire)
                     .properties(props)
-                    .sign(passphrase);
+                    .seal(passphrase);
 
             //Integer objId = System.identityHashCode(vc);
 
@@ -653,7 +655,15 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            VerifiableCredential vc = didStore.loadCredential(didString, didUrlString);
+            VerifiableCredential vc = null;
+
+            if (didUrlString.startsWith("did:elastos:")) {
+                vc = didStore.loadCredential(new DID(didString), new DIDURL(didUrlString));
+            }
+            else {
+                vc = didStore.loadCredential(didString, didUrlString);
+            }
+
             if (vc == null) {
                 errorProcess(callbackContext, errCodeInvalidArg, " Null credential returned for didString "+didString+" and didUrlString "+didUrlString);
                 return;
@@ -808,14 +818,19 @@ public class DIDPlugin extends TrinityPlugin {
         callbackContext.success(publicKeyId.toString());
     }
 
-    private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         Integer id = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(id);
-
         Integer credentialId = args.getInt(idx++);
+        String storepass = args.getString(idx++);
+
+        DIDDocument didDocument = mDocumentMap.get(id);
+        DIDDocument.Builder db = didDocument.modify();
+
         VerifiableCredential vc = mCredentialMap.get(credentialId);
-        didDocument.addCredential(vc);
+        db.addCredential(vc);
+        DIDDocument issuer = db.seal(storepass);
+        didStore.storeDid(issuer);
 
         callbackContext.success();
     }

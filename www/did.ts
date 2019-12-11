@@ -167,8 +167,8 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeys', [this.objId]);
     }
 
-    addCredential(credentialId: any, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'addCredential', [this.objId, credentialId]);
+    addCredential(credentialId: any, storePass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'addCredential', [this.objId, credentialId, storePass]);
     }
 
     getCredential(credentialId: any, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
