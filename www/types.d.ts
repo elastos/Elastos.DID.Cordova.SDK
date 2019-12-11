@@ -20,6 +20,18 @@
  * SOFTWARE.
  */
 
+ /**
+* This is about DID which is a new type of identifier to provide verifiable,
+* decentralized digital identity.
+* <br><br>
+* Please use 'DIDPlugin' as the plugin name in the manifest.json if you want to use
+* this facility.
+* <br><br>
+* Usage:
+* <br>
+* declare let didManager: DIDPlugin.DIDManager;
+*/
+
 declare module DIDPlugin {
     const enum DIDStoreFilter {
         DID_HAS_PRIVATEKEY = 0,
