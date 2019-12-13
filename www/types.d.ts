@@ -47,7 +47,7 @@ declare module DIDPlugin {
         CHINESE_TRADITIONAL = 4,
         JAPANESE = 5
     }
-
+ 
     interface VerifiableCredentialBuilder {
         fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
     }
@@ -56,7 +56,7 @@ declare module DIDPlugin {
         credentialId: CredentialID;
         hint: string;
     }
-
+ 
     interface VerifiableCredential {
         getId: ()=>string;
         getFragment: ()=>string;
@@ -132,6 +132,17 @@ declare module DIDPlugin {
         listCredentials: (onSuccess: (credentials: UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void)=>void;
         loadCredential: (credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void;
         storeCredential: (credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
+
+        /**
+         * Creates a new VerifiablePresentation that embeds one or several credentials. This presentation is signed by a DID
+         * and thus the store password has to be provided.
+         * 
+         * @param credentials   List of credentials to embed in the presentation.
+         * @param realm         Requester specific purpose to request this presentation. Usually the requester domain name.
+         * @param nonce         Random requested generated challenge code to prevent replay attacks. 
+         * @param storepass     Store password, used to sign the presentation.
+         */
+        createVerifiablePresentation: (credentials: VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDDocument {
@@ -151,12 +162,7 @@ declare module DIDPlugin {
     }
 
     interface VerifiablePresentationBuilder {
-        /**
-         * Creates a new VerifiablePresentation that embeds one or several credentials. This presentation is signed by a DID
-         * and thus the store password has to be provided.
-         */
-        fromCredentials: (credentials: VerifiableCredential[], storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
-        fromJson: (json: any, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
+        fromJson: (json: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
     }
 
     /**
@@ -166,10 +172,8 @@ declare module DIDPlugin {
      */
     interface VerifiablePresentation {
         getCredentials: ()=>VerifiableCredential[];
-
-        /*toJson()
-        isValid()
-        isGenuine()*/
+        isValid: (onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
+        isGenuine: (onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDStore {

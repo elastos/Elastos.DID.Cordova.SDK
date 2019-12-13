@@ -26,11 +26,13 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.elastos.credential.Issuer;
 import org.elastos.credential.VerifiableCredential;
+import org.elastos.credential.VerifiablePresentation;
 import org.elastos.did.Mnemonic;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -248,6 +250,13 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "createVerifiablePresentationFromCredentials":
                     this.createVerifiablePresentationFromCredentials(args, callbackContext);
+                    break;
+                case "verifiablePresentationIsValid":
+                    this.verifiablePresentationIsValid(args, callbackContext);
+                    break;
+                case "verifiablePresentationIsGenuine":
+                    this.verifiablePresentationIsGenuine(args, callbackContext);
+                    break;
                 default:
                     errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
                     return false;
@@ -608,8 +617,8 @@ public class DIDPlugin extends TrinityPlugin {
 
             //mCredentialMap.put(objId, vc);
             JSONObject ret= new JSONObject();
-            ret.put("credential", vc.toExternalForm(false));
-            System.out.println("credential="+vc.toExternalForm(false));
+            ret.put("credential", vc.toExternalForm(true));
+            System.out.println("credential="+vc.toExternalForm(true));
             callbackContext.success(ret);
         }
         catch(DIDException e) {
@@ -644,7 +653,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             mCredentialMap.put(didUrlString, vc);
             JSONObject ret= new JSONObject();
-            ret.put("credential", vc.toExternalForm(false));
+            ret.put("credential", vc.toExternalForm(true));
             callbackContext.success(ret);
         }
         catch (DIDException e) {
@@ -945,6 +954,80 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        //VerifiablePresentation.
+        int idx = 0;
+
+        String didString = args.getString(idx++);
+        JSONArray creds = args.getJSONArray((idx++));
+        String realm = args.getString(idx++);
+        String nonce = args.getString(idx++);
+        String storePass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DID did = new DID(didString);
+
+            // Rebuild our credentials from their JSON form
+            ArrayList<VerifiableCredential> credentials = new ArrayList<>();
+            for (int i=0; i<creds.length(); i++) {
+                credentials.add(VerifiableCredential.fromJson(creds.getJSONObject(i).toString()));
+            }
+
+            VerifiablePresentation.Builder builder = VerifiablePresentation.createFor(did);
+            VerifiableCredential[] credsArray = credentials.toArray(new VerifiableCredential[creds.length()]);
+            VerifiablePresentation presentation = builder.credentials(credsArray)
+                    .nonce(nonce)
+                    .realm(realm)
+                    .seal(storePass);
+
+            callbackContext.success(presentation.toExternalForm());
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "createVerifiablePresentationFromCredentials ");
+        }
+    }
+
+    private void verifiablePresentationIsValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+
+        JSONObject pres = args.getJSONObject(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+
+            JSONObject r = new JSONObject();
+            r.put("isvalid", presentation.isValid());
+            callbackContext.success();
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "verifiablePresentationIsValid ");
+        }
+    }
+
+    private void verifiablePresentationIsGenuine(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+
+        JSONObject pres = args.getJSONObject(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+
+            JSONObject r = new JSONObject();
+            r.put("isgenuine", presentation.isGenuine());
+            callbackContext.success();
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
+        }
     }
 }

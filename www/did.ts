@@ -54,7 +54,8 @@ class DIDImpl implements DIDPlugin.DID {
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let credential = didManager.VerifiableCredentialBuilder.fromJson(ret.credential);
+            let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
+            let credential = javaVc.toVerifiableCredential();
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -84,7 +85,8 @@ class DIDImpl implements DIDPlugin.DID {
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let credential = didManager.VerifiableCredentialBuilder.fromJson(ret.credential);
+            let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
+            let credential = javaVc.toVerifiableCredential();
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -94,15 +96,7 @@ class DIDImpl implements DIDPlugin.DID {
 
     async storeCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
         try {
-            let passedCredential = JSON.parse(JSON.stringify(credential));
-
-            // The native part needs a id field, not credentialId, so we just give it.
-            passedCredential.id = credential.credentialId;
-            // JS Date format is ISO format, including milliseconds, but Java side is expecting
-            // no milliseconds, so we make a dirty convertion here.
-            passedCredential.expirationDate = credential.expirationDate.toISOString().replace(".000Z","Z");
-            passedCredential.issuanceDate = credential.issuanceDate.toISOString().replace(".000Z","Z");
-
+            let passedCredential = JavaVerifiableCredential.createFromVerifiableCredential(credential);
             console.log("passedCredential", passedCredential);
 
             exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [passedCredential]);
@@ -111,6 +105,22 @@ class DIDImpl implements DIDPlugin.DID {
             if (onError)
                 onError(err);
         }
+    }
+
+    createVerifiablePresentation(credentials: DIDPlugin.VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
+        // Convert our credentials format to java format
+        let javaCredentials: JavaVerifiableCredential[] = [];
+        javaCredentials = credentials.map((cred)=>{
+            return JavaVerifiableCredential.createFromVerifiableCredential(cred);
+        });
+
+        var _onSuccess = function(presentationJson) {
+            let builder: VerifiablePresentationBuilderImpl = didManager.VerifiablePresentationBuilder as VerifiablePresentationBuilderImpl;
+            let presentation = builder.fromNativeJson(presentationJson);
+            onSuccess(presentation);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [this.didString, javaCredentials, realm, nonce, storepass]);
     }
 }
 
@@ -189,20 +199,67 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 }
 
 class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentationBuilder {
-    fromCredentials(credentials: DIDPlugin.VerifiableCredential[], storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [credentials, storepass]);
+    // json string presentation coming from the plugin (plugin objects)
+    fromJson(json: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
+        let jsonPresentation = JSON.parse(json);
+        let presentation = new VerifiablePresentationImpl();
+
+        presentation.type = jsonPresentation.type;
+        presentation.proof = jsonPresentation.proof;
+
+        // Re-create real credential objects based on json data
+        presentation.verifiableCredential = [];
+        jsonPresentation.verifiableCredential.map((jsonVc)=>{
+            let vc = didManager.VerifiableCredentialBuilder.fromJson(JSON.stringify(jsonVc))
+            presentation.verifiableCredential.push(vc);
+        })
+
+        onSuccess(presentation);
     }
 
-    fromJson(json: any, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
+    // json string presentation coming from the native side (native objects)
+    fromNativeJson(json: string): DIDPlugin.VerifiablePresentation {
+        let jsonPresentation = JSON.parse(json);
+        let presentation = new VerifiablePresentationImpl();
 
+        presentation.type = jsonPresentation.type;
+        presentation.proof = jsonPresentation.proof;
+
+        // Re-create real credential objects based on json data
+        presentation.verifiableCredential = [];
+        jsonPresentation.verifiableCredential.map((jsonVc)=>{
+            let javaVc = JavaVerifiableCredential.createFromJson(JSON.stringify(jsonVc));
+            let vc = javaVc.toVerifiableCredential();
+            presentation.verifiableCredential.push(vc);
+        })
+
+        return presentation;
     }
 }
 
 class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
-    constructor(public credentials: DIDPlugin.VerifiableCredential[]) {}
+    public type: string;
+    public verifiableCredential: DIDPlugin.VerifiableCredential[] // As named by W3C
+    public proof: any;
 
     getCredentials(): DIDPlugin.VerifiableCredential[] {
-        return this.credentials;
+        return this.verifiableCredential;
+    }
+    
+    isValid(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
+        var _onSuccess = function(ret) {
+            if (onSuccess) 
+                onSuccess(ret.isvalid);
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'verifiablePresentationIsValid', [this]);
+    }
+
+    isGenuine(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
+        var _onSuccess = function(ret) {
+            if (onSuccess) 
+                onSuccess(ret.isgenuine);
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'verifiablePresentationIsGenuine', [this]);
     }
 }
 
@@ -346,18 +403,20 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 }
 
 class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialBuilder {
+    // json string presentation coming from the plugin (plugin objects)
     fromJson(credentialJson: string): DIDPlugin.VerifiableCredential {
         try {
             let jsonObj = JSON.parse(credentialJson);
             let credential = new VerifiableCredentialImpl();
-            credential.credentialId = jsonObj.id;
+            Object.assign(credential, jsonObj);
+            /*credential.credentialId = jsonObj.id;
             credential.expirationDate = new Date(jsonObj.expirationDate);
             credential.fragment = new URL(jsonObj.id).hash.replace("#","");
             credential.issuanceDate = new Date(jsonObj.issuanceDate);
             credential.issuer = jsonObj.issuer;
             credential.credentialSubject = jsonObj.credentialSubject;
             credential.proof = jsonObj.proof;
-            credential.type = jsonObj.type;
+            credential.type = jsonObj.type;*/
             return credential;
         }
         catch (e) {
@@ -423,6 +482,66 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
             }, 'DIDPlugin', 'credential2string', [this.credentialId]);
         });
     }
+}
+
+class JavaVerifiableCredential {
+    id: string;
+    expirationDate: string; // Not a JS Date, so keep this as a string.
+    issuanceDate: string; // Not a JS Date, so keep this as a string.
+    fragment: string;
+    issuer: string;
+    credentialSubject: any;
+    proof: any;
+    type: string;
+
+    toVerifiableCredential(): DIDPlugin.VerifiableCredential {
+        let credential = new VerifiableCredentialImpl();
+        credential.credentialId = this.id;
+        credential.expirationDate = new Date(this.expirationDate);
+        credential.fragment = new URL(this.id).hash.replace("#","");
+        credential.issuanceDate = new Date(this.issuanceDate);
+        credential.issuer = this.issuer;
+        credential.credentialSubject = this.credentialSubject;
+        credential.proof = this.proof;
+        credential.type = this.type;
+        return credential;
+    }
+
+    static createFromVerifiableCredential(vc: DIDPlugin.VerifiableCredential): JavaVerifiableCredential {
+        let javaVc = new JavaVerifiableCredential();
+        // The native part needs a id field, not credentialId, so we just give it.
+        javaVc.id = vc.getId();
+        // JS Date format is ISO format, including milliseconds, but Java side is expecting
+        // no milliseconds, so we make a dirty convertion here.
+        javaVc.expirationDate = vc.getExpirationDate().toISOString().replace(".000","");
+        javaVc.issuanceDate = vc.getIssuanceDate().toISOString().replace(".000","");
+        javaVc.fragment = vc.getFragment();
+        javaVc.issuer = vc.getIssuer();
+        javaVc.credentialSubject = vc.getSubject();
+        javaVc.proof = vc.getProof();
+        javaVc.type = vc.getType();
+        return javaVc;
+    }
+
+    static createFromJson(javaVcJson: string): JavaVerifiableCredential {
+        try {
+            let jsonObj = JSON.parse(javaVcJson);
+            let javaVc = new JavaVerifiableCredential();
+            Object.assign(javaVc, jsonObj);
+            /*credential.id = jsonObj.id;
+            credential.expirationDate = new Date(jsonObj.expirationDate);
+            credential.fragment = new URL(jsonObj.id).hash.replace("#","");
+            credential.issuanceDate = new Date(jsonObj.issuanceDate);
+            credential.issuer = jsonObj.issuer;
+            credential.credentialSubject = jsonObj.credentialSubject;
+            credential.proof = jsonObj.proof;
+            credential.type = jsonObj.type;*/
+            return javaVc;
+        }
+        catch (e) {
+            throw e;
+        }
+    } 
 }
 
 class PublicKeyImpl implements DIDPlugin.PublicKey {

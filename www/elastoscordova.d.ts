@@ -9,7 +9,7 @@
 /**
  * ELASTOS/MODIFIED version of the original cordova.d.ts to allow exec() success and fail callbacks to use
  * parameters.
- */
+ */ 
 
 interface Cordova {
     /** Invokes native functionality by specifying corresponding service name, action and optional parameters.
