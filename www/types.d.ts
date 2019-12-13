@@ -48,8 +48,8 @@ declare module DIDPlugin {
         JAPANESE = 5
     }
 
-    class VerifiableCredentialBuilder {
-        static fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
+    interface VerifiableCredentialBuilder {
+        fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
     }
 
     type UnloadedVerifiableCredential = {
@@ -150,8 +150,29 @@ declare module DIDPlugin {
         publish: (storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
 
+    interface VerifiablePresentationBuilder {
+        /**
+         * Creates a new VerifiablePresentation that embeds one or several credentials. This presentation is signed by a DID
+         * and thus the store password has to be provided.
+         */
+        fromCredentials: (credentials: VerifiableCredential[], storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
+        fromJson: (json: any, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
+    }
+
+    /**
+     * Object that contains one or more credentials picked from a DID store and signed by a DID.
+     * Such presentation is usually used to let end users pick some credentials to share and deliver
+     * them to a requester. The requester can then make sure that the delivered content has not been altered.
+     */
+    interface VerifiablePresentation {
+        getCredentials: ()=>VerifiableCredential[];
+
+        /*toJson()
+        isValid()
+        isGenuine()*/
+    }
+
     interface DIDStore {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getId: ()=>string;
         initPrivateIdentity: (language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         hasPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
@@ -165,12 +186,14 @@ declare module DIDPlugin {
     }
 
     interface DIDManager {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getVersion: (onSuccess: (version: string)=>void, onError?: (err: any)=>void)=>void;
         initDidStore: (didStoreId: string, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
         deleteDidStore: (didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
         createDIDDocumentFromJson: (json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
         generateMnemonic: (language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void;
         isMnemonicValid: (language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
+
+        VerifiableCredentialBuilder: VerifiableCredentialBuilder;
+        VerifiablePresentationBuilder: VerifiablePresentationBuilder;
     }
 }

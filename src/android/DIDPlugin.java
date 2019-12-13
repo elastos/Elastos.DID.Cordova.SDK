@@ -31,8 +31,6 @@ import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
@@ -131,9 +129,6 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "initDidStore":
                     this.initDidStore(args, callbackContext);
-                    break;
-                case "deleteDidStore":
-                    this.deleteDidStore(args, callbackContext);
                     break;
                 case "CreateDIDDocumentFromJson":
                     this.CreateDIDDocumentFromJson(args, callbackContext);
@@ -251,6 +246,8 @@ public class DIDPlugin extends TrinityPlugin {
                 case "credential2string":
                     this.credential2string(args, callbackContext);
                     break;
+                case "createVerifiablePresentationFromCredentials":
+                    this.createVerifiablePresentationFromCredentials(args, callbackContext);
                 default:
                     errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
                     return false;
@@ -279,16 +276,6 @@ public class DIDPlugin extends TrinityPlugin {
             strArray[i] = jsonArray.getString(i);
         }
         return strArray;
-    }
-
-    private void deleteFile(File file) {
-        if (file.isDirectory()) {
-            File[] children = file.listFiles();
-            for (File child : children)
-                deleteFile(child);
-        }
-
-        file.delete();
     }
 
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
@@ -335,20 +322,6 @@ public class DIDPlugin extends TrinityPlugin {
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
         }
-    }
-
-    private void deleteDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
-
-        if (args.length() != idx) {
-            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-            return;
-        }
-
-        java.io.File dirFile = new java.io.File(dataDir);
-        deleteFile(dirFile);
-        callbackContext.success();
     }
 
     private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -969,5 +942,9 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         callbackContext.success(credential.toString());
+    }
+
+    private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        //VerifiablePresentation.
     }
 }

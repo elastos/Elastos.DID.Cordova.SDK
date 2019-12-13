@@ -54,7 +54,7 @@ class DIDImpl implements DIDPlugin.DID {
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let credential = VerifiableCredentialBuilderImpl.fromJson(ret.credential);
+            let credential = didManager.VerifiableCredentialBuilder.fromJson(ret.credential);
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -84,7 +84,7 @@ class DIDImpl implements DIDPlugin.DID {
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let credential = VerifiableCredentialBuilderImpl.fromJson(ret.credential);
+            let credential = didManager.VerifiableCredentialBuilder.fromJson(ret.credential);
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -188,6 +188,24 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 }
 
+class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentationBuilder {
+    fromCredentials(credentials: DIDPlugin.VerifiableCredential[], storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [credentials, storepass]);
+    }
+
+    fromJson(json: any, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
+
+    }
+}
+
+class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
+    constructor(public credentials: DIDPlugin.VerifiableCredential[]) {}
+
+    getCredentials(): DIDPlugin.VerifiableCredential[] {
+        return this.credentials;
+    }
+}
+
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
     clazz  = 1;
@@ -274,6 +292,9 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 }
 
 class DIDManagerImpl implements DIDPlugin.DIDManager {
+    VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
+    VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
+
     constructor() {
         Object.freeze(DIDManagerImpl.prototype);
         Object.freeze(DIDStoreImpl.prototype);
@@ -325,7 +346,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 }
 
 class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialBuilder {
-    static fromJson(credentialJson: string): DIDPlugin.VerifiableCredential {
+    fromJson(credentialJson: string): DIDPlugin.VerifiableCredential {
         try {
             let jsonObj = JSON.parse(credentialJson);
             let credential = new VerifiableCredentialImpl();
@@ -427,4 +448,5 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
     }
 }
 
-export = new DIDManagerImpl();
+let didManager = new DIDManagerImpl();
+export = didManager;
