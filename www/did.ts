@@ -194,7 +194,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.objId, this.objId, this.DidString, storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.objId, storepass]);
     }
 }
 
@@ -245,10 +245,10 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     getCredentials(): DIDPlugin.VerifiableCredential[] {
         return this.verifiableCredential;
     }
-    
+
     isValid(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret) {
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(ret.isvalid);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'verifiablePresentationIsValid', [this]);
@@ -256,7 +256,7 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
 
     isGenuine(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret) {
-            if (onSuccess) 
+            if (onSuccess)
                 onSuccess(ret.isgenuine);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'verifiablePresentationIsGenuine', [this]);
@@ -284,9 +284,8 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     newDid(passphrase: string, hint: string, onSuccess: (didString: DIDPlugin.DIDString, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-         var diddoc = new DIDDocumentImpl();
-
          var _onSuccess = function(ret) {
+             var diddoc = new DIDDocumentImpl();
              let didString = ret.did;
              diddoc.objId = ret.id;
              if (onSuccess)
@@ -312,9 +311,8 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
-         var diddoc = new DIDDocumentImpl();
-
          var _onSuccess = function(ret) {
+             var diddoc = new DIDDocumentImpl();
              diddoc.objId = ret.id;
              if (onSuccess)
                 onSuccess(diddoc);
@@ -323,14 +321,9 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [didString]);
     }
 
-    publishDid(didDocumentId: string, didUrlString: string, storepass: string, onSuccess?: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [didDocumentId, didUrlString, storepass]);
-    }
-
     resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-        var diddoc = new DIDDocumentImpl();
-
         var _onSuccess = function(ret) {
+            var diddoc = new DIDDocumentImpl();
             diddoc.objId = ret.id;
             if (onSuccess)
                 onSuccess(diddoc);
@@ -348,9 +341,16 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 }
 
+const LISTENER_IDTRANSACTION  = 1;
+type DIDManagerEvent = {
+    callback: Function;
+    object: any;
+};
+
 class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
+    createIdTransactionEvent:DIDManagerEvent;
 
     constructor() {
         Object.freeze(DIDManagerImpl.prototype);
@@ -360,21 +360,43 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(PublicKeyImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
         Object.freeze(UnloadedVerifiableCredentialImpl.prototype);
+
+        this.setListener(LISTENER_IDTRANSACTION, (event) => {
+            this.createIdTransactionEvent.callback(event.payload, event.memo);
+        });
+    }
+
+    addCreateIdTransactionCB(callback) {
+        var eventcb: DIDManagerEvent = {
+            callback: callback,
+            object: null
+        };
+
+        this.createIdTransactionEvent = eventcb;
+        return 0;
     }
 
     getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     }
 
-    initDidStore(didStoreId: string, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
-        var didStore = new DIDStoreImpl();
+    setListener(type: any, eventCallback: Function) {
+        exec(eventCallback, null, 'DIDPlugin', 'setListener', [type]);
+    }
+
+    initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
+        var callbackId = 0;
+        if (typeof createIdTransactionCallback === "function") {
+            callbackId = this.addCreateIdTransactionCB(createIdTransactionCallback);
+        }
 
         var _onSuccess = function() {
+            var didStore = new DIDStoreImpl();
             didStore.objId = didStoreId;
             if (onSuccess)
                 onSuccess(didStore);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [didStoreId]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [didStoreId, callbackId]);
     }
 
     deleteDidStore(didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
@@ -382,9 +404,8 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     createDIDDocumentFromJson(json: any, onSuccess?: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
-        var didDocument = new DIDDocumentImpl();
-
         var _onSuccess = function(ret) {
+            var didDocument = new DIDDocumentImpl();
             didDocument.objId = ret.id;
             if (onSuccess)
                 onSuccess(didDocument);
@@ -541,7 +562,7 @@ class JavaVerifiableCredential {
         catch (e) {
             throw e;
         }
-    } 
+    }
 }
 
 class PublicKeyImpl implements DIDPlugin.PublicKey {

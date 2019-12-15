@@ -11,7 +11,7 @@
             </feature>
         </config-file>
         <source-file src="src/android/DIDPlugin.java" target-dir="src/org/elastos/trinity/plugins/did" />
-        <source-file src="src/android/FakeConsoleAdaptor.java" target-dir="src/org/elastos/trinity/plugins/did" />
+        <source-file src="src/android/DIDPluginAdapter.java" target-dir="src/org/elastos/trinity/plugins/did" />
         <source-file src="src/android/JSONObjectHolder.java" target-dir="src/org/elastos/trinity/plugins/did" />
         <framework src="src/android/did.gradle" custom="true" type="gradleReference"/>
     </platform>

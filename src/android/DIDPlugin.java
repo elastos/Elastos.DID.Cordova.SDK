@@ -24,6 +24,7 @@ package org.elastos.trinity.plugins.did;
 
 import android.util.Log;
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
 import org.elastos.credential.Issuer;
 import org.elastos.credential.VerifiableCredential;
 import org.elastos.credential.VerifiablePresentation;
@@ -32,6 +33,7 @@ import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -50,6 +52,10 @@ import static org.elastos.did.Constants.issuer;
  */
 public class DIDPlugin extends TrinityPlugin {
     private static String TAG = "DIDPlugin";
+
+    private static final int IDTRANSACTION  = 1;
+
+    private CallbackContext idTransactionCC  = null;
 
     private DIDStore didStore = null;
 
@@ -129,8 +135,14 @@ public class DIDPlugin extends TrinityPlugin {
                 case "getVersion":
                     this.getVersion(args, callbackContext);
                     break;
+                case "setListener":
+                    this.setListener(args, callbackContext);
+                    break;
                 case "initDidStore":
                     this.initDidStore(args, callbackContext);
+                    break;
+                case "deleteDidStore":
+                    this.deleteDidStore(args, callbackContext);
                     break;
                 case "CreateDIDDocumentFromJson":
                     this.CreateDIDDocumentFromJson(args, callbackContext);
@@ -287,10 +299,32 @@ public class DIDPlugin extends TrinityPlugin {
         return strArray;
     }
 
+    private void deleteFile(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            for (File child : children)
+                deleteFile(child);
+        }
+
+        file.delete();
+    }
+
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
         String version = "ElastosDIDSDK-v0.1";
         callbackContext.success(version);
     }
+
+    private void setListener(JSONArray args, CallbackContext callbackContext) throws JSONException {
+          Integer type = args.getInt(0);
+
+          if (type == IDTRANSACTION) {
+              idTransactionCC = callbackContext;
+
+              PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
+              result.setKeepCallback(true);
+              callbackContext.sendPluginResult(result);
+          }
+      }
 
     private void CreateDIDDocumentFromJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -318,19 +352,34 @@ public class DIDPlugin extends TrinityPlugin {
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
+        int callbackId = args.getInt(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;
         }
         try {
-            DIDStore.initialize("filesystem", dataDir, new FakeConsoleAdaptor());
+            DIDStore.initialize("filesystem", dataDir, new DIDPluginAdapter(callbackId, idTransactionCC));
             didStore = DIDStore.getInstance();
             callbackContext.success();
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
         }
+    }
+
+    private void deleteDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        java.io.File dirFile = new java.io.File(dataDir);
+        deleteFile(dirFile);
+        callbackContext.success();
     }
 
     private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -485,7 +534,7 @@ public class DIDPlugin extends TrinityPlugin {
         int idx = 0;
         Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
-        String didUrlString = args.getString(idx++);
+//        String didUrlString = args.getString(idx++);
         String storepass = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -494,8 +543,8 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDURL signKey = new DIDURL(didUrlString);
-            boolean ret = didStore.publishDid(didDocument, signKey, storepass);
+//            DIDURL signKey = new DIDURL(didUrlString);
+            boolean ret = didStore.publishDid(didDocument, storepass);
             if (ret) {
                 callbackContext.success();
             }
@@ -692,7 +741,14 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            boolean ret = didStore.deleteCredential(didString, didUrlString);
+            boolean ret = false;
+            if (didUrlString.startsWith("did:elastos:")) {
+                ret = didStore.deleteCredential(new DID(didString), new DIDURL(didUrlString));
+            }
+            else {
+                ret = didStore.deleteCredential(didString, didUrlString);
+            }
+
             if (ret) {
                 callbackContext.success();
             }
