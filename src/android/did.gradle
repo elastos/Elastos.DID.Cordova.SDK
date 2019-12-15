@@ -29,5 +29,5 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.elastos:did:0.0.5'
+    implementation 'org.elastos:did:0.0.7'
 }

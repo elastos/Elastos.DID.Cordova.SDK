@@ -22,6 +22,7 @@
 
 package org.elastos.trinity.plugins.did;
 
+import org.elastos.did.exception.DIDException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,16 +32,16 @@ import org.elastos.did.*;
 
 class JSONObjectHolder {
 
-    public static JSONObject getDIDInfoJson(DIDStore.Entry<DID, String> entry) throws JSONException {
+    public static JSONObject getDIDInfoJson(DID entry) throws JSONException, DIDException {
         JSONObject r = new JSONObject();
-        r.put("did", entry.getKey().toString());
-        r.put("hint", entry.getValue());
+        r.put("did", entry.toString());
+        r.put("alias", entry.getAlias());
         return r;
     }
 
-    public static JSONObject getDIDsInfoJson(List<DIDStore.Entry<DID, String>> dids) throws JSONException {
+    public static JSONObject getDIDsInfoJson(List<DID> dids) throws JSONException, DIDException {
         JSONArray array = new JSONArray();
-        for (DIDStore.Entry<DID, String> entry : dids) {
+        for (DID entry : dids) {
             array.put(getDIDInfoJson(entry));
         }
 
@@ -49,16 +50,16 @@ class JSONObjectHolder {
         return r;
     }
 
-    public static JSONObject getCredentialInfoJson(DIDStore.Entry<DIDURL, String> entry) throws JSONException {
+    public static JSONObject getCredentialInfoJson(DIDURL entry) throws JSONException, DIDException {
         JSONObject r = new JSONObject();
-        r.put("didurl", entry.getKey().toString());
-        r.put("hint", entry.getValue());
+        r.put("didurl", entry.toString());
+        r.put("alias", entry.getAlias());
         return r;
     }
 
-    public static JSONObject getCredentialsInfoJson(List<DIDStore.Entry<DIDURL, String>> dids) throws JSONException {
+    public static JSONObject getCredentialsInfoJson(List<DIDURL> dids) throws JSONException, DIDException {
         JSONArray array = new JSONArray();
-        for (DIDStore.Entry<DIDURL, String> entry : dids) {
+        for (DIDURL entry : dids) {
             array.put(getCredentialInfoJson(entry));
         }
 
@@ -67,7 +68,7 @@ class JSONObjectHolder {
         return r;
     }
 
-    public static JSONObject getPublicKeyInfoJson(PublicKey entry) throws JSONException {
+    public static JSONObject getPublicKeyInfoJson(DIDDocument.PublicKey entry) throws JSONException {
         JSONObject r = new JSONObject();
         r.put("id", entry.getId());
         r.put("controller", entry.getController());
@@ -75,9 +76,9 @@ class JSONObjectHolder {
         return r;
     }
 
-    public static JSONObject getPublicKeysInfoJson(List<PublicKey> keys) throws JSONException {
+    public static JSONObject getPublicKeysInfoJson(List<DIDDocument.PublicKey> keys) throws JSONException {
         JSONArray array = new JSONArray();
-        for (PublicKey entry : keys) {
+        for (DIDDocument.PublicKey entry : keys) {
             array.put(getPublicKeyInfoJson(entry));
         }
 

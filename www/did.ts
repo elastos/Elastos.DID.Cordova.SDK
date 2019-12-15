@@ -74,7 +74,7 @@ class DIDImpl implements DIDPlugin.DID {
             ret.items.map((item)=>{
                 uvcs.push({
                     credentialId: item.didurl,
-                    hint: item.hint
+                    alias: item.alias
                 })
             });
 
@@ -275,15 +275,15 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [language, mnemonic, passphrase, storepass, force]);
     }
 
-    hasPrivateIdentity(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'hasPrivateIdentity', []);
+    containsPrivateIdentity(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', []);
     }
 
     deleteDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
     }
 
-    newDid(passphrase: string, hint: string, onSuccess: (didString: DIDPlugin.DIDString, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
+    newDid(passphrase: string, alias: string, onSuccess: (didString: DIDPlugin.DIDString, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
          var _onSuccess = function(ret) {
              var diddoc = new DIDDocumentImpl();
              let didString = ret.did;
@@ -292,7 +292,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
                 onSuccess(didString, diddoc);
          }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, hint]);
+         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, alias]);
     }
 
     listDids(filter: any, onSuccess: (didString: DIDPlugin.UnloadedDID[])=>void, onError?: (err: any)=>void) {
@@ -301,7 +301,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
             ret.items.map((item)=>{
                 udids.push({
                     did: item.did,
-                    hint: item.hint
+                    alias: item.alias
                 })
             });
             if (onSuccess)
@@ -332,8 +332,8 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [didString]);
     }
 
-    storeDidDocument(didDocument: DIDDocumentImpl, hint: string, onSuccess: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocument.objId, hint]);
+    storeDidDocument(didDocument: DIDDocumentImpl, alias: string, onSuccess: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocument.objId, alias]);
     }
 
     updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
@@ -448,7 +448,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
 
 class UnloadedVerifiableCredentialImpl implements DIDPlugin.UnloadedVerifiableCredential {
     credentialId: string = null;
-    hint: string = null;
+    alias: string = null;
 }
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {

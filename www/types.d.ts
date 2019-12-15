@@ -64,7 +64,7 @@ declare module DIDPlugin {
 
     type UnloadedVerifiableCredential = {
         credentialId: CredentialID;
-        hint: string;
+        alias: string;
     }
 
     interface VerifiableCredential {
@@ -81,7 +81,7 @@ declare module DIDPlugin {
 
     type UnloadedDID = {
         did: DIDString;
-        hint: string;
+        alias: string;
     }
 
     interface PublicKey {
@@ -189,13 +189,13 @@ declare module DIDPlugin {
     interface DIDStore {
         getId: ()=>string;
         initPrivateIdentity: (language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        hasPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
+        containsPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        newDid: (passphrase: string, hint: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        newDid: (passphrase: string, alias: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         listDids: (filter: any, onSuccess: (didString: UnloadedDID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
         loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        storeDidDocument: (didDocument: DIDDocument, hint:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        storeDidDocument: (didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         updateDidDocument: (didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
     }
 

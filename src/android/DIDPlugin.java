@@ -25,10 +25,10 @@ package org.elastos.trinity.plugins.did;
 import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
-import org.elastos.credential.Issuer;
-import org.elastos.credential.VerifiableCredential;
-import org.elastos.credential.VerifiablePresentation;
 import org.elastos.did.Mnemonic;
+import org.elastos.did.exception.DIDException;
+import org.elastos.did.exception.DIDStoreException;
+import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,8 +43,6 @@ import java.util.Map;
 import java.util.HashMap;
 
 import org.elastos.did.*;
-
-import static org.elastos.did.Constants.issuer;
 
 
 /**
@@ -61,7 +59,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private HashMap<Integer, DIDDocument> mDocumentMap;
     private HashMap<Integer, DID> mDIDMap;
-    private HashMap<Integer, PublicKey> mPublicKeyMap;
+    private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
 
     private String keyCode      = "code";
@@ -154,8 +152,8 @@ public class DIDPlugin extends TrinityPlugin {
                     this.isMnemonicValid(args, callbackContext);
                     break;
                 //DidStore
-                case "hasPrivateIdentity":
-                    this.hasPrivateIdentity(args, callbackContext);
+                case "containsPrivateIdentity":
+                    this.containsPrivateIdentity(args, callbackContext);
                     break;
                 case "initPrivateIdentity":
                     this.initPrivateIdentity(args, callbackContext);
@@ -344,7 +342,7 @@ public class DIDPlugin extends TrinityPlugin {
             ret.put("id", objId);
             callbackContext.success(ret);
         }
-        catch(DIDException e) {
+        catch(MalformedDocumentException e) {
             exceptionProcess(e, callbackContext, "CreateDIDDocumentFromJson ");
         }
     }
@@ -363,7 +361,7 @@ public class DIDPlugin extends TrinityPlugin {
             didStore = DIDStore.getInstance();
             callbackContext.success();
         }
-        catch(DIDException e) {
+        catch(DIDStoreException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
         }
     }
@@ -391,8 +389,13 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-        String mnemonic = Mnemonic.generate(language);
-        callbackContext.success(mnemonic);
+        try {
+            String mnemonic = Mnemonic.generate(language);
+            callbackContext.success(mnemonic);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "generateMnemonic ");
+        }
     }
 
     private void isMnemonicValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -409,13 +412,13 @@ public class DIDPlugin extends TrinityPlugin {
         callbackContext.success(ret.toString());
     }
 
-    private void hasPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    private void containsPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
         try {
-            Boolean ret = didStore.hasPrivateIdentity();
+            Boolean ret = didStore.containsPrivateIdentity();
             callbackContext.success(ret.toString());
         }
         catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "hasPrivateIdentity ");
+            exceptionProcess(e, callbackContext, "containsPrivateIdentity ");
         }
     }
 
@@ -462,7 +465,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void newDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String passphrase = args.getString(idx++);
-        String hint = args.getString(idx++);
+        String alias = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -470,7 +473,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDDocument didDocument = didStore.newDid(passphrase, hint);
+            DIDDocument didDocument = didStore.newDid(passphrase, alias);
             Integer objId = System.identityHashCode(didDocument);
 
             DID did = didDocument.getSubject();
@@ -520,8 +523,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            List<DIDStore.Entry<DID, String>> dids = didStore.listDids(filter);
-
+            List<DID> dids = didStore.listDids(filter);
             JSONObject r = JSONObjectHolder.getDIDsInfoJson(dids);
             callbackContext.success(r);
         }
@@ -585,7 +587,7 @@ public class DIDPlugin extends TrinityPlugin {
         int idx = 0;
         Integer didId = args.getInt(idx++);
         DIDDocument didDocument = mDocumentMap.get(didId);
-        String hint = args.getString(idx++);
+        String alias = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -593,7 +595,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            didStore.storeDid(didDocument, hint);
+            didStore.storeDid(didDocument, alias);
             callbackContext.success("true");
         }
         catch (DIDException e) {
@@ -666,8 +668,8 @@ public class DIDPlugin extends TrinityPlugin {
 
             //mCredentialMap.put(objId, vc);
             JSONObject ret= new JSONObject();
-            ret.put("credential", vc.toExternalForm(true));
-            System.out.println("credential="+vc.toExternalForm(true));
+            ret.put("credential", vc.toString(true));
+            System.out.println("credential="+vc.toString(true));
             callbackContext.success(ret);
         }
         catch(DIDException e) {
@@ -702,7 +704,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             mCredentialMap.put(didUrlString, vc);
             JSONObject ret= new JSONObject();
-            ret.put("credential", vc.toExternalForm(true));
+            ret.put("credential", vc.toString(true));
             callbackContext.success(ret);
         }
         catch (DIDException e) {
@@ -772,7 +774,7 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DID did = new DID(didString);
-            List<DIDStore.Entry<DIDURL, String>> credentials = didStore.listCredentials(did);
+            List<DIDURL> credentials = didStore.listCredentials(did);
             JSONObject r = JSONObjectHolder.getCredentialsInfoJson(credentials);
             callbackContext.success(r);
         }
@@ -822,7 +824,7 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDDocument didDocument = mDocumentMap.get(id);
-            PublicKey publicKey = didDocument.getPublicKey(didString);
+            DIDDocument.PublicKey publicKey = didDocument.getPublicKey(didString);
             Integer objId = System.identityHashCode(publicKey);
 
             mPublicKeyMap.put(objId, publicKey);
@@ -839,7 +841,7 @@ public class DIDPlugin extends TrinityPlugin {
         Integer id = args.getInt(0);
         try {
             DIDDocument didDocument = mDocumentMap.get(id);
-            List<PublicKey> publicKeys = didDocument.getPublicKeys();
+            List<DIDDocument.PublicKey> publicKeys = didDocument.getPublicKeys();
 
             JSONObject r = JSONObjectHolder.getPublicKeysInfoJson(publicKeys);
             callbackContext.success(r);
@@ -862,15 +864,26 @@ public class DIDPlugin extends TrinityPlugin {
         Integer credentialId = args.getInt(idx++);
         String storepass = args.getString(idx++);
 
-        DIDDocument didDocument = mDocumentMap.get(id);
-        DIDDocument.Builder db = didDocument.modify();
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
 
-        VerifiableCredential vc = mCredentialMap.get(credentialId);
-        db.addCredential(vc);
-        DIDDocument issuer = db.seal(storepass);
-        didStore.storeDid(issuer);
+        try {
+            DIDDocument didDocument = mDocumentMap.get(id);
+            DIDDocument.Builder db = didDocument.edit();
 
-        callbackContext.success();
+            VerifiableCredential vc = mCredentialMap.get(credentialId);
+            db.addCredential(vc);
+            DIDDocument issuer = db.seal(storepass);
+            didStore.storeDid(issuer);
+
+            callbackContext.success();
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
+        }
     }
 
     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
@@ -936,7 +949,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void getController(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Integer id = args.getInt(0);
-        PublicKey publicKey = mPublicKeyMap.get(id);
+        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
         DID did = publicKey.getController();
         Integer objId = System.identityHashCode(did);
 
@@ -949,7 +962,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void getPublicKeyBase58(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Integer id = args.getInt(0);
-        PublicKey publicKey = mPublicKeyMap.get(id);
+        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
         String keyBase58 = publicKey.getPublicKeyBase58();
         callbackContext.success(keyBase58);
     }
@@ -1039,7 +1052,7 @@ public class DIDPlugin extends TrinityPlugin {
                     .realm(realm)
                     .seal(storePass);
 
-            callbackContext.success(presentation.toExternalForm());
+            callbackContext.success(presentation.toString());
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "createVerifiablePresentationFromCredentials ");
         }
