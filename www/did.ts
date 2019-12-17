@@ -265,6 +265,7 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
 
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
+    adapterId = null;
     clazz  = 1;
 
     getId(): string {
@@ -339,6 +340,14 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocument.objId, didDocument.DidString, storepass]);
     }
+
+    setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [this.adapterId, resolver]);
+    }
+
+    synchronize(storepass: string, onSuccess: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'synchronize', [storepass]);
+    }
 }
 
 const LISTENER_IDTRANSACTION  = 1;
@@ -390,9 +399,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
             callbackId = this.addCreateIdTransactionCB(createIdTransactionCallback);
         }
 
-        var _onSuccess = function() {
+        var _onSuccess = function(ret) {
             var didStore = new DIDStoreImpl();
             didStore.objId = didStoreId;
+            didStore.adapterId = ret.adapterId;
             if (onSuccess)
                 onSuccess(didStore);
         }

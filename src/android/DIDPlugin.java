@@ -61,6 +61,7 @@ public class DIDPlugin extends TrinityPlugin {
     private HashMap<Integer, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
+    private HashMap<Integer, DIDPluginAdapter> mDidAdapterMap;
 
     private String keyCode      = "code";
     private String keyMessage   = "message";
@@ -89,6 +90,7 @@ public class DIDPlugin extends TrinityPlugin {
         mDIDMap = new HashMap<>();
         mPublicKeyMap = new HashMap<>();
         mCredentialMap = new HashMap<>();
+        mDidAdapterMap = new HashMap<>();
     }
 
     private void exceptionProcess(Exception e, CallbackContext cc, String msg) {
@@ -157,6 +159,12 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "initPrivateIdentity":
                     this.initPrivateIdentity(args, callbackContext);
+                    break;
+                case "setResolverUrl":
+                    this.setResolverUrl(args, callbackContext);
+                    break;
+                case "synchronize":
+                    this.synchronize(args, callbackContext);
                     break;
                 case "deleteDid":
                     this.deleteDid(args, callbackContext);
@@ -357,9 +365,16 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
         try {
-            DIDStore.initialize("filesystem", dataDir, new DIDPluginAdapter(callbackId, idTransactionCC));
+            DIDPluginAdapter didAdapter = new DIDPluginAdapter(callbackId, idTransactionCC);//map the adapter?
+            Integer objId = System.identityHashCode(didAdapter);
+            mDidAdapterMap.put(objId, didAdapter);
+
+            DIDStore.initialize("filesystem", dataDir, didAdapter);
             didStore = DIDStore.getInstance();
-            callbackContext.success();
+
+            JSONObject r = new JSONObject();
+            r.put("adapterId", objId);
+            callbackContext.success(r);
         }
         catch(DIDStoreException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
@@ -441,6 +456,44 @@ public class DIDPlugin extends TrinityPlugin {
         }
         catch(Exception e) {
             exceptionProcess(e, callbackContext, "initPrivateIdentity");
+        }
+    }
+
+    private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        Integer adapterId = args.getInt(idx++);
+        String resolver = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDPluginAdapter didAdapter = mDidAdapterMap.get(adapterId);
+            didAdapter.setResolver(resolver);
+            callbackContext.success();
+        }
+        catch(Exception e) {
+            exceptionProcess(e, callbackContext, "setResolverUrl");
+        }
+    }
+
+    private void synchronize(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            didStore.synchronize(storepass);
+            callbackContext.success();
+        }
+        catch(Exception e) {
+            exceptionProcess(e, callbackContext, "synchronize");
         }
     }
 

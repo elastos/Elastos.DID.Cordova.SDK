@@ -197,6 +197,8 @@ declare module DIDPlugin {
         resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         storeDidDocument: (didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         updateDidDocument: (didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
+        setResolverUrl: (resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        synchronize: (storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
     }
 
     interface DIDManager {

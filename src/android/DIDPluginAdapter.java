@@ -22,15 +22,29 @@
 
 package org.elastos.trinity.plugins.did;
 
+import android.util.Log;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+
 public class DIDPluginAdapter implements DIDAdapter {
+    private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private final CallbackContext callbackContext;
+    private final String request = "{\"method\":\"getidtxspayloads\",\"params\":{\"id\":\"%s\",\"all\":false}}";
+    private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
 
     DIDPluginAdapter(int id, CallbackContext callbackContext) {
         this.callbackId = id;
@@ -43,6 +57,54 @@ public class DIDPluginAdapter implements DIDAdapter {
         PluginResult res = new PluginResult(PluginResult.Status.OK, info);
         res.setKeepCallback(true);
         callbackContext.sendPluginResult(res);
+    }
+
+    public void setResolver(String resolver) {
+        this.resolver = resolver;
+    }
+
+    public String sendPost(String did) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        try {
+            String didRequestBody = String.format(this.request, did);
+
+            URL url = new URL(this.resolver);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            DataOutputStream os = new DataOutputStream(conn.getOutputStream());
+            os.writeBytes(didRequestBody);
+
+            os.flush();
+            os.close();
+
+            int code = conn.getResponseCode();
+            if (code == HttpURLConnection.HTTP_OK) {
+                InputStream is = conn.getInputStream();
+                BufferedReader rd = new BufferedReader(new InputStreamReader(is));
+                String line;
+                while ((line = rd.readLine()) != null){
+                    stringBuilder.append(line);
+                }
+                rd.close();
+            }
+            else {
+                Log.d(TAG, conn.getResponseMessage());
+            }
+
+            conn.disconnect();
+        }
+        catch (IOException e) {
+            String msg = "sendPost exception: " + e.toString();
+            Log.e(TAG, msg);
+        }
+
+        return stringBuilder.length() > 0 ? stringBuilder.toString() : null;
     }
 
     @Override
@@ -60,8 +122,6 @@ public class DIDPluginAdapter implements DIDAdapter {
 
     @Override
     public String resolve(String did) {
-        System.out.println("Operation: resolve");
-        System.out.println("        " + did);
-        return null;
+        return sendPost(did);
     }
 }
