@@ -262,21 +262,27 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [language, mnemonic, passphrase, storepass, force]);
     }
 
-    containsPrivateIdentity(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', []);
+    containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean) => void, onError?: (err: any) => void) {
+        var _onSuccess = function(ret : string) {
+            onSuccess(ret == "true");
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', []);
     }
 
     deleteDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
     }
 
-    newDid(passphrase: string, alias: string, onSuccess: (didString: DIDPlugin.DIDString, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
+    newDid(passphrase: string, alias: string, onSuccess: (did: DIDPlugin.DID, didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
          var _onSuccess = function(ret) {
              var diddoc = new DIDDocumentImpl();
-             let didString = ret.did;
              diddoc.objId = ret.id;
+
+             let didString = ret.did;
+             let did = new DIDImpl(didString, "");
+             
              if (onSuccess)
-                onSuccess(didString, diddoc);
+                onSuccess(did, diddoc);
          }
 
          exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, alias]);
@@ -413,7 +419,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+        var _onSuccess = function(ret : string) {
+            onSuccess(ret == "true");
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
     }
 }
 

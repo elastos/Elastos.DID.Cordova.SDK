@@ -185,7 +185,7 @@ declare module DIDPlugin {
         initPrivateIdentity: (language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         containsPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        newDid: (passphrase: string, alias: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        newDid: (passphrase: string, alias: string, onSuccess: (did: DID, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         listDids: (filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
         loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
