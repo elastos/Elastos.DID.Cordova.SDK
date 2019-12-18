@@ -23,33 +23,26 @@
 var exec = cordova.exec;
 
 class DIDImpl implements DIDPlugin.DID {
-    objId = null;
-    didString: string = null;
     clazz = 3;
-    manager: DIDPlugin.DIDManager = null;
 
-    constructor(didString: string) {
+    constructor(private didString: string, private alias: string) {
         this.didString = didString;
     }
 
-    getId(): string {
-        return this.objId;
+    getDIDString(): string {
+        return this.didString;
     }
 
     getMethod(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getMethod', [this.objId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'getMethod', [this.didString]);
     }
 
     getMethodSpecificId(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getMethodSpecificId', [this.objId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'getMethodSpecificId', [this.didString]);
     }
 
     resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'resolve', [this.objId]);
-    }
-
-    toString(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'didToString', [this.objId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'resolve', [this.didString]);
     }
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
@@ -128,7 +121,6 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     objId  = null;
     clazz  = 2;
     DidString = "";
-    manager: DIDPlugin.DIDManager = null;
     did: DIDPlugin.DID = null;
 
     getId(): string {
@@ -140,13 +132,9 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     getSubject(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        var manager = this.manager;
-
         var _onSuccess = function(ret) {
-            var did = new DIDImpl(ret.didstring);
-            did.objId = ret.id;
-            did.manager = manager;
-            if (onSuccess) onSuccess(did);
+            var did = new DIDImpl(ret.didstring,"");
+            onSuccess(did);
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'getSubject', [this.objId]);
@@ -162,11 +150,9 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     getPublicKey(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         var publicKey = new PublicKeyImpl();
-        var manager = this.manager;
 
         var _onSuccess = function(ret) {
             publicKey.objId = ret.id;
-            publicKey.manager = manager;
             if (onSuccess) onSuccess(publicKey);
         }
 
@@ -296,17 +282,15 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, alias]);
     }
 
-    listDids(filter: any, onSuccess: (didString: DIDPlugin.UnloadedDID[])=>void, onError?: (err: any)=>void) {
+    listDids(filter: any, onSuccess: (dids: DIDPlugin.DID[])=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let udids: DIDPlugin.UnloadedDID[] = [];
+            let dids: DIDPlugin.DID[] = [];
             ret.items.map((item)=>{
-                udids.push({
-                    did: item.did,
-                    alias: item.alias
-                })
+                let did = new DIDImpl(item.did, item.alias);
+                dids.push(did);
             });
-            if (onSuccess)
-               onSuccess(udids);
+
+            onSuccess(dids);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
     }
@@ -580,14 +564,12 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
     clazz = 4;
     manager: DIDPlugin.DIDManager = null;
 
-    getController(onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    getController(onSuccess: (did: DIDPlugin.DID) => void, onError?: (err: any) => void) {
         var manager = this.manager;
 
         var _onSuccess = function(ret) {
-            var did = new DIDImpl(ret.didstring);
-            did.objId = ret.id;
-            did.manager = manager;
-            if (onSuccess) onSuccess(did);
+            var did = new DIDImpl(ret.didstring, "");
+            onSuccess(did);
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'getController', [this.objId]);

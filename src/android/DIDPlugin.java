@@ -58,7 +58,7 @@ public class DIDPlugin extends TrinityPlugin {
     private DIDStore didStore = null;
 
     private HashMap<Integer, DIDDocument> mDocumentMap;
-    private HashMap<Integer, DID> mDIDMap;
+    private HashMap<String, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
     private HashMap<Integer, DIDPluginAdapter> mDidAdapterMap;
@@ -237,9 +237,6 @@ public class DIDPlugin extends TrinityPlugin {
                 case "getMethodSpecificId":
                     this.getMethodSpecificId(args, callbackContext);
                     break;
-                case "didToString":
-                    this.didToString(args, callbackContext);
-                    break;
                 //PublicKey
                 case "getController":
                     this.getController(args, callbackContext);
@@ -321,16 +318,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private void setListener(JSONArray args, CallbackContext callbackContext) throws JSONException {
-          Integer type = args.getInt(0);
+        Integer type = args.getInt(0);
 
-          if (type == IDTRANSACTION) {
-              idTransactionCC = callbackContext;
+        if (type == IDTRANSACTION) {
+            idTransactionCC = callbackContext;
 
-              PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
-              result.setKeepCallback(true);
-              callbackContext.sendPluginResult(result);
-          }
-      }
+            PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
+            result.setKeepCallback(true);
+            callbackContext.sendPluginResult(result);
+        }
+    }
 
     private void CreateDIDDocumentFromJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -844,11 +841,9 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DID did = didDocument.getSubject();
-            Integer objId = System.identityHashCode(did);
 
-            mDIDMap.put(objId, did);
+            mDIDMap.put(did.toString(), did);
             JSONObject r = new JSONObject();
-            r.put("id", objId);
             r.put("didstring", did.toString());
             callbackContext.success(r);
         } catch (NullPointerException e) {
@@ -980,35 +975,26 @@ public class DIDPlugin extends TrinityPlugin {
 
     // PublicKey
     private void getMethod(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        DID did = mDIDMap.get(id);
+        String didString = args.getString(0);
+        DID did = mDIDMap.get(didString);
         String method = did.getMethod();
         callbackContext.success(method);
     }
 
     private void getMethodSpecificId(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        DID did = mDIDMap.get(id);
+        String didString = args.getString(0);
+        DID did = mDIDMap.get(didString);
         String methodSpecificId = did.getMethodSpecificId();
         callbackContext.success(methodSpecificId);
-    }
-
-    private void didToString(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        DID did = mDIDMap.get(id);
-        String didString = did.toString();
-        callbackContext.success(didString);
     }
 
     private void getController(JSONArray args, CallbackContext callbackContext) throws JSONException {
         Integer id = args.getInt(0);
         DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
         DID did = publicKey.getController();
-        Integer objId = System.identityHashCode(did);
 
-        mDIDMap.put(objId, did);
+        mDIDMap.put(did.toString(), did);
         JSONObject r = new JSONObject();
-        r.put("id", objId);
         r.put("didstring", did.toString());
         callbackContext.success(r);
     }

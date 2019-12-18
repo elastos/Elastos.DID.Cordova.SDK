@@ -79,14 +79,9 @@ declare module DIDPlugin {
         toString: ()=>Promise<string>;
     }
 
-    type UnloadedDID = {
-        did: DIDString;
-        alias: string;
-    }
-
     interface PublicKey {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getController: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
+        getController: (onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void)=>void;
         getPublicKeyBase58: (method: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: define "method" type
     }
 
@@ -116,11 +111,10 @@ declare module DIDPlugin {
 
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getId: ()=>string;
+        getDIDString: ()=>string;
         getMethod: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         getMethodSpecificId: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
         resolveDidDocument: (onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        toString: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
 
         /**
          * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
@@ -192,7 +186,7 @@ declare module DIDPlugin {
         containsPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
         deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
         newDid: (passphrase: string, alias: string, onSuccess: (didString: DIDString, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        listDids: (filter: any, onSuccess: (didString: UnloadedDID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
+        listDids: (filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
         loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
         storeDidDocument: (didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
