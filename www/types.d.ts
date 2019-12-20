@@ -59,7 +59,7 @@ declare module DIDPlugin {
     type OnCreateIdTransaction = (payload: String, memo: string)=>void;
 
     interface VerifiableCredentialBuilder {
-        fromJson: (credentialJson: string) => DIDPlugin.VerifiableCredential;
+        fromJson(credentialJson: string): DIDPlugin.VerifiableCredential;
     }
 
     type UnloadedVerifiableCredential = {
@@ -68,21 +68,21 @@ declare module DIDPlugin {
     }
 
     interface VerifiableCredential {
-        getId: ()=>string;
-        getFragment: ()=>string;
-        getType: ()=>string
-        getIssuer: ()=>string;
-        getIssuanceDate: ()=>Date;
-        getExpirationDate: ()=>Date;
-        getSubject: ()=>any;
-        getProof: ()=>any;
-        toString: ()=>Promise<string>;
+        getId():string;
+        getFragment():string;
+        getType():string
+        getIssuer():string;
+        getIssuanceDate():Date;
+        getExpirationDate():Date;
+        getSubject():any;
+        getProof():any;
+        toString():Promise<string>;
     }
 
     interface PublicKey {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getController: (onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void)=>void;
-        getPublicKeyBase58: (method: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: define "method" type
+        getController(onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void);
+        getPublicKeyBase58(method: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void); // TODO: define "method" type
     }
 
     /**
@@ -111,15 +111,15 @@ declare module DIDPlugin {
 
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getDIDString: ()=>string;
-        getMethod: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getMethodSpecificId: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        resolveDidDocument: (onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
+        getDIDString():string;
+        getMethod(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        getMethodSpecificId(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        resolveDidDocument(onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
 
         /**
           * Call prepareIssue before issueCredential. It will resolve did.
         */
-        prepareIssuer:(onSuccess?: ()=>void)=>void;
+        prepareIssuer(onSuccess?: ()=>void);
 
         /**
          * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
@@ -135,12 +135,12 @@ declare module DIDPlugin {
          * @param onSuccess Callback returning the created VerifiableCredential object in case of success.
          * @param onError Callback returning an error object in case of error.
          */
-        issueCredential: (subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO: types for all "any"
+        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
 
-        deleteCredential: (credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
-        listCredentials: (onSuccess: (credentials: UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void)=>void;
-        loadCredential: (credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void;
-        storeCredential: (credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
+        deleteCredential(credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        listCredentials(onSuccess: (credentials: UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void);
+        loadCredential(credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void);
+        storeCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
 
         /**
          * Creates a new VerifiablePresentation that embeds one or several credentials. This presentation is signed by a DID
@@ -151,27 +151,27 @@ declare module DIDPlugin {
          * @param nonce         Random requested generated challenge code to prevent replay attacks.
          * @param storepass     Store password, used to sign the presentation.
          */
-        createVerifiablePresentation: (credentials: VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
+        createVerifiablePresentation(credentials: VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void);
     }
 
     interface DIDDocument {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getId: ()=>string;
-        setSubject: (subject: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void)=>void; // TODO: "subject" type
-        getSubject: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getPublicKeyCount: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getDefaultPublicKey: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getPublicKey: (didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        getPublicKeys: (onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        addCredential: (credential: VerifiableCredential, storePass: string, onSuccess?: (d)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
-        getCredential: (credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void)=>void; // TODO "credentialId" type
-        sign: (storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;  // TODO: What is "originString" ?
-        verify: (signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void)=>void;
-        publish: (storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
+        getId():string;
+        setSubject(subject: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void); // TODO: "subject" type
+        getSubject(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        getPublicKeyCount(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        getDefaultPublicKey(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        getPublicKey(didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        getPublicKeys(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: (d)=>void, onError?: (err: any)=>void); // TODO "credentialId" type
+        getCredential(credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO "credentialId" type
+        sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
+        verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
     }
 
     interface VerifiablePresentationBuilder {
-        fromJson: (json: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void)=>void;
+        fromJson(json: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void);
     }
 
     /**
@@ -180,23 +180,23 @@ declare module DIDPlugin {
      * them to a requester. The requester can then make sure that the delivered content has not been altered.
      */
     interface VerifiablePresentation {
-        getCredentials: ()=>VerifiableCredential[];
-        isValid: (onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
-        isGenuine: (onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
+        getCredentials(): VerifiableCredential[];
+        isValid(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+        isGenuine(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
     }
 
     interface DIDStore {
-        getId: ()=>string;
-        initPrivateIdentity: (language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        containsPrivateIdentity: (onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void)=>void;
-        deleteDid: (didString: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        newDid: (passphrase: string, alias: string, onSuccess: (did: DID, didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        listDids: (filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void)=>void; // TODO: "filter" type
-        loadDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        resolveDidDocument: (didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void;
-        storeDidDocument: (didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
-        updateDidDocument: (didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
-        setResolverUrl: (resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        getId():string;
+        initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void);
+        containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void);
+        deleteDid(didString: string, onSuccess: ()=>void, onError?: (err: any)=>void);
+        newDid(passphrase: string, alias: string, onSuccess: (did: DID, didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        listDids(filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void); // TODO: "filter" type
+        loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        resolveDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        storeDidDocument(didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void);
+        updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
 
         /**
          * This methods synchronizes a whole DID store content, from the DID sidechain, to the local device.
@@ -212,16 +212,16 @@ declare module DIDPlugin {
          * NOTE: Only data previously saved on chain can be restore. This method cannot restore private credentials
          * kept by the user on his device.
          */
-        synchronize: (storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void)=>void;
+        synchronize(storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void);
     }
 
     interface DIDManager {
-        getVersion: (onSuccess: (version: string)=>void, onError?: (err: any)=>void)=>void;
-        initDidStore: (didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void)=>void;
-        deleteDidStore: (didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void)=>void;
-        createDIDDocumentFromJson: (json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void)=>void; // TODO: "json" type
-        generateMnemonic: (language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void)=>void;
-        isMnemonicValid: (language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void)=>void;
+        getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void);
+        initDidStore(didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void);
+        deleteDidStore(didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void); // TODO: "json" type
+        generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
+        isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
 
         VerifiableCredentialBuilder: VerifiableCredentialBuilder;
         VerifiablePresentationBuilder: VerifiablePresentationBuilder;
