@@ -62,7 +62,7 @@ public class DIDPlugin extends TrinityPlugin {
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
     private HashMap<Integer, DIDPluginAdapter> mDidAdapterMap;
-    private HashMap<Integer, Issuer> mIssuerMap;
+    private HashMap<String, Issuer> mIssuerMap;
 
     private String keyCode      = "code";
     private String keyMessage   = "message";
@@ -92,6 +92,7 @@ public class DIDPlugin extends TrinityPlugin {
         mPublicKeyMap = new HashMap<>();
         mCredentialMap = new HashMap<>();
         mDidAdapterMap = new HashMap<>();
+        mIssuerMap = new HashMap<>();
     }
 
     private void exceptionProcess(Exception e, CallbackContext cc, String msg) {
@@ -688,9 +689,14 @@ public class DIDPlugin extends TrinityPlugin {
         int idx = 0;
         String didString = args.getString(idx++);
 
-        DID did = new DID(didString);
-        Issuer issuer = new Issuer(did);
-        mIssuerMap.put(didString, issuer);
+        try {
+            DID did = new DID(didString);
+            Issuer issuer = new Issuer(did);
+            mIssuerMap.put(didString, issuer);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "prepareIssuer ");
+        }
     }
 
     private void CreateCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -715,9 +721,9 @@ public class DIDPlugin extends TrinityPlugin {
             DID subjectDid = new DID(subjectDidString);
 
             Issuer issuer = mIssuerMap.get(didString);
-            if (!issuer) {
+            if (issuer == null) {
                 DID did = new DID(didString);
-                Issuer issuer = new Issuer(did);
+                issuer = new Issuer(did);
                 mIssuerMap.put(didString, issuer);
             }
 
