@@ -45,6 +45,10 @@ class DIDImpl implements DIDPlugin.DID {
         exec(onSuccess, onError, 'DIDPlugin', 'resolve', [this.didString]);
     }
 
+    prepareIssuer(onSuccess?: () => void) {
+        exec(onSuccess, null, 'DIDPlugin', 'prepareIssuer', [this.didString]);
+    }
+
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
             let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
@@ -280,7 +284,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
              let didString = ret.did;
              let did = new DIDImpl(didString, "");
-             
+
              if (onSuccess)
                 onSuccess(did, diddoc);
          }

@@ -62,6 +62,7 @@ public class DIDPlugin extends TrinityPlugin {
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
     private HashMap<Integer, DIDPluginAdapter> mDidAdapterMap;
+    private HashMap<Integer, Issuer> mIssuerMap;
 
     private String keyCode      = "code";
     private String keyMessage   = "message";
@@ -236,6 +237,9 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "getMethodSpecificId":
                     this.getMethodSpecificId(args, callbackContext);
+                    break;
+                case "prepareIssuer":
+                    this.prepareIssuer(args, callbackContext);
                     break;
                 //PublicKey
                 case "getController":
@@ -680,6 +684,15 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    private void prepareIssuer(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didString = args.getString(idx++);
+
+        DID did = new DID(didString);
+        Issuer issuer = new Issuer(did);
+        mIssuerMap.put(didString, issuer);
+    }
+
     private void CreateCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didString = args.getString(idx++);
@@ -700,8 +713,13 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DID subjectDid = new DID(subjectDidString);
-            DID did = new DID(didString);
-            Issuer issuer = new Issuer(did);
+
+            Issuer issuer = mIssuerMap.get(didString);
+            if (!issuer) {
+                DID did = new DID(didString);
+                Issuer issuer = new Issuer(did);
+                mIssuerMap.put(didString, issuer);
+            }
 
             Calendar cal = Calendar.getInstance();
             cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);

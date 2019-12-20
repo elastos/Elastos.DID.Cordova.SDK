@@ -43,7 +43,7 @@ public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private final CallbackContext callbackContext;
-    private final String request = "{\"method\":\"getidtxspayloads\",\"params\":{\"id\":\"%s\",\"all\":false}}";
+    private final String request = "{\"method\":\"resolvedid\",\"params\":{\"id\":\"%s\",\"all\":false}, \"id\": \"%s\"}";
     private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
 
     DIDPluginAdapter(int id, CallbackContext callbackContext) {
@@ -63,11 +63,12 @@ public class DIDPluginAdapter implements DIDAdapter {
         this.resolver = resolver;
     }
 
-    public String sendPost(String did) {
+    public String sendPost(String did, String id) {
         StringBuilder stringBuilder = new StringBuilder();
 
         try {
-            String didRequestBody = String.format(this.request, did);
+            String didRequestBody = String.format(this.request, did, id);
+            Log.d(TAG, "resolve url: " + this.resolver + " request body:" + didRequestBody);
 
             URL url = new URL(this.resolver);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -122,6 +123,6 @@ public class DIDPluginAdapter implements DIDAdapter {
 
     @Override
     public String resolve(String did) {
-        return sendPost(did);
+        return sendPost(did, "");
     }
 }
