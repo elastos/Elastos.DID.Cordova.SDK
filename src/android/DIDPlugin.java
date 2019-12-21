@@ -226,6 +226,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "addCredential":
                     this.addCredential(args, callbackContext);
                     break;
+                case "getCredentials":
+                    this.DIDDocument_getCredentials(args, callbackContext);
+                    break;
                 case "sign":
                     this.sign(args, callbackContext);
                     break;
@@ -955,6 +958,30 @@ public class DIDPlugin extends TrinityPlugin {
         catch (DIDException e) {
             e.printStackTrace();
             errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
+        }
+    }
+
+    private void DIDDocument_getCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
+        int idx = 0;
+        Integer id = args.getInt(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDDocument didDocument = mDocumentMap.get(id);
+            List<VerifiableCredential> credentials = didDocument.getCredentials();
+
+            JSONObject r = new JSONObject();
+            r.put("credentials", credentials);
+
+            callbackContext.success();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_getCredentials exception: " + e.toString());
         }
     }
 

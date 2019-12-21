@@ -175,6 +175,24 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         exec(onSuccess, onError, 'DIDPlugin', 'getCredential', [this.objId, credentialId]);
     }
 
+    getCredentials(onSuccess: (credentials: DIDPlugin.VerifiableCredential[])=>void, onError?: (err: any)=>void) {
+        var _onSuccess = function(ret: any) {
+            // Convert all returned java credentials into our own format.
+            let javaJvs = ret.credentials;
+            let credentials: DIDPlugin.VerifiableCredential[] = [];
+            for (let javaVcJson of javaJvs) {
+                let javaVc = JavaVerifiableCredential.createFromJson(javaVcJson);
+                let credential = javaVc.toVerifiableCredential();  
+                credentials.push(credential);
+            }
+
+            if (onSuccess)
+                onSuccess(credentials);
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'DIDDocument_getCredentials', [this.objId]);
+    }
+
     sign(storePass: string, originString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'sign', [this.objId, storePass, originString]);
     }
