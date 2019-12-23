@@ -57,7 +57,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private DIDStore didStore = null;
 
-    private HashMap<Integer, DIDDocument> mDocumentMap;
+    private HashMap<String, DIDDocument> mDocumentMap;
     private HashMap<String, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
@@ -208,23 +208,14 @@ public class DIDPlugin extends TrinityPlugin {
                     this.storeCredential(args, callbackContext);
                     break;
                 //DIDDocument
-                case "getSubject":
-                    this.getSubject(args, callbackContext);
-                    break;
-                case "getPublicKeyCount":
-                    this.getPublicKeyCount(args, callbackContext);
-                    break;
                 case "getDefaultPublicKey":
                     this.getDefaultPublicKey(args, callbackContext);
                     break;
-                case "getPublicKey":
-                    this.getPublicKey(args, callbackContext);
-                    break;
-                case "getPublicKeys":
-                    this.getPublicKeys(args, callbackContext);
-                    break;
                 case "addCredential":
                     this.addCredential(args, callbackContext);
+                    break;
+                case "DIDDocument_deleteCredential":
+                    this.DIDDocument_deleteCredential(args, callbackContext);
                     break;
                 case "getCredentials":
                     this.DIDDocument_getCredentials(args, callbackContext);
@@ -348,11 +339,9 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDDocument didDocument = DIDDocument.fromJson(json);
-            Integer objId = System.identityHashCode(didDocument);
-
-            mDocumentMap.put(objId, didDocument);
+            mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject ret= new JSONObject();
-            ret.put("id", objId);
+            ret.put("diddoc", didDocument);
             callbackContext.success(ret);
         }
         catch(MalformedDocumentException e) {
@@ -532,14 +521,12 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDDocument didDocument = didStore.newDid(passphrase, alias);
-            Integer objId = System.identityHashCode(didDocument);
 
             DID did = didDocument.getSubject();
             String didString = did.toString();
 
-            mDocumentMap.put(objId, didDocument);
+            mDocumentMap.put(didString, didDocument);
             JSONObject r = new JSONObject();
-            r.put("id", objId);
             r.put("did", didString);
             callbackContext.success(r);
         }
@@ -559,11 +546,10 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDDocument didDocument = didStore.loadDid(didString);
-            Integer objId = System.identityHashCode(didDocument);
 
-            mDocumentMap.put(objId, didDocument);
+            mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
-            r.put("id", objId);
+            r.put("diddoc", didDocument);
             callbackContext.success(r);
         }
         catch (DIDException e) {
@@ -592,9 +578,9 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer didId = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(didId);
-//        String didUrlString = args.getString(idx++);
+        String didUrl = args.getString(idx++);
+        DIDDocument didDocument = mDocumentMap.get(didUrl);
+        // String didUrlString = args.getString(idx++);
         String storepass = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -628,12 +614,12 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DID did = new DID(didString);
-            DIDDocument didDocument = didStore.resolveDid(did);
-            Integer objId = System.identityHashCode(did);
+            // Resolve and force to NOT use a locally cached copy.
+            DIDDocument didDocument = didStore.resolveDid(did, true);
 
-            mDocumentMap.put(objId, didDocument);
+            mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
-            r.put("id", objId);
+            r.put("diddoc", didDocument);
             callbackContext.success(r);
         }
         catch (Exception e) {
@@ -663,9 +649,8 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer didId = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(didId);
         String didUrlString = args.getString(idx++);
+        String didDocumentJson = args.getString(idx++);
         String storepass = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -674,6 +659,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
+            DIDDocument didDocument = DIDDocument.fromJson(didDocumentJson);
             DIDURL signKey = new DIDURL(didUrlString);
             boolean ret = didStore.updateDid(didDocument, signKey, storepass);
             if (ret) {
@@ -860,83 +846,17 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
-    // DIDDocument
-    private void getSubject(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(id);
-
-        try {
-            DID did = didDocument.getSubject();
-
-            mDIDMap.put(did.toString(), did);
-            JSONObject r = new JSONObject();
-            r.put("didstring", did.toString());
-            callbackContext.success(r);
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "getSubject exception: " + e.toString());
-        }
-    }
-
-    private void getPublicKeyCount(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(id);
-        Integer keyCount = didDocument.getPublicKeyCount();
-        callbackContext.success(keyCount);
-    }
-
-    private void getPublicKey(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        Integer id = args.getInt(idx++);
-        String didString = args.getString(idx++);
-
-        if (args.length() != idx) {
-            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-            return;
-        }
-
-        try {
-            DIDDocument didDocument = mDocumentMap.get(id);
-            DIDDocument.PublicKey publicKey = didDocument.getPublicKey(didString);
-            Integer objId = System.identityHashCode(publicKey);
-
-            mPublicKeyMap.put(objId, publicKey);
-            JSONObject r = new JSONObject();
-            r.put("id", objId);
-            callbackContext.success(r);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "getPublicKey ");
-        }
-    }
-
-    private void getPublicKeys(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        try {
-            DIDDocument didDocument = mDocumentMap.get(id);
-            List<DIDDocument.PublicKey> publicKeys = didDocument.getPublicKeys();
-
-            JSONObject r = JSONObjectHolder.getPublicKeysInfoJson(publicKeys);
-            callbackContext.success(r);
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
-        }
-    }
-
     private void getDefaultPublicKey(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        DIDDocument didDocument = mDocumentMap.get(id);
+        String didUrl = args.getString(0);
+        DIDDocument didDocument = mDocumentMap.get(didUrl);
         DIDURL publicKeyId = didDocument.getDefaultPublicKey();
         callbackContext.success(publicKeyId.toString());
     }
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        Integer credentialId = args.getInt(idx++);
+        String didUrl = args.getString(idx++);
+        String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -945,11 +865,39 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDDocument didDocument = mDocumentMap.get(id);
+            DIDDocument didDocument = mDocumentMap.get(didUrl);
             DIDDocument.Builder db = didDocument.edit();
 
-            VerifiableCredential vc = mCredentialMap.get(credentialId);
+            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
             db.addCredential(vc);
+            DIDDocument issuer = db.seal(storepass);
+            didStore.storeDid(issuer);
+
+            callbackContext.success();
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
+        }
+    }
+
+    private void DIDDocument_deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
+        int idx = 0;
+        String didUrl = args.getString(idx++);
+        String credentialJson = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument.Builder db = didDocument.edit();
+
+            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
+            db.removeCredential(vc.getId());
             DIDDocument issuer = db.seal(storepass);
             didStore.storeDid(issuer);
 
@@ -963,7 +911,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void DIDDocument_getCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
+        String didUrl = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -971,7 +919,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDDocument didDocument = mDocumentMap.get(id);
+            DIDDocument didDocument = mDocumentMap.get(didUrl);
             List<VerifiableCredential> credentials = didDocument.getCredentials();
 
             JSONObject r = new JSONObject();
@@ -987,8 +935,8 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(id);
+        String didUrl = args.getString(idx++);
+        DIDDocument didDocument = mDocumentMap.get(didUrl);
 
         String storepass = args.getString(idx++);
         String originString = args.getString(idx++);
@@ -1004,8 +952,8 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDException {
         int idx = 0;
-        Integer id = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(id);
+        String didUrl = args.getString(idx++);
+        DIDDocument didDocument = mDocumentMap.get(didUrl);
 
         String signString = args.getString(idx++);
         String originString = args.getString(idx++);

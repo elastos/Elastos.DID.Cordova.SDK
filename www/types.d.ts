@@ -155,17 +155,19 @@ declare module DIDPlugin {
     }
 
     interface DIDDocument {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
-        getId():string;
-        setSubject(subject: any, onSuccess?: (data: any)=>void, onError?: (err: any)=>void); // TODO: "subject" type
-        getSubject(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        getPublicKeyCount(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        getDefaultPublicKey(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        getPublicKey(didString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        getPublicKeys(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: (d)=>void, onError?: (err: any)=>void); 
-        getCredential(credentialId: CredentialID, onSuccess?: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void);
-        getCredentials(onSuccess: (credentials: VerifiableCredential[])=>void, onError?: (err: any)=>void);
+        getCreated(): Date;
+        getUpdated(): Date;
+        setSubject(subject: DID);
+        getSubject(): DID;
+        getPublicKeyCount(): Number;
+        getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void);
+        getPublicKey(didString: string): PublicKey;
+        getPublicKeys(): PublicKey[];
+        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void); 
+        deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void); 
+        getCredential(credentialId: CredentialID): VerifiableCredential;
+        getCredentials(): DIDPlugin.VerifiableCredential[];
+
         sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
         verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
         publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
@@ -191,7 +193,7 @@ declare module DIDPlugin {
         initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void);
         containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void);
         deleteDid(didString: string, onSuccess: ()=>void, onError?: (err: any)=>void);
-        newDid(passphrase: string, alias: string, onSuccess: (did: DID, didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        newDid(passphrase: string, alias: string, onSuccess: (did: DID)=>void, onError?: (err: any)=>void);
         listDids(filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void); // TODO: "filter" type
         loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
         resolveDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
