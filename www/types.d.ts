@@ -163,8 +163,8 @@ declare module DIDPlugin {
         getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void);
         getPublicKey(didString: string): PublicKey;
         getPublicKeys(): PublicKey[];
-        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void); 
-        deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void); 
+        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         getCredential(credentialId: CredentialID): VerifiableCredential;
         getCredentials(): DIDPlugin.VerifiableCredential[];
 
@@ -196,7 +196,7 @@ declare module DIDPlugin {
         newDid(passphrase: string, alias: string, onSuccess: (did: DID)=>void, onError?: (err: any)=>void);
         listDids(filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void); // TODO: "filter" type
         loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
-        resolveDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        // resolveDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
         storeDidDocument(didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void);
         updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);

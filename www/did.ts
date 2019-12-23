@@ -24,9 +24,10 @@ var exec = cordova.exec;
 
 class DIDImpl implements DIDPlugin.DID {
     clazz = 3;
+    storeId = "";
 
     constructor(private didString: string, private alias: string) {
-        this.didString = didString;
+        // this.didString = didString;
     }
 
     getDIDString(): string {
@@ -42,11 +43,16 @@ class DIDImpl implements DIDPlugin.DID {
     }
 
     resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'resolve', [this.didString]);
+        var _onSuccess = function(ret: {diddoc: string}) {
+            var diddoc = JavaDIDDocument.createFromJson(ret.diddoc);
+            onSuccess(diddoc.toDIDDocument());
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'resolve', [this.didString]);
     }
 
     prepareIssuer(onSuccess?: () => void) {
-        exec(onSuccess, null, 'DIDPlugin', 'prepareIssuer', [this.didString]);
+        exec(onSuccess, null, 'DIDPlugin', 'prepareIssuer', [this.storeId, this.didString]);
     }
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
@@ -58,11 +64,11 @@ class DIDImpl implements DIDPlugin.DID {
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-            [this.didString, subjectDID, credentialId, types, expirationDate, properties, passphrase]);
+            [this.storeId, this.didString, subjectDID, credentialId, types, expirationDate, properties, passphrase]);
     }
 
     deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.didString, credentialId]);
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.storeId, this.didString, credentialId]);
     }
 
     listCredentials(onSuccess: (credentials: DIDPlugin.UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void) {
@@ -77,7 +83,7 @@ class DIDImpl implements DIDPlugin.DID {
 
             onSuccess(uvcs);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.didString]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.storeId, this.didString]);
     }
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
@@ -88,7 +94,7 @@ class DIDImpl implements DIDPlugin.DID {
                 onSuccess(credential);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.didString, credentialId]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.storeId, this.didString, credentialId]);
     }
 
     async storeCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
@@ -96,7 +102,7 @@ class DIDImpl implements DIDPlugin.DID {
             let passedCredential = JavaVerifiableCredential.createFromVerifiableCredential(credential);
             console.log("passedCredential", passedCredential);
 
-            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [passedCredential]);
+            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.storeId, passedCredential]);
         }
         catch (err) {
             if (onError)
@@ -117,7 +123,7 @@ class DIDImpl implements DIDPlugin.DID {
             onSuccess(presentation);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [this.didString, javaCredentials, realm, nonce, storepass]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [this.storeId, this.didString, javaCredentials, realm, nonce, storepass]);
     }
 }
 
@@ -141,7 +147,7 @@ class JavaDIDDocument {
         didDocument.id = new DIDImpl(this.id, "");
         didDocument.created = new Date(this.created);
         didDocument.updated = new Date(this.updated);
-        
+
         didDocument.verifiableCredential = []
         if (this.verifiableCredential) { // Could be undefined
             this.verifiableCredential.forEach((c)=>{
@@ -361,7 +367,6 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
 
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
-    adapterId = null;
     clazz  = 1;
 
     getId(): string {
@@ -369,43 +374,47 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     initPrivateIdentity(language: number, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [language, mnemonic, passphrase, storepass, force]);
+        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
     }
 
     containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret : string) {
             onSuccess(ret == "true");
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', []);
+        exec(_onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', [this.objId]);
     }
 
     deleteDid(didString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [didString]);
+        exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [this.objId, didString]);
     }
 
     newDid(passphrase: string, alias: string, onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void) {
+         var didStoreId = this.objId;
          var _onSuccess = function(ret) {
              let didString = ret.did;
              let did = new DIDImpl(didString, "");
+             did.storeId = didStoreId;
 
              if (onSuccess)
                 onSuccess(did);
          }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [passphrase, alias]);
+         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, alias]);
     }
 
     listDids(filter: any, onSuccess: (dids: DIDPlugin.DID[])=>void, onError?: (err: any)=>void) {
+        var didStoreId = this.objId;
         var _onSuccess = function(ret) {
             let dids: DIDPlugin.DID[] = [];
             ret.items.map((item)=>{
                 let did = new DIDImpl(item.did, item.alias);
+                did.storeId = didStoreId;
                 dids.push(did);
             });
 
             onSuccess(dids);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [filter]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [this.objId, filter]);
     }
 
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
@@ -416,33 +425,33 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
             onSuccess(javaDidDocument.toDIDDocument());
          }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [didString]);
+         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
     }
 
-    resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-        var _onSuccess = function(ret: {diddoc: string}) {
-            var diddoc = JavaDIDDocument.createFromJson(ret.diddoc);
-            onSuccess(diddoc.toDIDDocument());
-        }
+    // resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
+    //     var _onSuccess = function(ret: {diddoc: string}) {
+    //         var diddoc = JavaDIDDocument.createFromJson(ret.diddoc);
+    //         onSuccess(diddoc.toDIDDocument());
+    //     }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [didString]);
-    }
+    //     exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [this.objId, didString]);
+    // }
 
     storeDidDocument(didDocument: DIDDocumentImpl, alias: string, onSuccess: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [didDocument.getSubject().getDIDString(), alias]);
+        exec(onSuccess, onError, 'DIDPlugin', 'storeDid', [this.objId, didDocument.getSubject().getDIDString(), alias]);
     }
 
     updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         let javaDidDocument = JavaDIDDocument.createFromDIDDocument(didDocument);
-        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [didDocument.getSubject().getDIDString(), javaDidDocument, storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), javaDidDocument, storepass]);
     }
 
     setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [this.adapterId, resolver]);
+        exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [this.objId, resolver]);
     }
 
     synchronize(storepass: string, onSuccess: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'synchronize', [storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'synchronize', [this.objId, storepass]);
     }
 }
 
@@ -495,10 +504,9 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
             callbackId = this.addCreateIdTransactionCB(createIdTransactionCallback);
         }
 
-        var _onSuccess = function(ret) {
+        var _onSuccess = function() {
             var didStore = new DIDStoreImpl();
             didStore.objId = didStoreId;
-            didStore.adapterId = ret.adapterId;
             if (onSuccess)
                 onSuccess(didStore);
         }

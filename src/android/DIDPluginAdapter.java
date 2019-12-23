@@ -24,9 +24,14 @@ package org.elastos.trinity.plugins.did;
 
 import android.util.Log;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
+import org.elastos.did.exception.DIDResolveException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,15 +40,17 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import javax.net.ssl.HttpsURLConnection;
 
 
 public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private final CallbackContext callbackContext;
-    private final String request = "{\"method\":\"resolvedid\",\"params\":{\"id\":\"%s\",\"all\":false}, \"id\": \"%s\"}";
     private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
 
     DIDPluginAdapter(int id, CallbackContext callbackContext) {
@@ -63,51 +70,6 @@ public class DIDPluginAdapter implements DIDAdapter {
         this.resolver = resolver;
     }
 
-    public String sendPost(String did, String id) {
-        StringBuilder stringBuilder = new StringBuilder();
-
-        try {
-            String didRequestBody = String.format(this.request, did, id);
-            Log.d(TAG, "resolve url: " + this.resolver + " request body:" + didRequestBody);
-
-            URL url = new URL(this.resolver);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-
-            DataOutputStream os = new DataOutputStream(conn.getOutputStream());
-            os.writeBytes(didRequestBody);
-
-            os.flush();
-            os.close();
-
-            int code = conn.getResponseCode();
-            if (code == HttpURLConnection.HTTP_OK) {
-                InputStream is = conn.getInputStream();
-                BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-                String line;
-                while ((line = rd.readLine()) != null){
-                    stringBuilder.append(line);
-                }
-                rd.close();
-            }
-            else {
-                Log.d(TAG, conn.getResponseMessage());
-            }
-
-            conn.disconnect();
-        }
-        catch (IOException e) {
-            String msg = "sendPost exception: " + e.toString();
-            Log.e(TAG, msg);
-        }
-
-        return stringBuilder.length() > 0 ? stringBuilder.toString() : null;
-    }
-
     @Override
     public boolean createIdTransaction(String payload, String memo) {
         JSONObject ret = new JSONObject();
@@ -122,7 +84,40 @@ public class DIDPluginAdapter implements DIDAdapter {
     }
 
     @Override
-    public String resolve(String did) {
-        return sendPost(did, "");
+    public InputStream resolve(String requestId, String did, boolean all)throws DIDResolveException {
+        try {
+            URL url = new URL(this.resolver);
+            HttpsURLConnection connection = (HttpsURLConnection)url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("User-Agent",
+                    "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setDoOutput(true);
+            connection.connect();
+
+            OutputStream os = connection.getOutputStream();
+            JsonFactory factory = new JsonFactory();
+            JsonGenerator generator = factory.createGenerator(os, JsonEncoding.UTF8);
+            generator.writeStartObject();
+            generator.writeStringField("id", requestId);
+            generator.writeStringField("method", "resolvedid");
+            generator.writeFieldName("params");
+            generator.writeStartObject();
+            generator.writeStringField("did", did);
+            generator.writeBooleanField("all", all);
+            generator.writeEndObject();
+            generator.writeEndObject();
+            generator.close();
+            os.close();
+
+            int code = connection.getResponseCode();
+            if (code != HttpURLConnection.HTTP_OK) return null;
+
+            return connection.getInputStream();
+        }
+        catch (IOException e) {
+            throw new DIDResolveException("Network error.", e);
+        }
     }
 }
