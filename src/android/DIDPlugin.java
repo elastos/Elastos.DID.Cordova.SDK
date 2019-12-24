@@ -34,6 +34,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -247,21 +248,6 @@ public class DIDPlugin extends TrinityPlugin {
                     this.getPublicKeyBase58(args, callbackContext);
                     break;
                 //credential
-                /*case "getFragment":
-                    this.getFragment(args, callbackContext);
-                    break;
-                case "getType":
-                    this.getType(args, callbackContext);
-                    break;
-                case "getIssuanceDate":
-                    this.getIssuanceDate(args, callbackContext);
-                    break;
-                case "getExpirationDate":
-                    this.getExpirationDate(args, callbackContext);
-                    break;
-                case "getProperties":
-                    this.getProperties(args, callbackContext);
-                    break;*/
                 case "credential2string":
                     this.credential2string(args, callbackContext);
                     break;
@@ -727,6 +713,11 @@ public class DIDPlugin extends TrinityPlugin {
         Map<String, String> props = JSONObject2Map(properties);
         String passphrase = args.getString(idx++);
 
+        if (!ensureCredentialIDFormat(credentialId)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+credentialId);
+            return;
+        }
+
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;
@@ -748,7 +739,7 @@ public class DIDPlugin extends TrinityPlugin {
             Date expire = cal.getTime();
 
             VerifiableCredential vc = issuer.issueFor(subjectDid)
-                    .id(credentialId)
+                    .id(getDidUrlFragment(credentialId))
                     .type(typeArray)
                     .expirationDate(expire)
                     .properties(props)
@@ -772,6 +763,11 @@ public class DIDPlugin extends TrinityPlugin {
         String didStoreId = args.getString(idx++);
         String didString = args.getString(idx++);
         String didUrlString = args.getString(idx++);
+
+        if (!ensureCredentialIDFormat(didUrlString)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrlString);
+            return;
+        }
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -833,6 +829,11 @@ public class DIDPlugin extends TrinityPlugin {
         String didStoreId = args.getString(idx++);
         String didString = args.getString(idx++);
         String didUrlString = args.getString(idx++);
+
+        if (!ensureCredentialIDFormat(didUrlString)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrlString);
+            return;
+        }
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -929,7 +930,7 @@ public class DIDPlugin extends TrinityPlugin {
         String didUrl = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
-
+        
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;
@@ -950,7 +951,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
         catch (DIDException e) {
             e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
+            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_deleteCredential exception: " + e.toString());
         }
     }
 
@@ -981,6 +982,12 @@ public class DIDPlugin extends TrinityPlugin {
     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         String didUrl = args.getString(idx++);
+
+        if (!ensureCredentialIDFormat(didUrl)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
+            return;
+        }
+
         DIDDocument didDocument = mDocumentMap.get(didUrl);
 
         String storepass = args.getString(idx++);
@@ -998,6 +1005,12 @@ public class DIDPlugin extends TrinityPlugin {
     private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDException {
         int idx = 0;
         String didUrl = args.getString(idx++);
+
+        if (!ensureCredentialIDFormat(didUrl)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
+            return;
+        }
+
         DIDDocument didDocument = mDocumentMap.get(didUrl);
 
         String signString = args.getString(idx++);
@@ -1050,52 +1063,14 @@ public class DIDPlugin extends TrinityPlugin {
         callbackContext.success(keyBase58);
     }
 
-    //Credential
-    /*private void getFragment(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
-
-        DIDURL didUrl = credential.getId();
-        String fragment = didUrl.getFragment();
-        callbackContext.success(fragment);
-    }
-
-    private void getType(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
-
-        String type = credential.getType();
-        callbackContext.success(type);
-    }
-
-    private void getIssuanceDate(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
-
-        Date date = credential.getIssuanceDate();
-        callbackContext.success(date.toString());
-    }
-
-    private void getExpirationDate(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
-
-        Date date = credential.getExpirationDate();
-        callbackContext.success(date.toString());
-    }
-
-    private void getProperties(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        Integer id = args.getInt(0);
-        VerifiableCredential credential = mCredentialMap.get(id);
-
-        VerifiableCredential.CredentialSubject cs = credential.getSubject();
-        Map<String, String> props = cs.getProperties();
-        JSONObject r = new JSONObject(props);
-        callbackContext.success(r);
-    }*/
-
     private void credential2string(JSONArray args, CallbackContext callbackContext) throws JSONException {
         String didUrl = args.getString(0);
+
+        if (!ensureCredentialIDFormat(didUrl)) {
+            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
+            return;
+        }
+
         VerifiableCredential credential = mCredentialMap.get(didUrl);
         if (credential == null) {
             errorProcess(callbackContext, errCodeInvalidArg, "No credential found in map for id "+didUrl);
@@ -1182,5 +1157,28 @@ public class DIDPlugin extends TrinityPlugin {
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
         }
+    }
+
+    private boolean ensureCredentialIDFormat(String didUrl) {
+        if (didUrl.startsWith("#"))
+            return true;
+
+        URI uri = URI.create(didUrl);
+        if (uri == null || uri.getFragment() == null || uri.getFragment().equals(""))
+            return false;
+
+        return true;
+    }
+
+    /**
+     * Converts long or short form DIDURL into short form (fragment).
+     * did:elastos:abcdef#my-key -> my-key
+     * my-key -> my-key
+     */
+    private String getDidUrlFragment(String didUrl) {
+        if (!didUrl.contains("#"))
+            return didUrl;
+
+        return URI.create(didUrl).getFragment();
     }
 }

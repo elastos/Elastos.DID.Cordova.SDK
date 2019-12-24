@@ -92,22 +92,16 @@ declare module DIDPlugin {
     type DIDString = string;
 
     /**
-     * A DIDURLFragment is the part that comes after the DIDString, in a DIDURL.
-     * Ex: "my-special-use" in "did:elastos:abcdef#my-special-use"
-     */
-    type DIDURLFragment = string;
-
-    /**
      * A DIDURL is a DIDString with an additional fragment part.
-     * Ex: did:elastos:abcdef#my-special-use
+     * Ex: did:elastos:abcdef#my-special-use or #my-special-use
      */
     type DIDURL = string;
 
     /**
-     * A CredentialID can have the form of either a full DIDURL, or just the short fragment part.
-     * Ex: "did:elastos:abcdef#twitter" or "twitter"
+     * A CredentialID can have the form of either a full DIDURL, or just the short form.
+     * Ex: "did:elastos:abcdef#twitter" or "#twitter"
      */
-    type CredentialID = DIDURL | DIDURLFragment;
+    type CredentialID = DIDURL;
 
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types

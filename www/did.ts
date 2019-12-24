@@ -271,7 +271,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         var _onSuccess = function() {
             // Also delete the credential locally.
             let credentialIndex = self.verifiableCredential.findIndex((c)=>{
-                return c.getFragment() == credential.getFragment();
+                return c.getId() == credential.getId();
             })
             self.verifiableCredential.splice(credentialIndex, 1);
 
@@ -284,7 +284,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     getCredential(credentialId: DIDPlugin.CredentialID) {
         return this.verifiableCredential.find((c)=>{
-            return c.getId() == credentialId || c.getFragment() == credentialId;
+            return c.getId() == credentialId || ("#"+c.getFragment()) == credentialId;
         })
     }
 
@@ -578,9 +578,8 @@ class UnloadedVerifiableCredentialImpl implements DIDPlugin.UnloadedVerifiableCr
 }
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
-    credentialId: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR just fragment
+    credentialId: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
     clazz = 5;
-    fragment: string = null;
     type: string = null;
     issuer: string = null;
     issuanceDate: Date = null;
@@ -593,7 +592,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     }
 
     getFragment() : string {
-        return this.fragment;
+        return new URL(this.credentialId).hash.replace("#","");
     }
 
     getType() : string {
@@ -635,7 +634,6 @@ class JavaVerifiableCredential {
     id: string;
     expirationDate: string; // Not a JS Date, so keep this as a string.
     issuanceDate: string; // Not a JS Date, so keep this as a string.
-    fragment: string;
     issuer: string;
     credentialSubject: any;
     proof: any;
@@ -645,7 +643,6 @@ class JavaVerifiableCredential {
         let credential = new VerifiableCredentialImpl();
         credential.credentialId = this.id;
         credential.expirationDate = new Date(this.expirationDate);
-        credential.fragment = new URL(this.id).hash.replace("#","");
         credential.issuanceDate = new Date(this.issuanceDate);
         credential.issuer = this.issuer;
         credential.credentialSubject = this.credentialSubject;
@@ -662,7 +659,6 @@ class JavaVerifiableCredential {
         // no milliseconds, so we make a dirty convertion here.
         javaVc.expirationDate = vc.getExpirationDate().toISOString().replace(".000","");
         javaVc.issuanceDate = vc.getIssuanceDate().toISOString().replace(".000","");
-        javaVc.fragment = vc.getFragment();
         javaVc.issuer = vc.getIssuer();
         javaVc.credentialSubject = vc.getSubject();
         javaVc.proof = vc.getProof();
