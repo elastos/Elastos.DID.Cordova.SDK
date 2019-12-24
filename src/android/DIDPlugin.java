@@ -894,6 +894,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
+        String didStoreId = args.getString(idx++);
         String didUrl = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
@@ -903,25 +904,28 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-//        try {
-//            DIDDocument didDocument = mDocumentMap.get(didUrl);
-//            DIDDocument.Builder db = didDocument.edit();
-//
-//            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
-//            db.addCredential(vc);
-//            DIDDocument issuer = db.seal(storepass);
-//            didStore.storeDid(issuer);
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+
+            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument.Builder db = didDocument.edit();
+
+            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
+            db.addCredential(vc);
+            DIDDocument issuer = db.seal(storepass);
+            didStore.storeDid(issuer);
 
             callbackContext.success();
-//        }
-//        catch (DIDException e) {
-//            e.printStackTrace();
-//            errorProcess(callbackContext, errCodeNullPointer, "addCredential exception: " + e.toString());
-//        }
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "addCredential exception: " + e.toString());
+        }
     }
 
     private void DIDDocument_deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
+        String didStoreId = args.getString(idx++);
         String didUrl = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
@@ -931,21 +935,23 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-//        try {
-//            DIDDocument didDocument = mDocumentMap.get(didUrl);
-//            DIDDocument.Builder db = didDocument.edit();
-//
-//            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
-//            db.removeCredential(vc.getId());
-//            DIDDocument issuer = db.seal(storepass);
-//            didStore.storeDid(issuer);
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+
+            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument.Builder db = didDocument.edit();
+
+            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
+            db.removeCredential(vc.getId());
+            DIDDocument issuer = db.seal(storepass);
+            didStore.storeDid(issuer);
 
             callbackContext.success();
-//        }
-//        catch (DIDException e) {
-//            e.printStackTrace();
-//            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
-//        }
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "getPublicKeys exception: " + e.toString());
+        }
     }
 
     private void DIDDocument_getCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
