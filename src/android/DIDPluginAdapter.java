@@ -35,23 +35,19 @@ import org.elastos.did.exception.DIDResolveException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import javax.net.ssl.HttpsURLConnection;
 
 
 public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private final CallbackContext callbackContext;
-    private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
+//    private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
+    private String resolver = "http://api.elastos.io:21606";
 
     DIDPluginAdapter(int id, CallbackContext callbackContext) {
         this.callbackId = id;
@@ -86,8 +82,9 @@ public class DIDPluginAdapter implements DIDAdapter {
     @Override
     public InputStream resolve(String requestId, String did, boolean all)throws DIDResolveException {
         try {
+            Log.d(TAG, "resolve did:" + did);
             URL url = new URL(this.resolver);
-            HttpsURLConnection connection = (HttpsURLConnection)url.openConnection();
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("User-Agent",
                     "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
