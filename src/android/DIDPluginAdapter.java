@@ -32,6 +32,7 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
 import org.elastos.did.exception.DIDResolveException;
+import org.elastos.trinity.runtime.AppManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -67,7 +68,7 @@ public class DIDPluginAdapter implements DIDAdapter {
     }
 
     @Override
-    public boolean createIdTransaction(String payload, String memo) {
+    public String createIdTransaction(String payload, String memo) {
         JSONObject ret = new JSONObject();
         try {
             ret.put("payload", payload);
@@ -76,7 +77,7 @@ public class DIDPluginAdapter implements DIDAdapter {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        return true;
+        return "";
     }
 
     @Override

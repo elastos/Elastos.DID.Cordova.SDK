@@ -639,13 +639,8 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            boolean ret = didStore.publishDid(didDocument, storepass);
-            if (ret) {
-                callbackContext.success();
-            }
-            else {
-                errorProcess(callbackContext, errCodePublishDid, "publishDid return false!");
-            }
+            String txId = didStore.publishDid(didDocument, storepass);
+            callbackContext.success(txId);
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "publishDid ");
@@ -715,13 +710,8 @@ public class DIDPlugin extends TrinityPlugin {
             DIDDocument didDocument = DIDDocument.fromJson(didDocumentJson);
             DIDURL signKey = new DIDURL(didUrlString);
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            boolean ret = didStore.updateDid(didDocument, signKey, storepass);
-            if (ret) {
-                callbackContext.success();
-            }
-            else {
-                errorProcess(callbackContext, errCodeUpdateDid, "updateDid return false!");
-            }
+            String txId = didStore.updateDid(didDocument, signKey, storepass);
+            callbackContext.success(txId);
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "updateDid ");
