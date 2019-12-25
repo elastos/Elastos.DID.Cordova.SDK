@@ -62,11 +62,6 @@ declare module DIDPlugin {
         fromJson(credentialJson: string): DIDPlugin.VerifiableCredential;
     }
 
-    type UnloadedVerifiableCredential = {
-        credentialId: CredentialID;
-        alias: string;
-    }
-
     interface VerifiableCredential {
         getId():string;
         getFragment():string;
@@ -131,10 +126,19 @@ declare module DIDPlugin {
          */
         issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
 
+        addCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        listCredentials(onSuccess: (credentials: UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void);
-        loadCredential(credentialId: CredentialID, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void);
-        storeCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        loadCredentials(onSuccess: (credentials: VerifiableCredential[])=>void, onError?: (err: any)=>void);
+        getCredential(credentialId: CredentialID): VerifiableCredential;
+
+        /**
+         * Convenience method to filter some kind of credentials from the full ist of credentials.
+         * Helps retrieving credentials by type, properties.
+         * 
+         * @param includedTypes List of credential type names that must be included in one credential (AND). Ex: ["BasicProfileCredential"]
+         * @param includedPropertyName Field name that must be included in the credential. Ex: "name"
+         */
+        findCredentials(includedTypes?: string[], includedPropertyName?: string): DIDPlugin.VerifiableCredential[];
 
         /**
          * Creates a new VerifiablePresentation that embeds one or several credentials. This presentation is signed by a DID
@@ -157,10 +161,20 @@ declare module DIDPlugin {
         getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void);
         getPublicKey(didString: string): PublicKey;
         getPublicKeys(): PublicKey[];
+        
         addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        getCredential(credentialId: CredentialID): VerifiableCredential;
         getCredentials(): DIDPlugin.VerifiableCredential[];
+        getCredential(credentialId: CredentialID): VerifiableCredential;
+        
+        /**
+         * Convenience method to filter some kind of credentials from the full ist of credentials.
+         * Helps retrieving credentials by type, properties.
+         * 
+         * @param includedTypes List of credential type names that must be included in one credential (AND). Ex: ["BasicProfileCredential"]
+         * @param includedPropertyName Field name that must be included in the credential. Ex: "name"
+         */
+        findCredentials(includedTypes?: string[], includedPropertyName?: string): DIDPlugin.VerifiableCredential[];
 
         sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
         verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
@@ -218,6 +232,16 @@ declare module DIDPlugin {
         createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void); // TODO: "json" type
         generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
         isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+
+        /**
+         * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to 
+         * resolve DID Document of public/friends/external DID entities that we don't own in a local DIDStore.
+         * 
+         * Those resolved documents are cached inside the shared DIDBackend.
+         * 
+         * @param forceRemote True will not use previously resolved document stored locally in cache. False will try to load locally then load from chain if nothing found (or expired).
+         */
+        resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
 
         VerifiableCredentialBuilder: VerifiableCredentialBuilder;
         VerifiablePresentationBuilder: VerifiablePresentationBuilder;

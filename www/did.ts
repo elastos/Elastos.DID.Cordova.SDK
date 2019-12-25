@@ -24,9 +24,16 @@ var exec = cordova.exec;
 
 class DIDImpl implements DIDPlugin.DID {
     clazz = 3;
-    storeId: string;
+    private loadedCredentials: DIDPlugin.VerifiableCredential[] = null;
 
-    constructor(private didString: string, private alias: string) {
+    constructor(private storeId: string, private didString: string, private alias: string) {
+    }
+
+    /**
+     * Method to be called only after creating an empty DID
+     */
+    initEmptyDID() {
+        this.loadedCredentials = [];
     }
 
     getDIDString(): string {
@@ -43,8 +50,8 @@ class DIDImpl implements DIDPlugin.DID {
 
     resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
         var storeId = this.storeId;
-        var _onSuccess = function(ret: {diddoc: string}) {
-            var diddoc = JavaDIDDocument.createFromJson(ret.diddoc);
+        var _onSuccess = function(ret: {diddoc: string, updated: string}) {
+            var diddoc = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(diddoc.toDIDDocument(storeId));
         }
 
@@ -67,11 +74,78 @@ class DIDImpl implements DIDPlugin.DID {
             [this.storeId, this.didString, subjectDID, credentialId, types, expirationDate, properties, passphrase]);
     }
 
-    deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.storeId, this.didString, credentialId]);
+    async addCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+        if (!this.loadedCredentials)
+            throw new Error("Load credentials by calling loadCredentials() before calling this.");
+
+        try {
+            var self = this;
+            var _onSuccess = function(ret) {
+                // Add credential to our local model
+                self.loadedCredentials.push(credential);
+
+                if (onSuccess)
+                    onSuccess();
+            };
+
+            let passedCredential = JavaVerifiableCredential.createFromVerifiableCredential(credential);
+
+            exec(_onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.storeId, passedCredential]);
+        }
+        catch (err) {
+            if (onError)
+                onError(err);
+        }
     }
 
-    listCredentials(onSuccess: (credentials: DIDPlugin.UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void) {
+    loadCredentials(onSuccess: (credentials: DIDPlugin.VerifiableCredential[]) => void, onError?: (err: any) => void) {
+        var self = this;
+        var _onSuccess = function(ret: {items: string}) {
+            self.loadedCredentials = [];
+            let items = JSON.parse(ret.items);
+            items.map((credentialJson)=>{
+                let javaCredential = JavaVerifiableCredential.createFromJson(JSON.stringify(credentialJson));
+                self.loadedCredentials.push(javaCredential.toVerifiableCredential());
+            });
+
+            onSuccess(self.loadedCredentials);
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'DID_loadCredentials', [this.storeId, this.didString]);
+    }
+
+    getCredential(credentialId: string): DIDPlugin.VerifiableCredential {
+        if (!this.loadedCredentials)
+            throw new Error("Load credentials by calling loadCredentials() before calling getCredential().");
+
+        return this.loadedCredentials.find((c)=>{
+            return c.getId() == credentialId;
+        });
+    }
+
+    findCredentials(includedTypes?: string[], includedPropertyName?: string): DIDPlugin.VerifiableCredential[] {
+        return Helper.findCredentials(this.loadedCredentials, includedTypes, includedPropertyName);
+    }
+
+    deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+        if (!this.loadedCredentials)
+            throw new Error("Load credentials by calling loadCredentials() before calling this.");
+
+        var self = this;
+        var _onSuccess = function(ret) {
+            // Remove credential from our local model
+            let credentialIndex = self.loadedCredentials.findIndex((c)=>{
+                return c.getId() == credentialId;
+            })
+            self.loadedCredentials.splice(credentialIndex, 1);
+
+            if (onSuccess)
+                onSuccess();
+        };
+        
+        exec(_onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.storeId, this.didString, credentialId]);
+    }
+
+    /*istCredentials(onSuccess: (credentials: DIDPlugin.UnloadedVerifiableCredential[])=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
             let uvcs = [];
             ret.items.map((item)=>{
@@ -84,7 +158,7 @@ class DIDImpl implements DIDPlugin.DID {
             onSuccess(uvcs);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.storeId, this.didString]);
-    }
+    }*/
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
@@ -95,19 +169,6 @@ class DIDImpl implements DIDPlugin.DID {
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'loadCredential', [this.storeId, this.didString, credentialId]);
-    }
-
-    async storeCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
-        try {
-            let passedCredential = JavaVerifiableCredential.createFromVerifiableCredential(credential);
-            console.log("passedCredential", passedCredential);
-
-            exec(onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.storeId, passedCredential]);
-        }
-        catch (err) {
-            if (onError)
-                onError(err);
-        }
     }
 
     createVerifiablePresentation(credentials: DIDPlugin.VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
@@ -129,8 +190,8 @@ class DIDImpl implements DIDPlugin.DID {
 
 class JavaDIDDocument {
     id: string; // W3C spec: getSubject() actually maps to "id".
-    created: string; // Not a JS Date, so keep this as a string.
-    updated: string; // Not a JS Date, so keep this as a string.
+    created: string = null; // Not a JS Date, so keep this as a string.
+    updated: string = null; // Not a JS Date, so keep this as a string.
     verifiableCredential: any[];
     publicKey: any[];
     authentication: any[];
@@ -144,12 +205,11 @@ class JavaDIDDocument {
     toDIDDocument(storeId = ""): DIDPlugin.DIDDocument {
         let didDocument = new DIDDocumentImpl();
         console.log("toDIDDocument this:", this);
-        let didImpl = new DIDImpl(this.id, "");
-        didImpl.storeId = storeId;
+        let didImpl = new DIDImpl(storeId, this.id, "");
         didDocument.id = didImpl;
 
-        didDocument.created = new Date(this.created);
-        didDocument.updated = new Date(this.updated);
+        didDocument.created = (this.created?new Date(this.created):null);
+        didDocument.updated = (this.updated?new Date(this.updated):null);
 
         didDocument.verifiableCredential = []
         if (this.verifiableCredential) { // Could be undefined
@@ -172,8 +232,12 @@ class JavaDIDDocument {
         // JS Date format is ISO format, including milliseconds, but Java side is expecting
         // no milliseconds, so we make a dirty convertion here.
         javaDidDocument.id = didDocument.getSubject().getDIDString();
-        javaDidDocument.created = didDocument.getCreated().toISOString().replace(".000","");
-        javaDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
+
+        if (didDocument.getCreated())
+            javaDidDocument.created = didDocument.getCreated().toISOString().replace(".000","");
+
+        if (didDocument.getUpdated())
+            javaDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
 
         javaDidDocument.verifiableCredential = [];
         didDocument.getCredentials().forEach((c)=>{
@@ -187,11 +251,15 @@ class JavaDIDDocument {
         return javaDidDocument;
     }
 
-    static createFromJson(javaDidDocumentJson: string): JavaDIDDocument {
+    static createFromJson(javaDidDocumentJson: string, updated: string): JavaDIDDocument {
         try {
             let jsonObj = JSON.parse(javaDidDocumentJson);
             let javaDidDocument = new JavaDIDDocument();
             Object.assign(javaDidDocument, jsonObj);
+
+            // "updated" is handled separately because it's not part of the document, it's provided by the sdk.
+            javaDidDocument.updated = updated;
+
             return javaDidDocument;
         }
         catch (e) {
@@ -292,6 +360,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         return this.verifiableCredential;
     }
 
+    findCredentials(includedTypes?: string[], includedPropertyName?: string): DIDPlugin.VerifiableCredential[] {
+        return Helper.findCredentials(this.verifiableCredential, includedTypes, includedPropertyName);
+    }
+
     sign(storePass: string, originString: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'sign', [this.id.getDIDString(), storePass, originString]);
     }
@@ -301,7 +373,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.id.getDIDString(), storepass]);
+        exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.storeId, this.id.getDIDString(), storepass]);
     }
 }
 
@@ -397,8 +469,8 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          var didStoreId = this.objId;
          var _onSuccess = function(ret) {
              let didString = ret.did;
-             let did = new DIDImpl(didString, "");
-             did.storeId = didStoreId;
+             let did = new DIDImpl(didStoreId, didString, "");
+             did.initEmptyDID();
 
              if (onSuccess)
                 onSuccess(did);
@@ -412,8 +484,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         var _onSuccess = function(ret) {
             let dids: DIDPlugin.DID[] = [];
             ret.items.map((item)=>{
-                let did = new DIDImpl(item.did, item.alias);
-                did.storeId = didStoreId;
+                let did = new DIDImpl(didStoreId, item.did, item.alias);
                 dids.push(did);
             });
 
@@ -424,9 +495,9 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
          var storeId = this.objId;
-         var _onSuccess = function(ret: {diddoc: string}) {
+         var _onSuccess = function(ret: {diddoc: string, updated: string}) {
              console.log("(plugin) loadDidDocument json:", ret.diddoc)
-             var javaDidDocument = JavaDIDDocument.createFromJson(ret.diddoc);
+             var javaDidDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
              console.log("(plugin) loadDidDocument javaDidDocument:", javaDidDocument);
              onSuccess(javaDidDocument.toDIDDocument(storeId));
          }
@@ -466,7 +537,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 }
 
-const LISTENER_IDTRANSACTION  = 1;
+const LISTENER_IDTRANSACTION = 1;
 type DIDManagerEvent = {
     callback: Function;
     object: any;
@@ -475,7 +546,8 @@ type DIDManagerEvent = {
 class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
-    createIdTransactionEvent:DIDManagerEvent;
+    
+    private createIdTransactionEvent:DIDManagerEvent;
 
     constructor() {
         Object.freeze(DIDManagerImpl.prototype);
@@ -484,7 +556,6 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(DIDImpl.prototype);
         Object.freeze(PublicKeyImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
-        Object.freeze(UnloadedVerifiableCredentialImpl.prototype);
 
         this.setListener(LISTENER_IDTRANSACTION, (event) => {
             this.createIdTransactionEvent.callback(event.payload, event.memo);
@@ -505,7 +576,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     }
 
-    setListener(type: any, eventCallback: Function) {
+    setListener(type: number, eventCallback: Function) {
         exec(eventCallback, null, 'DIDPlugin', 'setListener', [type]);
     }
 
@@ -529,8 +600,8 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
-        var _onSuccess = function(ret: {diddoc: string}) {
-            var didDocument = JavaDIDDocument.createFromJson(ret.diddoc);
+        var _onSuccess = function(ret: {diddoc: string, updated: string}) {
+            var didDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(didDocument.toDIDDocument());
         }
 
@@ -546,6 +617,18 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
             onSuccess(ret == "true");
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+    }
+
+    resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
+        var _onSuccess = function(ret: { diddoc?: string, updated: string }) {
+            if (ret.diddoc) {
+                var didDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
+                onSuccess(didDocument.toDIDDocument());
+            }
+            else 
+                onSuccess(null);
+        }
+        exec(_onSuccess, onError, 'DIDPlugin', 'DIDManager_resolveDIDDocument', [didString, forceRemote]);
     }
 }
 
@@ -570,11 +653,6 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
             throw e;
         }
     }
-}
-
-class UnloadedVerifiableCredentialImpl implements DIDPlugin.UnloadedVerifiableCredential {
-    credentialId: string = null;
-    alias: string = null;
 }
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
@@ -696,7 +774,7 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
         var manager = this.manager;
 
         var _onSuccess = function(ret) {
-            var did = new DIDImpl(ret.didstring, "");
+            var did = new DIDImpl(null, ret.didstring, "");
             onSuccess(did);
         }
 
@@ -705,6 +783,32 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
 
     getPublicKeyBase58(method: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId, method]);
+    }
+}
+
+class Helper {
+    static findCredentials(credentials: DIDPlugin.VerifiableCredential[], includedTypes?: string[], includedPropertyName?: string) {
+        if (!credentials)
+            return [];
+
+        return credentials.filter((c)=>{
+            if (includedTypes) {
+                // Make sure all required types are found
+                let foundTypes = c.getType().split(",").filter((type)=>{
+                    return includedTypes.indexOf(type.trim()) >= 0;
+                });
+                if (foundTypes.length != includedTypes.length)
+                    return false;
+            }
+
+            if (includedPropertyName) {
+                // Property field is not defined = no match
+                if (!c.getSubject()[includedPropertyName])
+                    return false;
+            }
+
+            return true;
+        });
     }
 }
 

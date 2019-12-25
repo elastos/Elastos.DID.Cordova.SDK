@@ -57,6 +57,8 @@ public class DIDPlugin extends TrinityPlugin {
 
     private CallbackContext idTransactionCC  = null;
 
+    private DIDPluginAdapter globalDidAdapter = null;
+
 //    private DIDStore didStore = null;
 
     private HashMap<String, DIDDocument> mDocumentMap;
@@ -159,6 +161,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "isMnemonicValid":
                     this.isMnemonicValid(args, callbackContext);
                     break;
+                case "DIDManager_resolveDIDDocument":
+                    this.DIDManager_resolveDIDDocument(args, callbackContext);
+                    break;
                 //DidStore
                 case "containsPrivateIdentity":
                     this.containsPrivateIdentity(args, callbackContext);
@@ -202,8 +207,8 @@ public class DIDPlugin extends TrinityPlugin {
                 case "deleteCredential":
                     this.deleteCredential(args, callbackContext);
                     break;
-                case "listCredentials":
-                    this.listCredentials(args, callbackContext);
+                case "DID_loadCredentials":
+                    this.DID_loadCredentials(args, callbackContext);
                     break;
                 case "loadCredential":
                     this.loadCredential(args, callbackContext);
@@ -331,6 +336,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject ret= new JSONObject();
             ret.put("diddoc", didDocument);
+            ret.put("updated", didDocument.getUpdated());
             callbackContext.success(ret);
         }
         catch(MalformedDocumentException e) {
@@ -349,10 +355,11 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
         try {
-            DIDPluginAdapter didAdapter = new DIDPluginAdapter(callbackId, idTransactionCC);//map the adapter?
-            mDidAdapterMap.put(didStoreId, didAdapter);
+            // NOTE: this overwrite any previously initialized adapter if any.
+            globalDidAdapter = new DIDPluginAdapter(callbackId, idTransactionCC);//map the adapter?
+            mDidAdapterMap.put(didStoreId, globalDidAdapter);
 
-            DIDBackend.initialize(didAdapter);
+            DIDBackend.initialize(globalDidAdapter);
 
             DIDStore didStore = DIDStore.open("filesystem", dataDir);
             mDIDStoreMap.put(didStoreId, didStore);
@@ -408,6 +415,39 @@ public class DIDPlugin extends TrinityPlugin {
 
         Boolean ret = Mnemonic.isValid(language, mnemonic);
         callbackContext.success(ret.toString());
+    }
+
+    private void DIDManager_resolveDIDDocument(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didString = args.getString(idx++);
+        boolean forceRemote = args.getBoolean(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
+            // This is "ok" as long as the DID App is the only one to call publish().
+            //
+            // If no initDidStore() has been called yet, we need to initialize the DID backend
+            // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
+            // DIDBackend.initialize() with a real adapter that will overwrite our init.
+            if (globalDidAdapter == null) {
+                DIDPluginAdapter tempAdapter = new DIDPluginAdapter(-1, null);
+                DIDBackend.initialize(tempAdapter);
+            }
+
+            DIDDocument didDocument = new DID(didString).resolve(forceRemote);
+            JSONObject ret = new JSONObject();
+            ret.put("diddoc", didDocument);
+            ret.put("updated", didDocument.getUpdated());
+            callbackContext.success(ret);
+        }
+        catch(DIDException e) {
+            exceptionProcess(e, callbackContext, "DIDManager_resolveDIDDocument ");
+        }
     }
 
     private void containsPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -549,9 +589,13 @@ public class DIDPlugin extends TrinityPlugin {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
             DIDDocument didDocument = didStore.loadDid(didString);
 
-            mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
+            if (didDocument != null) { // Should normally not happen but... happened (sdk bug).
+                mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
+            }
+
             JSONObject r = new JSONObject();
             r.put("diddoc", didDocument);
+            r.put("updated", didDocument.getUpdated());
             callbackContext.success(r);
         }
         catch (DIDException e) {
@@ -625,6 +669,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
             r.put("diddoc", didDocument);
+            r.put("updated", didDocument.getUpdated());
             callbackContext.success(r);
         }
         catch (Exception e) {
@@ -863,7 +908,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
-    private void listCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    private void DID_loadCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
         String didString = args.getString(idx++);
@@ -877,8 +922,17 @@ public class DIDPlugin extends TrinityPlugin {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
 
             DID did = new DID(didString);
-            List<DIDURL> credentials = didStore.listCredentials(did);
-            JSONObject r = JSONObjectHolder.getCredentialsInfoJson(credentials);
+            List<DIDURL> unloadedCredentials = didStore.listCredentials(did);
+
+            ArrayList<VerifiableCredential> credentials = new ArrayList<>();
+            for (DIDURL url : unloadedCredentials) {
+                VerifiableCredential credential = didStore.loadCredential(did, url);
+                credentials.add(credential);
+            }
+
+            JSONObject r = new JSONObject();
+            r.put("items", credentials);
+
             callbackContext.success(r);
         }
         catch (DIDException e) {
@@ -930,7 +984,7 @@ public class DIDPlugin extends TrinityPlugin {
         String didUrl = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
-        
+
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;

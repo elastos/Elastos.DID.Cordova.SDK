@@ -82,7 +82,7 @@ public class DIDPluginAdapter implements DIDAdapter {
     @Override
     public InputStream resolve(String requestId, String did, boolean all)throws DIDResolveException {
         try {
-            Log.d(TAG, "resolve did:" + did);
+            Log.d(TAG, "Resolving remote did: " + did);
             URL url = new URL(this.resolver);
             HttpURLConnection connection = (HttpURLConnection)url.openConnection();
             connection.setRequestMethod("POST");
