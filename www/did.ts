@@ -22,6 +22,19 @@
 
 var exec = cordova.exec;
 
+class DIDURL {
+    /**
+     * Short form of a DIDURL (# + fragment part).
+     */
+    static shortForm(didUrl: string) {
+        if (didUrl.indexOf("#") == 0) {
+            return didUrl; // Already short form
+        }
+        
+        return new URL(didUrl).hash; // already contains a #
+    }
+}
+
 class DIDImpl implements DIDPlugin.DID {
     clazz = 3;
     private loadedCredentials: DIDPlugin.VerifiableCredential[] = null;
@@ -118,7 +131,7 @@ class DIDImpl implements DIDPlugin.DID {
             throw new Error("Load credentials by calling loadCredentials() before calling getCredential().");
 
         return this.loadedCredentials.find((c)=>{
-            return c.getId() == credentialId;
+            return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
         });
     }
 
@@ -134,7 +147,7 @@ class DIDImpl implements DIDPlugin.DID {
         var _onSuccess = function(ret) {
             // Remove credential from our local model
             let credentialIndex = self.loadedCredentials.findIndex((c)=>{
-                return c.getId() == credentialId;
+                return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
             })
             self.loadedCredentials.splice(credentialIndex, 1);
 
@@ -322,7 +335,8 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
         var self = this;
         var _onSuccess = function() {
-            // Also save the credential locally.
+            // Also save the credential locally. Remove first if it already exists (update case)
+            self.deleteLocalCredential(credential);
             self.verifiableCredential.push(credential);
 
             if (onSuccess)
@@ -332,16 +346,21 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         exec(_onSuccess, onError, 'DIDPlugin', 'addCredential', [this.storeId, this.id.getDIDString(), javaVc, storePass]);
     }
 
+    private deleteLocalCredential(credential: DIDPlugin.VerifiableCredential) {
+        let credentialIndex = this.verifiableCredential.findIndex((c)=>{
+            return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credential.getId());
+        })
+        if (credentialIndex >= 0)
+            this.verifiableCredential.splice(credentialIndex, 1);
+    }
+
     deleteCredential(credential: DIDPlugin.VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
         let javaVc = JavaVerifiableCredential.createFromVerifiableCredential(credential);
 
         var self = this;
         var _onSuccess = function() {
             // Also delete the credential locally.
-            let credentialIndex = self.verifiableCredential.findIndex((c)=>{
-                return c.getId() == credential.getId();
-            })
-            self.verifiableCredential.splice(credentialIndex, 1);
+            self.deleteLocalCredential(credential);
 
             if (onSuccess)
                 onSuccess();
@@ -352,7 +371,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     getCredential(credentialId: DIDPlugin.CredentialID) {
         return this.verifiableCredential.find((c)=>{
-            return c.getId() == credentialId || ("#"+c.getFragment()) == credentialId;
+            return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
         })
     }
 
