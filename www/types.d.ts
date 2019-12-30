@@ -134,7 +134,7 @@ declare module DIDPlugin {
         /**
          * Convenience method to filter some kind of credentials from the full ist of credentials.
          * Helps retrieving credentials by type, properties.
-         * 
+         *
          * @param includedTypes List of credential type names that must be included in one credential (AND). Ex: ["BasicProfileCredential"]
          * @param includedPropertyName Field name that must be included in the credential. Ex: "name"
          */
@@ -161,16 +161,16 @@ declare module DIDPlugin {
         getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void);
         getPublicKey(didString: string): PublicKey;
         getPublicKeys(): PublicKey[];
-        
+
         addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         getCredentials(): DIDPlugin.VerifiableCredential[];
         getCredential(credentialId: CredentialID): VerifiableCredential;
-        
+
         /**
          * Convenience method to filter some kind of credentials from the full ist of credentials.
          * Helps retrieving credentials by type, properties.
-         * 
+         *
          * @param includedTypes List of credential type names that must be included in one credential (AND). Ex: ["BasicProfileCredential"]
          * @param includedPropertyName Field name that must be included in the credential. Ex: "name"
          */
@@ -205,7 +205,7 @@ declare module DIDPlugin {
         listDids(filter: any, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void); // TODO: "filter" type
         loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
         storeDidDocument(didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void);
-        updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        // updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
 
         /**
@@ -223,6 +223,7 @@ declare module DIDPlugin {
          * kept by the user on his device.
          */
         synchronize(storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void);
+        exportMnemonic(storePass: string, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
     }
 
     interface DIDManager {
@@ -234,11 +235,11 @@ declare module DIDPlugin {
         isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
 
         /**
-         * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to 
+         * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to
          * resolve DID Document of public/friends/external DID entities that we don't own in a local DIDStore.
-         * 
+         *
          * Those resolved documents are cached inside the shared DIDBackend.
-         * 
+         *
          * @param forceRemote True will not use previously resolved document stored locally in cache. False will try to load locally then load from chain if nothing found (or expired).
          */
         resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);

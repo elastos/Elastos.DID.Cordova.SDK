@@ -59,8 +59,6 @@ public class DIDPlugin extends TrinityPlugin {
 
     private DIDPluginAdapter globalDidAdapter = null;
 
-//    private DIDStore didStore = null;
-
     private HashMap<String, DIDDocument> mDocumentMap;
     private HashMap<String, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
@@ -171,6 +169,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "initPrivateIdentity":
                     this.initPrivateIdentity(args, callbackContext);
                     break;
+                case "exportMnemonic":
+                    this.exportMnemonic(args, callbackContext);
+                    break;
                 case "setResolverUrl":
                     this.setResolverUrl(args, callbackContext);
                     break;
@@ -197,9 +198,6 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "storeDid":
                     this.storeDid(args, callbackContext);
-                    break;
-                case "updateDid":
-                    this.updateDid(args, callbackContext);
                     break;
                 case "CreateCredential":
                     this.CreateCredential(args, callbackContext);
@@ -488,6 +486,25 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    private void exportMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+            callbackContext.success(didStore.exportMnemonic(storepass));
+        }
+        catch(Exception e) {
+            exceptionProcess(e, callbackContext, "exportMnemonic");
+        }
+    }
+
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         Integer adapterId = args.getInt(idx++);
@@ -628,9 +645,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        String didUrl = args.getString(idx++);
-        DIDDocument didDocument = mDocumentMap.get(didUrl);
-        // String didUrlString = args.getString(idx++);
+        String didString = args.getString(idx++);
         String storepass = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -640,7 +655,7 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            String txId = didStore.publishDid(didDocument, storepass);
+            String txId = didStore.publishDid(didString, storepass);
             callbackContext.success(txId);
         }
         catch (DIDException e) {
@@ -692,30 +707,6 @@ public class DIDPlugin extends TrinityPlugin {
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "storeDid ");
-        }
-    }
-
-    private void updateDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        String didStoreId = args.getString(idx++);
-        String didUrlString = args.getString(idx++);
-        String didDocumentJson = args.getString(idx++);
-        String storepass = args.getString(idx++);
-
-        if (args.length() != idx) {
-            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-            return;
-        }
-
-        try {
-            DIDDocument didDocument = DIDDocument.fromJson(didDocumentJson);
-            DIDURL signKey = new DIDURL(didUrlString);
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            String txId = didStore.updateDid(didDocument, signKey, storepass);
-            callbackContext.success(txId);
-        }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "updateDid ");
         }
     }
 

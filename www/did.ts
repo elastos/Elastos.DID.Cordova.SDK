@@ -30,7 +30,7 @@ class DIDURL {
         if (didUrl.indexOf("#") == 0) {
             return didUrl; // Already short form
         }
-        
+
         return new URL(didUrl).hash; // already contains a #
     }
 }
@@ -154,7 +154,7 @@ class DIDImpl implements DIDPlugin.DID {
             if (onSuccess)
                 onSuccess();
         };
-        
+
         exec(_onSuccess, onError, 'DIDPlugin', 'deleteCredential', [this.storeId, this.didString, credentialId]);
     }
 
@@ -542,10 +542,10 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(_onSuccess, onError, 'DIDPlugin', 'storeDid', [this.objId, didDocument.getSubject().getDIDString(), alias]);
     }
 
-    updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
-        let javaDidDocument = JavaDIDDocument.createFromDIDDocument(didDocument);
-        exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), javaDidDocument, storepass]);
-    }
+    // updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
+    //     let javaDidDocument = JavaDIDDocument.createFromDIDDocument(didDocument);
+    //     exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), javaDidDocument, storepass]);
+    // }
 
     setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
         exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [this.objId, resolver]);
@@ -553,6 +553,10 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
     synchronize(storepass: string, onSuccess: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'synchronize', [this.objId, storepass]);
+    }
+
+    exportMnemonic(storepass: string, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'exportMnemonic', [this.objId, storepass]);
     }
 }
 
@@ -565,7 +569,7 @@ type DIDManagerEvent = {
 class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
-    
+
     private createIdTransactionEvent:DIDManagerEvent;
 
     constructor() {
@@ -644,7 +648,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
                 var didDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
                 onSuccess(didDocument.toDIDDocument());
             }
-            else 
+            else
                 onSuccess(null);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'DIDManager_resolveDIDDocument', [didString, forceRemote]);
