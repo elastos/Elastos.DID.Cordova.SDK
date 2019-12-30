@@ -960,6 +960,9 @@ public class DIDPlugin extends TrinityPlugin {
             DIDDocument issuer = db.seal(storepass);
             didStore.storeDid(issuer);
 
+            // Update cached document with newly generated one
+            mDocumentMap.put(didUrl, issuer);
+
             callbackContext.success();
         }
         catch (DIDException e) {
@@ -990,6 +993,9 @@ public class DIDPlugin extends TrinityPlugin {
             db.removeCredential(vc.getId());
             DIDDocument issuer = db.seal(storepass);
             didStore.storeDid(issuer);
+
+            // Update cached document with newly generated one
+            mDocumentMap.put(didUrl, issuer);
 
             callbackContext.success();
         }
