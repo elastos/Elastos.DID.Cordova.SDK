@@ -442,7 +442,8 @@ public class DIDPlugin extends TrinityPlugin {
             DIDDocument didDocument = new DID(didString).resolve(forceRemote);
             JSONObject ret = new JSONObject();
             ret.put("diddoc", didDocument);
-            ret.put("updated", didDocument.getUpdated());
+            if (didDocument != null)
+                ret.put("updated", didDocument.getUpdated());
             callbackContext.success(ret);
         }
         catch(DIDException e) {
