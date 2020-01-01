@@ -65,7 +65,7 @@ declare module DIDPlugin {
     interface VerifiableCredential {
         getId():string;
         getFragment():string;
-        getType():string
+        getTypes():string[];
         getIssuer():string;
         getIssuanceDate():Date;
         getExpirationDate():Date;

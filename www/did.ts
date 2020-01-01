@@ -681,7 +681,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     credentialId: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
     clazz = 5;
-    type: string = null;
+    type: string[] = null;
     issuer: string = null;
     issuanceDate: Date = null;
     expirationDate: Date = null;
@@ -696,7 +696,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
         return new URL(this.credentialId).hash.replace("#","");
     }
 
-    getType() : string {
+    getTypes() : string[] {
         return this.type;
     }
 
@@ -738,7 +738,7 @@ class JavaVerifiableCredential {
     issuer: string;
     credentialSubject: any;
     proof: any;
-    type: string;
+    type: string[];
 
     toVerifiableCredential(): DIDPlugin.VerifiableCredential {
         let credential = new VerifiableCredentialImpl();
@@ -763,7 +763,7 @@ class JavaVerifiableCredential {
         javaVc.issuer = vc.getIssuer();
         javaVc.credentialSubject = vc.getSubject();
         javaVc.proof = vc.getProof();
-        javaVc.type = vc.getType();
+        javaVc.type = vc.getTypes();
         return javaVc;
     }
 
@@ -817,7 +817,7 @@ class Helper {
         return credentials.filter((c)=>{
             if (includedTypes) {
                 // Make sure all required types are found
-                let foundTypes = c.getType().split(",").filter((type)=>{
+                let foundTypes = c.getTypes().filter((type)=>{
                     return includedTypes.indexOf(type.trim()) >= 0;
                 });
                 if (foundTypes.length != includedTypes.length)
