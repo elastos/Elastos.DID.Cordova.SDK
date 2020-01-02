@@ -47,8 +47,11 @@ public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private final CallbackContext callbackContext;
-//    private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
-    private String resolver = "http://api.elastos.io:21606";
+    // private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
+    // TestNet
+    // private String resolver = "http://api.elastos.io:21606";
+    // MainNet
+    private String resolver = "http://api.elastos.io:20606";
 
     DIDPluginAdapter(int id, CallbackContext callbackContext) {
         this.callbackId = id;
