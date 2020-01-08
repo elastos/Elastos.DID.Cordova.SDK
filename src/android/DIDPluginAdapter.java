@@ -113,7 +113,8 @@ public class DIDPluginAdapter implements DIDAdapter {
             os.close();
 
             int code = connection.getResponseCode();
-            if (code != HttpURLConnection.HTTP_OK) return null;
+            if (code != HttpURLConnection.HTTP_OK)
+                throw new DIDResolveException("Unable to resolve DID: "+code+" "+connection.getResponseMessage());
 
             return connection.getInputStream();
         }
