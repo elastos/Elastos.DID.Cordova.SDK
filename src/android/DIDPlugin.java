@@ -251,9 +251,6 @@ public class DIDPlugin extends TrinityPlugin {
                     this.getPublicKeyBase58(args, callbackContext);
                     break;
                 //credential
-                case "credential2string":
-                    this.credential2string(args, callbackContext);
-                    break;
                 case "createVerifiablePresentationFromCredentials":
                     this.createVerifiablePresentationFromCredentials(args, callbackContext);
                     break;
@@ -333,7 +330,7 @@ public class DIDPlugin extends TrinityPlugin {
             DIDDocument didDocument = DIDDocument.fromJson(json);
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject ret= new JSONObject();
-            ret.put("diddoc", didDocument);
+            ret.put("diddoc", didDocument.toString(true));
             ret.put("updated", didDocument.getUpdated());
             callbackContext.success(ret);
         }
@@ -439,9 +436,14 @@ public class DIDPlugin extends TrinityPlugin {
 
             DIDDocument didDocument = new DID(didString).resolve(forceRemote);
             JSONObject ret = new JSONObject();
-            ret.put("diddoc", didDocument);
-            if (didDocument != null)
+
+            if (didDocument != null) {
+                ret.put("diddoc", didDocument.toString(true));
                 ret.put("updated", didDocument.getUpdated());
+            }
+            else {
+                ret.put("diddoc", null);
+            }
             callbackContext.success(ret);
         }
         catch(DIDException e) {
@@ -612,7 +614,7 @@ public class DIDPlugin extends TrinityPlugin {
             }
 
             JSONObject r = new JSONObject();
-            r.put("diddoc", didDocument);
+            r.put("diddoc", didDocument.toString(true));
             r.put("updated", didDocument.getUpdated());
             callbackContext.success(r);
         }
@@ -679,7 +681,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
-            r.put("diddoc", didDocument);
+            r.put("diddoc", didDocument.toString(true));
             r.put("updated", didDocument.getUpdated());
             callbackContext.success(r);
         }
@@ -1103,23 +1105,6 @@ public class DIDPlugin extends TrinityPlugin {
         DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
         String keyBase58 = publicKey.getPublicKeyBase58();
         callbackContext.success(keyBase58);
-    }
-
-    private void credential2string(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        String didUrl = args.getString(0);
-
-        if (!ensureCredentialIDFormat(didUrl)) {
-            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
-            return;
-        }
-
-        VerifiableCredential credential = mCredentialMap.get(didUrl);
-        if (credential == null) {
-            errorProcess(callbackContext, errCodeInvalidArg, "No credential found in map for id "+didUrl);
-            return;
-        }
-
-        callbackContext.success(credential.toString());
     }
 
     private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {

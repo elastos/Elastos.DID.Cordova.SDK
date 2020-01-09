@@ -721,13 +721,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     }
 
     toString() : Promise<string> {
-        return new Promise((resolve, reject)=>{
-            exec(function(ret) {
-                resolve(ret);
-            }, function(err) {
-                reject(err);
-            }, 'DIDPlugin', 'credential2string', [this.credentialId]);
-        });
+        return Promise.resolve(JSON.stringify(this));
     }
 }
 
