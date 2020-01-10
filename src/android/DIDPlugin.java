@@ -934,7 +934,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        String didUrl = args.getString(idx++);
+        String didString = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
 
@@ -946,7 +946,7 @@ public class DIDPlugin extends TrinityPlugin {
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
 
-            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument didDocument = mDocumentMap.get(didString);
             DIDDocument.Builder db = didDocument.edit();
 
             VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
@@ -955,7 +955,7 @@ public class DIDPlugin extends TrinityPlugin {
             didStore.storeDid(issuer);
 
             // Update cached document with newly generated one
-            mDocumentMap.put(didUrl, issuer);
+            mDocumentMap.put(didString, issuer);
 
             callbackContext.success();
         }
@@ -968,7 +968,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void DIDDocument_deleteCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        String didUrl = args.getString(idx++);
+        String didString = args.getString(idx++);
         String credentialJson = args.getString(idx++);
         String storepass = args.getString(idx++);
 
@@ -980,7 +980,7 @@ public class DIDPlugin extends TrinityPlugin {
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
 
-            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument didDocument = mDocumentMap.get(didString);
             DIDDocument.Builder db = didDocument.edit();
 
             VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
@@ -989,7 +989,7 @@ public class DIDPlugin extends TrinityPlugin {
             didStore.storeDid(issuer);
 
             // Update cached document with newly generated one
-            mDocumentMap.put(didUrl, issuer);
+            mDocumentMap.put(didString, issuer);
 
             callbackContext.success();
         }
@@ -1001,7 +1001,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void DIDDocument_getCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
-        String didUrl = args.getString(idx++);
+        String didString = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -1009,7 +1009,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDDocument didDocument = mDocumentMap.get(didUrl);
+            DIDDocument didDocument = mDocumentMap.get(didString);
             List<VerifiableCredential> credentials = didDocument.getCredentials();
 
             JSONObject r = new JSONObject();
@@ -1025,14 +1025,9 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
-        String didUrl = args.getString(idx++);
+        String didString = args.getString(idx++);
 
-        if (!ensureCredentialIDFormat(didUrl)) {
-            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
-            return;
-        }
-
-        DIDDocument didDocument = mDocumentMap.get(didUrl);
+        DIDDocument didDocument = mDocumentMap.get(didString);
 
         String storepass = args.getString(idx++);
         String originString = args.getString(idx++);
@@ -1048,14 +1043,9 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDException {
         int idx = 0;
-        String didUrl = args.getString(idx++);
+        String didString = args.getString(idx++);
 
-        if (!ensureCredentialIDFormat(didUrl)) {
-            errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrl);
-            return;
-        }
-
-        DIDDocument didDocument = mDocumentMap.get(didUrl);
+        DIDDocument didDocument = mDocumentMap.get(didString);
 
         String signString = args.getString(idx++);
         String originString = args.getString(idx++);
