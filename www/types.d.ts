@@ -75,9 +75,8 @@ declare module DIDPlugin {
     }
 
     interface PublicKey {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getController(onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void);
-        getPublicKeyBase58(method: any, onSuccess: (data: any)=>void, onError?: (err: any)=>void); // TODO: define "method" type
+        getPublicKeyBase58(onSuccess: (publicKey: string)=>void, onError?: (err: any)=>void);
     }
 
     /**

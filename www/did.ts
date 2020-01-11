@@ -798,8 +798,8 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
         exec(_onSuccess, onError, 'DIDPlugin', 'getController', [this.objId]);
     }
 
-    getPublicKeyBase58(method: any, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId, method]);
+    getPublicKeyBase58(onSuccess: (publicKey: string) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId]);
     }
 }
 
