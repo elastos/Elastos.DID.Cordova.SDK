@@ -318,11 +318,18 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         return this.getPublicKeys().length;
     }
 
-    getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getDefaultPublicKey', [this.id.getDIDString()]);
+    getDefaultPublicKey(onSuccess: (publicKey: DIDPlugin.PublicKey) => void, onError?: (err: any) => void) {
+        var _onSuccess = function(ret: {publickey: string}) {
+            console.log("(plugin) getDefaultPublicKey json:", ret.publickey)
+            var javaPublicKey = JavaPublicKey.createFromJson(ret.publickey);
+            console.log("(plugin) getDefaultPublicKey javaPublicKey:", javaPublicKey);
+            onSuccess(javaPublicKey.toPublicKey());
+        }
+
+        exec(_onSuccess, onError, 'DIDPlugin', 'getDefaultPublicKey', [this.id.getDIDString()]);
     }
 
-    getPublicKey(didString: string): DIDPlugin.PublicKey {
+    getPublicKey(didString: DIDURL): DIDPlugin.PublicKey {
         return null; // TODO
     }
 
@@ -786,24 +793,41 @@ class JavaVerifiableCredential {
     }
 }
 
-class PublicKeyImpl implements DIDPlugin.PublicKey {
-    objId = null;
-    clazz = 4;
-    manager: DIDPlugin.DIDManager = null;
+class JavaPublicKey {
+    controller: string;
+    keyBase58: string;
 
-    getController(onSuccess: (did: DIDPlugin.DID) => void, onError?: (err: any) => void) {
-        var manager = this.manager;
+    toPublicKey(): DIDPlugin.PublicKey {
+        let publicKey = new PublicKeyImpl();
+        publicKey.controller = this.controller;
+        publicKey.keyBase58 = this.keyBase58;
 
-        var _onSuccess = function(ret) {
-            var did = new DIDImpl(null, ret.didstring, "");
-            onSuccess(did);
-        }
-
-        exec(_onSuccess, onError, 'DIDPlugin', 'getController', [this.objId]);
+        return publicKey;
     }
 
-    getPublicKeyBase58(onSuccess: (publicKey: string) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'getPublicKeyBase58', [this.objId]);
+    static createFromJson(javaPublicKeyJson: string): JavaPublicKey {
+        try {
+            let jsonObj = JSON.parse(javaPublicKeyJson);
+            let javaPublicKey = new JavaPublicKey();
+            Object.assign(javaPublicKey, jsonObj);
+            return javaPublicKey;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+}
+
+class PublicKeyImpl implements DIDPlugin.PublicKey {
+    controller: DIDPlugin.DIDString;
+    keyBase58: DIDPlugin.Base58PublicKey;
+
+    getController(): DIDPlugin.DIDString {
+        return this.controller;
+    }
+
+    getPublicKeyBase58(): DIDPlugin.Base58PublicKey {
+        return this.keyBase58;
     }
 }
 

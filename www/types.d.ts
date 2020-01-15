@@ -49,6 +49,29 @@ declare module DIDPlugin {
     }
 
     /**
+     * This is the most usual format when talking about DIDs.
+     * Format: did:elastos:abcdef
+     */
+    type DIDString = string;
+
+    /**
+     * A DIDURL is a DIDString with an additional fragment part.
+     * Ex: did:elastos:abcdef#my-special-use or #my-special-use
+     */
+    type DIDURL = string;
+
+    /**
+     * A CredentialID can have the form of either a full DIDURL, or just the short form.
+     * Ex: "did:elastos:abcdef#twitter" or "#twitter"
+     */
+    type CredentialID = DIDURL;
+
+    /**
+     * Public key string representation.
+     */
+    type Base58PublicKey = string;
+
+    /**
     * The callback function to receive the payload of createIdTransaction.
     *
     * @callback OnCreateIdTransaction
@@ -75,27 +98,9 @@ declare module DIDPlugin {
     }
 
     interface PublicKey {
-        getController(onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void);
-        getPublicKeyBase58(onSuccess: (publicKey: string)=>void, onError?: (err: any)=>void);
+        getController(): DIDString;
+        getPublicKeyBase58(): Base58PublicKey;
     }
-
-    /**
-     * This is the most usual format when talking about DIDs.
-     * Format: did:elastos:abcdef
-     */
-    type DIDString = string;
-
-    /**
-     * A DIDURL is a DIDString with an additional fragment part.
-     * Ex: did:elastos:abcdef#my-special-use or #my-special-use
-     */
-    type DIDURL = string;
-
-    /**
-     * A CredentialID can have the form of either a full DIDURL, or just the short form.
-     * Ex: "did:elastos:abcdef#twitter" or "#twitter"
-     */
-    type CredentialID = DIDURL;
 
     interface DID {
         // TODO: define onSuccess and onError? callbacks parameters with more accurate types
@@ -157,8 +162,8 @@ declare module DIDPlugin {
         setSubject(subject: DID);
         getSubject(): DID;
         getPublicKeyCount(): Number;
-        getDefaultPublicKey(onSuccess: (data: any) => void, onError?: (err: any) => void);
-        getPublicKey(didString: string): PublicKey;
+        getDefaultPublicKey(onSuccess: (publicKey: PublicKey) => void, onError?: (err: any) => void);
+        getPublicKey(didString: DIDURL): PublicKey;
         getPublicKeys(): PublicKey[];
 
         addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);

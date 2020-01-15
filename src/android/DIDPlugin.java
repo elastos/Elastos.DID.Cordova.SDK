@@ -952,7 +952,24 @@ public class DIDPlugin extends TrinityPlugin {
         String didUrl = args.getString(0);
         DIDDocument didDocument = mDocumentMap.get(didUrl);
         DIDURL publicKeyId = didDocument.getDefaultPublicKey();
-        callbackContext.success(publicKeyId.toString());
+
+        JSONObject r = new JSONObject();
+        if (publicKeyId != null) {
+            DIDDocument.PublicKey pk = didDocument.getPublicKey(publicKeyId);
+            if (pk == null)
+                r.put("publickey", null);
+            else {
+                JSONObject publicKeyJson = new JSONObject();
+                publicKeyJson.put("controller", pk.getController().toString());
+                publicKeyJson.put("keyBase58", pk.getPublicKeyBase58());
+                r.put("publickey", publicKeyJson.toString());
+            }
+        }
+        else {
+            r.put("publickey", null);
+        }
+
+        callbackContext.success(r);
     }
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
