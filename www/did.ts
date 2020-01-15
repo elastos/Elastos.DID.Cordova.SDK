@@ -473,6 +473,10 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
     }
 
+    changePassword(oldPassword: string, newPassword: string, onSuccess: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'DIDStore_changePassword', [this.objId, oldPassword, newPassword]);
+    }
+
     containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret : string) {
             onSuccess(ret == "true");

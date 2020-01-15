@@ -198,6 +198,13 @@ declare module DIDPlugin {
     interface DIDStore {
         getId():string;
         initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void);
+        /**
+         * Change the didstore password
+         *
+         * @param oldPassword  The old password.
+         * @param newPassword  The new password.
+         */
+        changePassword(oldPassword: string, newPassword: string, onSuccess: ()=>void, onError?: (err: any)=>void);
         containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void);
         deleteDid(didString: string, onSuccess: ()=>void, onError?: (err: any)=>void);
         newDid(passphrase: string, alias: string, onSuccess: (did: DID)=>void, onError?: (err: any)=>void);

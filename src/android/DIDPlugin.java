@@ -163,6 +163,9 @@ public class DIDPlugin extends TrinityPlugin {
                     this.DIDManager_resolveDIDDocument(args, callbackContext);
                     break;
                 //DidStore
+                case "DIDStore_changePassword":
+                    this.DIDStore_changePassword(args, callbackContext);
+                    break;
                 case "containsPrivateIdentity":
                     this.containsPrivateIdentity(args, callbackContext);
                     break;
@@ -448,6 +451,27 @@ public class DIDPlugin extends TrinityPlugin {
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "DIDManager_resolveDIDDocument ");
+        }
+    }
+
+    private void DIDStore_changePassword(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String oldPassword = args.getString(idx++);
+        String newPassword = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+            didStore.changePassword(oldPassword, newPassword);
+            callbackContext.success();
+        }
+        catch (DIDStoreException e) {
+            exceptionProcess(e, callbackContext, "DIDStore_changePassword ");
         }
     }
 
