@@ -673,14 +673,14 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
             let jsonObj = JSON.parse(credentialJson);
             let credential = new VerifiableCredentialImpl();
             Object.assign(credential, jsonObj);
-            /*credential.credentialId = jsonObj.id;
-            credential.expirationDate = new Date(jsonObj.expirationDate);
-            credential.fragment = new URL(jsonObj.id).hash.replace("#","");
-            credential.issuanceDate = new Date(jsonObj.issuanceDate);
-            credential.issuer = jsonObj.issuer;
-            credential.credentialSubject = jsonObj.credentialSubject;
-            credential.proof = jsonObj.proof;
-            credential.type = jsonObj.type;*/
+            
+            // Override values with non basic (string, number) types
+            if (jsonObj.expirationDate)
+                credential.expirationDate = new Date(jsonObj.expirationDate);
+
+            if (jsonObj.issuanceDate)
+                credential.issuanceDate = new Date(jsonObj.issuanceDate);
+
             return credential;
         }
         catch (e) {
@@ -690,7 +690,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
 }
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
-    credentialId: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
+    id: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
     clazz = 5;
     type: string[] = null;
     issuer: string = null;
@@ -700,11 +700,11 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     proof: any = null;
 
     getId(): DIDPlugin.CredentialID {
-        return this.credentialId;
+        return this.id;
     }
 
     getFragment() : string {
-        return new URL(this.credentialId).hash.replace("#","");
+        return new URL(this.id).hash.replace("#","");
     }
 
     getTypes() : string[] {
@@ -747,7 +747,7 @@ class JavaVerifiableCredential {
 
     toVerifiableCredential(): DIDPlugin.VerifiableCredential {
         let credential = new VerifiableCredentialImpl();
-        credential.credentialId = this.id;
+        credential.id = this.id;
         credential.expirationDate = new Date(this.expirationDate);
         credential.issuanceDate = new Date(this.issuanceDate);
         credential.issuer = this.issuer;
@@ -763,8 +763,8 @@ class JavaVerifiableCredential {
         javaVc.id = vc.getId();
         // JS Date format is ISO format, including milliseconds, but Java side is expecting
         // no milliseconds, so we make a dirty convertion here.
-        javaVc.expirationDate = vc.getExpirationDate().toISOString().replace(".000","");
-        javaVc.issuanceDate = vc.getIssuanceDate().toISOString().replace(".000","");
+        javaVc.expirationDate = (vc.getExpirationDate()?vc.getExpirationDate().toISOString().replace(".000",""):null);
+        javaVc.issuanceDate = (vc.getIssuanceDate()?vc.getIssuanceDate().toISOString().replace(".000",""):null);
         javaVc.issuer = vc.getIssuer();
         javaVc.credentialSubject = vc.getSubject();
         javaVc.proof = vc.getProof();
