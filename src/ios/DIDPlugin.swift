@@ -46,14 +46,27 @@ class DIDPlugin : TrinityPlugin {
     internal let errCodeDeleteCredential           = 10012
     internal let errCodeVerify                     = 10013
     internal let errCodeActionNotFound             = 10014
+    internal let errCodeUnspecified                = 10015
     internal let errCodeDidException               = 20000
+    internal let errCodeException                  = 20001
     
     internal static let IDTRANSACTION  = 1
     
     // Model
     internal var globalDidAdapter: DIDPluginAdapter? = nil
     internal var idTransactionCC: CDVInvokedUrlCommand? = nil
+    
     internal var mDIDStoreMap : [String: DIDStore] = [:]
+    internal var mDocumentMap : [String: DIDDocument] = [:]
+    internal var mIssuerMap : [String: Issuer] = [:]
+    internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
+    internal var mCredentialMap : [String: VerifiableCredential] = [:]
+    
+    private func success(_ command: CDVInvokedUrlCommand) {
+        let result = CDVPluginResult(status: CDVCommandStatus_OK);
+
+        self.commandDelegate.send(result, callbackId: command.callbackId)
+    }
     
     private func success(_ command: CDVInvokedUrlCommand, retAsString: String) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK,
@@ -69,56 +82,55 @@ class DIDPlugin : TrinityPlugin {
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
     
-    private func error(_ command: CDVInvokedUrlCommand, retAsString: String) {
-        let result = CDVPluginResult(status: CDVCommandStatus_ERROR,
-                                     messageAs: retAsString);
+    /** Dirty way to convert booleans to strings but we are following the original implementation mechanism for now. */
+    private func success(_ command: CDVInvokedUrlCommand, retAsFakeBool: Bool) {
+        let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (retAsFakeBool ? "true" : "false"));
 
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
     
-    private func exceptionProcess(_ e: Error, _ command: CDVInvokedUrlCommand, msg: String) {
-        NSLog(msg + " - " + e.localizedDescription)
-        self.error(command, retAsString: msg + " " + e.localizedDescription)
+    private func error(_ command: CDVInvokedUrlCommand, retAsString: String) {
+        self.error(command, code: errCodeUnspecified, msg: retAsString)
+    }
+    
+    private func error(_ command: CDVInvokedUrlCommand, code: Int, msg: String) {
+           let errJson : NSMutableDictionary = [:]
+           errJson.setValue(code, forKey: keyCode)
+           errJson.setValue(msg, forKey: keyMessage)
+           
+           self.log(message: "(" + command.methodName + ") - " + errJson.description)
+           
+           let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
+           self.commandDelegate.send(result, callbackId: command.callbackId)
+       }
+    
+    private func exception(_ e: Error, _ command: CDVInvokedUrlCommand) {
+        let msg = "(" + command.methodName + ") - " + e.localizedDescription
+        
+        NSLog(msg)
+        
+        self.error(command, code: errCodeException, msg: msg)
+    }
+    
+    private func exception(_ e: DIDError, _ command: CDVInvokedUrlCommand) {
+        let msg = "(" + command.methodName + ") - " + e.localizedDescription
+        
+        NSLog(msg)
+        
+        self.error(command, code: errCodeDidException, msg: msg)
     }
 
-    /* TODO private func exceptionProcess(DIDException e, CallbackContext cc, String msg) {
-        e.printStackTrace();
-
-        try {
-            JSONObject errJson = new JSONObject();
-            errJson.put(keyCode, errCodeDidException);
-            errJson.put(keyMessage, msg + ": " + e.toString());
-            Log.e(TAG, errJson.toString());
-            cc.error(errJson);
-        } catch (JSONException je) {
-            Log.e(TAG, je.toString());
-            Log.e(TAG, e.toString());
-            cc.error(e.toString());
-        }
-    }*/
-    
     private func log(message: String) {
         NSLog(DIDPlugin.TAG+": "+message)
     }
     
-    private func errorProcess(_ command: CDVInvokedUrlCommand, code: Int, msg: String) {
-        let errJson : NSMutableDictionary = [:]
-        errJson.setValue(code, forKey: keyCode)
-        errJson.setValue(msg, forKey: keyMessage)
-        
-        self.log(message: "(" + command.methodName + ") - " + errJson.description)
-        
-        let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
-        self.commandDelegate.send(result, callbackId: command.callbackId)
-    }
-    
     private func sendWrongParametersCount(_ command: CDVInvokedUrlCommand, expected: Int) {
-        self.errorProcess(command, code: errCodeInvalidArg, msg: "Wrong number of parameters passed. Expected \(expected).")
+        self.error(command, code: errCodeInvalidArg, msg: "Wrong number of parameters passed. Expected \(expected).")
             return
     }
     
     private func sendNotImplementedError(_ command: CDVInvokedUrlCommand) {
-        self.errorProcess(command, code: errCodeActionNotFound, msg: "Method not yet implemented")
+        self.error(command, code: errCodeActionNotFound, msg: "Method not yet implemented")
     }
     
     private func getDIDDataDir() -> String {
@@ -173,7 +185,7 @@ class DIDPlugin : TrinityPlugin {
         let callbackId = command.arguments[1] as! Int
 
         globalDidAdapter = DIDPluginAdapter(id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
-        // TODO mDidAdapterMap.put(didStoreId, globalDidAdapter);
+        mDidAdapterMap[didStoreId] = globalDidAdapter
 
         do {
             let cacheDir = self.getBackendCacheDir()
@@ -187,7 +199,7 @@ class DIDPlugin : TrinityPlugin {
             self.success(command, retAsDict: ret);
         }
         catch {
-            self.exceptionProcess(error, command, msg: error.localizedDescription)
+            self.exception(error, command)
         }
     }
 
@@ -206,7 +218,7 @@ class DIDPlugin : TrinityPlugin {
         //let ret: NSDictionary = [:];
         //self.success(command, retAsDict: ret);
         
-        self.sendNotImplementedError(command);
+        self.sendNotImplementedError(command)
      }
     
     @objc func generateMnemonic(_ command: CDVInvokedUrlCommand) {
@@ -218,7 +230,6 @@ class DIDPlugin : TrinityPlugin {
         let language = command.arguments[0] as! Int
 
         let mnemonic = HDKey.generateMnemonic(language)
-        NSLog("TMP generated mnemonic: \(mnemonic)")
        
         self.success(command, retAsString: mnemonic);
     }
@@ -231,16 +242,13 @@ class DIDPlugin : TrinityPlugin {
        
         let language = command.arguments[0] as! Int
         let mnemonic = command.arguments[1] as! String
-       
-       /*
+
+       /* TODO
          Boolean ret = Mnemonic.isValid(language, mnemonic);
        callbackContext.success(ret.toString());
          */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        
+        self.success(command, retAsFakeBool: true) // TMP ! TODO
     }
     
     @objc func DIDManager_resolveDIDDocument(_ command: CDVInvokedUrlCommand) {
@@ -252,293 +260,280 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[0] as! String
         let forceRemote = command.arguments[1] as! Bool
        
-       /*
-          try {
+          do {
              // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
              // This is "ok" as long as the DID App is the only one to call publish().
              //
              // If no initDidStore() has been called yet, we need to initialize the DID backend
              // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
              // DIDBackend.initialize() with a real adapter that will overwrite our init.
-             if (globalDidAdapter == null) {
-                 DIDPluginAdapter tempAdapter = new DIDPluginAdapter(-1, null);
-                 DIDBackend.initialize(tempAdapter);
+             if (globalDidAdapter == nil) {
+                // TODO ? WHY NO ADAPTER ON IOS ? let tempAdapter = DIDPluginAdapter(id: -1, command: command, commandDelegate: self.commandDelegate)
+                 DIDBackend.initialize()
              }
 
-             DIDDocument didDocument = new DID(didString).resolve(forceRemote);
-             JSONObject ret = new JSONObject();
+             let didDocument = try DID(didString).resolve(forceRemote)
+             let ret = NSMutableDictionary()
 
-             if (didDocument != null) {
-                 ret.put("diddoc", didDocument.toString(true));
-                 ret.put("updated", didDocument.getUpdated());
+             if let didDocument = didDocument {
+                ret.setValue(didDocument.description(true), forKey: "diddoc")
+                ret.setValue(didDocument.getUpdated(), forKey: "updated")
              }
              else {
-                 ret.put("diddoc", null);
+                ret.setValue(nil, forKey: "diddoc")
              }
-             callbackContext.success(ret);
+            self.success(command, retAsDict: ret)
          }
-         catch(DIDException e) {
-             exceptionProcess(e, callbackContext, "DIDManager_resolveDIDDocument ");
+         catch  {
+             self.exception(error, command)
          }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
     }
     
     @objc func DIDStore_changePassword(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 3 else {
-           self.sendWrongParametersCount(command, expected: 3)
-           return
-       }
-       
+        guard command.arguments.count == 3 else {
+            self.sendWrongParametersCount(command, expected: 3)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let oldPassword = command.arguments[1] as! String
         let newPassword = command.arguments[2] as! String
-       
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             didStore.changePassword(oldPassword, newPassword);
-             callbackContext.success();
-         }
-         catch (DIDStoreException e) {
-             exceptionProcess(e, callbackContext, "DIDStore_changePassword ");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                try didStore.changePassword(oldPassword, newPassword);
+                self.success(command)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func containsPrivateIdentity(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 1 else {
-           self.sendWrongParametersCount(command, expected: 1)
-           return
-       }
-       
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
-       
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             Boolean ret = didStore.containsPrivateIdentity();
-             callbackContext.success(ret.toString());
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "containsPrivateIdentity ");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore  {
+                let ret = try didStore.containsPrivateIdentity()
+                self.success(command, retAsString: (ret ? "true" : "false"))
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func initPrivateIdentity(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 6 else {
-           self.sendWrongParametersCount(command, expected: 6)
-           return
-       }
-       
+        guard command.arguments.count == 6 else {
+            self.sendWrongParametersCount(command, expected: 6)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
-        let language = command.arguments[1] as! String
+        let language = command.arguments[1] as! Int
         let mnemonic = command.arguments[2] as! String
         let passphrase = command.arguments[3] as! String
         let storepass = command.arguments[4] as! String
         let force = command.arguments[5] as! Bool
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
-             callbackContext.success();
-         }
-         catch(Exception e) {
-             exceptionProcess(e, callbackContext, "initPrivateIdentity");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                try didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
+                self.success(command)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func exportMnemonic(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 2 else {
-           self.sendWrongParametersCount(command, expected: 2)
-           return
-       }
-       
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             callbackContext.success(didStore.exportMnemonic(storepass));
-         }
-         catch(Exception e) {
-             exceptionProcess(e, callbackContext, "exportMnemonic");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let mnemonic = try didStore.exportMnemonic(storepass)
+                self.success(command, retAsString: mnemonic)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func setResolverUrl(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 2 else {
-           self.sendWrongParametersCount(command, expected: 2)
-           return
-       }
-       
-        let adapterId = command.arguments[0] as! Int
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
+        let didStoreId = command.arguments[0] as! String
         let resolver = command.arguments[1] as! String
         
-       /*
-         try {
-             DIDPluginAdapter didAdapter = mDidAdapterMap.get(adapterId);
-             didAdapter.setResolver(resolver);
-             callbackContext.success();
-         }
-         catch(Exception e) {
-             exceptionProcess(e, callbackContext, "setResolverUrl");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didAdapter = mDidAdapterMap[didStoreId]!
+            didAdapter.setResolver(resolver)
+            self.success(command)
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func synchronize(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 2 else {
-           self.sendWrongParametersCount(command, expected: 2)
-           return
-       }
-       
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             didStore.synchronize(storepass);
-             callbackContext.success();
-         }
-         catch(Exception e) {
-             exceptionProcess(e, callbackContext, "synchronize");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                try didStore.synchronize(storepass)
+                self.success(command)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func deleteDid(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 2 else {
-           self.sendWrongParametersCount(command, expected: 2)
-           return
-       }
-       
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             didStore.deleteDid(didString);
-             callbackContext.success();
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "deleteDid ");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                _ = try didStore.deleteDid(didString)
+                self.success(command)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
+        
+        self.sendNotImplementedError(command);
     }
     
     @objc func newDid(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 3 else {
-           self.sendWrongParametersCount(command, expected: 3)
-           return
-       }
-       
+        guard command.arguments.count == 3 else {
+            self.sendWrongParametersCount(command, expected: 3)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let passphrase = command.arguments[1] as! String
         let alias = command.arguments[2] as! String
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             DIDDocument didDocument = didStore.newDid(alias, passphrase);
-
-             DID did = didDocument.getSubject();
-             String didString = did.toString();
-
-             mDocumentMap.put(didString, didDocument);
-             JSONObject r = new JSONObject();
-             r.put("did", didString);
-             callbackContext.success(r);
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "newDid ");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let didDocument = try didStore.newDid(storepass: passphrase, alias: alias)
+                
+                let did = didDocument.subject! // assume a DIDDocument always has a non null DID.
+                let didString = did.description
+                
+                mDocumentMap[didString] = didDocument
+                
+                let r = NSMutableDictionary()
+                r.setValue(didString, forKey: "did")
+                self.success(command, retAsDict: r)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func loadDid(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 3 else {
-           self.sendWrongParametersCount(command, expected: 3)
-           return
-       }
-       
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         
-       /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             DIDDocument didDocument = didStore.loadDid(didString);
-
-             if (didDocument != null) { // Should normally not happen but... happened (sdk bug).
-                 mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
-             }
-
-             JSONObject r = new JSONObject();
-             r.put("diddoc", didDocument.toString(true));
-             r.put("updated", didDocument.getUpdated());
-             callbackContext.success(r);
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "loadDid ");
-         }
-         */
-       
-       //let ret: NSDictionary = [:];
-       //self.success(command, retAsDict: ret);
-       
-       self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let didDocument = try didStore.loadDid(didString)
+                
+                if (didDocument != nil) { // Should normally not happen but... happened (sdk bug).
+                    mDocumentMap[didDocument!.subject!.description] = didDocument
+                    
+                    let r = NSMutableDictionary()
+                    r.setValue(didDocument!.description(true), forKey: "diddoc")
+                    r.setValue(didDocument!.getUpdated(), forKey: "updated")
+                   
+                    self.success(command, retAsDict: r)
+                }
+                else {
+                    self.error(command, retAsString: "Failed to load DID document for \(didString)")
+                    return
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func listDids(_ command: CDVInvokedUrlCommand) {
@@ -560,7 +555,7 @@ class DIDPlugin : TrinityPlugin {
             self.success(command, retAsDict: r)
         }
         catch {
-            self.exceptionProcess(error, command, msg: "listDids")
+            self.exception(error, command)
         }
     }
     
@@ -574,16 +569,20 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
         
-        /*try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            String txId = didStore.publishDid(didString, storepass);
-            callbackContext.success(txId);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let txId = try didStore.publishDid(didString, storepass)
+                self.success(command, retAsString: txId!)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
         }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "publishDid ");
-        }*/
-        
-        self.sendNotImplementedError(command);
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func resolveDid(_ command: CDVInvokedUrlCommand) {
@@ -594,24 +593,22 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         
-        /*
-         try {
-             DID did = new DID(didString);
-             // Resolve and force to NOT use a locally cached copy.
-             DIDDocument didDocument = did.resolve(true);
-
-             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
-             JSONObject r = new JSONObject();
-             r.put("diddoc", didDocument.toString(true));
-             r.put("updated", didDocument.getUpdated());
-             callbackContext.success(r);
-         }
-         catch (Exception e) {
-             exceptionProcess(e, callbackContext, "resolveDid ");
-         }
-         */
-        
-        self.sendNotImplementedError(command);
+        do {
+            let did = try DID(didString)
+            // Resolve and force to NOT use a locally cached copy.
+            let didDocument = try did.resolve(true)
+            
+            mDocumentMap[didDocument!.subject!.description] = didDocument
+            
+            let r = NSMutableDictionary()
+            r.setValue(didDocument!.description(true), forKey: "diddoc")
+            r.setValue(didDocument!.getUpdated(), forKey: "updated")
+            
+            self.success(command, retAsDict: r)
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func storeDid(_ command: CDVInvokedUrlCommand) {
@@ -621,22 +618,29 @@ class DIDPlugin : TrinityPlugin {
         }
         
         let didStoreId = command.arguments[0] as! String
-        let didId = command.arguments[1] as! Int
-        //DIDDocument didDocument = mDocumentMap.get(didId);
+        let didString = command.arguments[1] as! String
         let alias = command.arguments[2] as! String
         
-        /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             didStore.storeDid(didDocument, alias);
-             callbackContext.success("true");
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "storeDid ");
-         }
-         */
-        
-        self.sendNotImplementedError(command);
+        if let didDocument = mDocumentMap[didString] {
+            do {
+                let didStore = mDIDStoreMap[didStoreId]
+                if let didStore = didStore {
+                    try didStore.storeDid(didDocument, alias)
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                    return
+                }
+            }
+            catch {
+                self.exception(error, command)
+            }
+        }
+        else {
+            self.error(command, retAsString: "No DID document found matching DID string \(didString)")
+            return
+        }
     }
     
     @objc func prepareIssuer(_ command: CDVInvokedUrlCommand) {
@@ -648,19 +652,21 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         
-        /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             DID did = new DID(didString);
-             Issuer issuer = new Issuer(did, didStore);
-             mIssuerMap.put(didString, issuer);
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "prepareIssuer ");
-         }
-         */
-        
-        self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let did = try DID(didString)
+                let issuer = try Issuer(did, didStore)
+                mIssuerMap[didString] = issuer
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func CreateCredential(_ command: CDVInvokedUrlCommand) {
@@ -780,21 +786,22 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let credentialJson = command.arguments[1] as! String
         
-        /*
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-
-             VerifiableCredential credential = VerifiableCredential.fromJson(credentialJson);
-             didStore.storeCredential(credential);
-             mCredentialMap.put(credential.getId().toString(), credential);
-             callbackContext.success();
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "storeCredential ");
-         }
-         */
-        
-        self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let credential = try VerifiableCredential.fromJson(credentialJson)
+                try didStore.storeCredential(credential)
+                mCredentialMap[credential.id.description] = credential
+                self.success(command)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func deleteCredential(_ command: CDVInvokedUrlCommand) {
@@ -807,36 +814,38 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
         
-        /*
-         if (!ensureCredentialIDFormat(didUrlString)) {
-             errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrlString);
-             return;
-         }
-         
-        try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-
-             boolean ret = false;
-             if (didUrlString.startsWith("did:elastos:")) {
-                 ret = didStore.deleteCredential(new DID(didString), new DIDURL(didUrlString));
-             }
-             else {
-                 ret = didStore.deleteCredential(didString, didUrlString);
-             }
-
-             if (ret) {
-                 callbackContext.success();
-             }
-             else {
-                 errorProcess(callbackContext, errCodeDeleteCredential, "deleteCredential return false!");
-             }
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "deleteCredential ");
-         }
-         */
+        if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
+            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
+            return
+        }
         
-        self.sendNotImplementedError(command);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                
+                var ret = false
+                if (didUrlString.hasPrefix("did:elastos:")) {
+                    ret = try didStore.deleteCredential(DID(didString), DIDURL(didUrlString))
+                }
+                else {
+                    ret = try didStore.deleteCredential(didString, didUrlString)
+                }
+                
+                if (ret) {
+                    self.success(command)
+                }
+                else {
+                    self.error(command, code: errCodeDeleteCredential, msg: "deleteCredential returned false!")
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func DID_loadCredentials(_ command: CDVInvokedUrlCommand) {
@@ -848,31 +857,31 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         
-        /*
-        
-        try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+        do {
+            let didStore = mDIDStoreMap[didStoreId]
+            if let didStore = didStore {
+                let did = try DID(didString)
+                let unloadedCredentials = try didStore.listCredentials(did)
 
-            DID did = new DID(didString);
-            List<DIDURL> unloadedCredentials = didStore.listCredentials(did);
+                var credentials: [VerifiableCredential] = []
+                for url in unloadedCredentials {
+                    let credential = try didStore.loadCredential(did, url)
+                    credentials.append(credential!)
+                }
 
-            ArrayList<VerifiableCredential> credentials = new ArrayList<>();
-            for (DIDURL url : unloadedCredentials) {
-                VerifiableCredential credential = didStore.loadCredential(did, url);
-                credentials.add(credential);
+                let r = NSMutableDictionary()
+                r.setValue(credentials, forKey: "items")
+                
+                self.success(command, retAsDict: r)
             }
-
-            JSONObject r = new JSONObject();
-            r.put("items", credentials);
-
-            callbackContext.success(r);
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
         }
-        catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "listCredentials ");
+        catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func getDefaultPublicKey(_ command: CDVInvokedUrlCommand) {
@@ -1012,171 +1021,222 @@ class DIDPlugin : TrinityPlugin {
         self.sendNotImplementedError(command);
     }
     
+    @objc func sign(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 3 else {
+            self.sendWrongParametersCount(command, expected: 3)
+            return
+        }
+        
+        let didString = command.arguments[0] as! String
+        //DIDDocument didDocument = mDocumentMap.get(didString);
+        let storepass = command.arguments[1] as! String
+        let originString = command.arguments[2] as! String
+        
+        /*
+        String signString = didDocument.sign(storepass, originString.getBytes());
+        callbackContext.success(signString);
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func verify(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 3 else {
+            self.sendWrongParametersCount(command, expected: 3)
+            return
+        }
+        
+        let didString = command.arguments[0] as! String
+        //DIDDocument didDocument = mDocumentMap.get(didString);
+        let signString = command.arguments[1] as! String
+        let originString = command.arguments[2] as! String
+        
+        /*
+        boolean ret = didDocument.verify(signString, originString.getBytes());
+        if (ret) {
+            callbackContext.success();
+        }
+        else {
+            errorProcess(callbackContext, errCodeVerify, "verify return false!");
+        }
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    // PublicKey
+    @objc func getMethod(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let didString = command.arguments[0] as! String
+        
+        /*
+        DID did = mDIDMap.get(didString);
+        String method = did.getMethod();
+        callbackContext.success(method);
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func getMethodSpecificId(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let didString = command.arguments[0] as! String
+        
+        /*
+        DID did = mDIDMap.get(didString);
+        String methodSpecificId = did.getMethodSpecificId();
+        callbackContext.success(methodSpecificId);
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func getController(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let id = command.arguments[0] as! Int
+        
+        /*
+        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
+        DID did = publicKey.getController();
+
+        mDIDMap.put(did.toString(), did);
+        JSONObject r = new JSONObject();
+        r.put("didstring", did.toString());
+        callbackContext.success(r);
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func getPublicKeyBase58(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let id = command.arguments[0] as! Int
+        
+        /*
+        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
+        String keyBase58 = publicKey.getPublicKeyBase58();
+        callbackContext.success(keyBase58);
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func createVerifiablePresentationFromCredentials(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 6 else {
+            self.sendWrongParametersCount(command, expected: 6)
+            return
+        }
+        
+        let didStoreId = command.arguments[0] as! String
+        let didString = command.arguments[1] as! String
+        let creds = command.arguments[2] as! NSDictionary // TODO good type for JSONArray?
+        let realm = command.arguments[3] as! String
+        let nonce = command.arguments[4] as! String
+        let storePass = command.arguments[5] as! String
+        
+        /*
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+            DID did = new DID(didString);
+
+            // Rebuild our credentials from their JSON form
+            ArrayList<VerifiableCredential> credentials = new ArrayList<>();
+            for (int i=0; i<creds.length(); i++) {
+                credentials.add(VerifiableCredential.fromJson(creds.getJSONObject(i).toString()));
+            }
+
+            VerifiablePresentation.Builder builder = VerifiablePresentation.createFor(did, didStore);
+            VerifiableCredential[] credsArray = credentials.toArray(new VerifiableCredential[creds.length()]);
+            VerifiablePresentation presentation = builder.credentials(credsArray)
+                    .nonce(nonce)
+                    .realm(realm)
+                    .seal(storePass);
+
+            callbackContext.success(presentation.toString());
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "createVerifiablePresentationFromCredentials ");
+        }
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func verifiablePresentationIsValid(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let pres = command.arguments[0] as! NSDictionary //JSONObject pres = args.getJSONObject(idx++);
+        
+        /*
+        try {
+            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+
+            JSONObject r = new JSONObject();
+            r.put("isvalid", presentation.isValid());
+            callbackContext.success();
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "verifiablePresentationIsValid ");
+        }
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    @objc func verifiablePresentationIsGenuine(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+        
+        let pres = command.arguments[0] as! NSDictionary //JSONObject pres = args.getJSONObject(idx++);
+        
+        /*
+        try {
+            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+
+            JSONObject r = new JSONObject();
+            r.put("isgenuine", presentation.isGenuine());
+            callbackContext.success();
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
+        }
+         */
+        
+        self.sendNotImplementedError(command);
+    }
+    
+    private func ensureCredentialIDFormat(didUrl: String) -> Bool {
+        if (didUrl.hasPrefix("#")) {
+            return true
+        }
+
+        let uri = URL(string: didUrl)
+        if (uri == nil || uri!.fragment == nil || uri!.fragment! == "") {
+            return false
+        }
+
+        return true
+    }
+    
   /*
-     private void sign(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
-         int idx = 0;
-         String didString = args.getString(idx++);
-
-         DIDDocument didDocument = mDocumentMap.get(didString);
-
-         String storepass = args.getString(idx++);
-         String originString = args.getString(idx++);
-
-         if (args.length() != idx) {
-             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-             return;
-         }
-
-         String signString = didDocument.sign(storepass, originString.getBytes());
-         callbackContext.success(signString);
-     }
-
-     private void verify(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDException {
-         int idx = 0;
-         String didString = args.getString(idx++);
-
-         DIDDocument didDocument = mDocumentMap.get(didString);
-
-         String signString = args.getString(idx++);
-         String originString = args.getString(idx++);
-
-         if (args.length() != idx) {
-             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-             return;
-         }
-
-         boolean ret = didDocument.verify(signString, originString.getBytes());
-         if (ret) {
-             callbackContext.success();
-         }
-         else {
-             errorProcess(callbackContext, errCodeVerify, "verify return false!");
-         }
-     }
-
-     // PublicKey
-     private void getMethod(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         String didString = args.getString(0);
-         DID did = mDIDMap.get(didString);
-         String method = did.getMethod();
-         callbackContext.success(method);
-     }
-
-     private void getMethodSpecificId(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         String didString = args.getString(0);
-         DID did = mDIDMap.get(didString);
-         String methodSpecificId = did.getMethodSpecificId();
-         callbackContext.success(methodSpecificId);
-     }
-
-     private void getController(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         Integer id = args.getInt(0);
-         DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
-         DID did = publicKey.getController();
-
-         mDIDMap.put(did.toString(), did);
-         JSONObject r = new JSONObject();
-         r.put("didstring", did.toString());
-         callbackContext.success(r);
-     }
-
-     private void getPublicKeyBase58(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         Integer id = args.getInt(0);
-         DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
-         String keyBase58 = publicKey.getPublicKeyBase58();
-         callbackContext.success(keyBase58);
-     }
-
-     private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         int idx = 0;
-         String didStoreId = args.getString(idx++);
-         String didString = args.getString(idx++);
-         JSONArray creds = args.getJSONArray((idx++));
-         String realm = args.getString(idx++);
-         String nonce = args.getString(idx++);
-         String storePass = args.getString(idx++);
-
-         if (args.length() != idx) {
-             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-             return;
-         }
-
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-             DID did = new DID(didString);
-
-             // Rebuild our credentials from their JSON form
-             ArrayList<VerifiableCredential> credentials = new ArrayList<>();
-             for (int i=0; i<creds.length(); i++) {
-                 credentials.add(VerifiableCredential.fromJson(creds.getJSONObject(i).toString()));
-             }
-
-             VerifiablePresentation.Builder builder = VerifiablePresentation.createFor(did, didStore);
-             VerifiableCredential[] credsArray = credentials.toArray(new VerifiableCredential[creds.length()]);
-             VerifiablePresentation presentation = builder.credentials(credsArray)
-                     .nonce(nonce)
-                     .realm(realm)
-                     .seal(storePass);
-
-             callbackContext.success(presentation.toString());
-         } catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "createVerifiablePresentationFromCredentials ");
-         }
-     }
-
-     private void verifiablePresentationIsValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         int idx = 0;
-
-         JSONObject pres = args.getJSONObject(idx++);
-
-         if (args.length() != idx) {
-             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-             return;
-         }
-
-         try {
-             VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
-
-             JSONObject r = new JSONObject();
-             r.put("isvalid", presentation.isValid());
-             callbackContext.success();
-         } catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "verifiablePresentationIsValid ");
-         }
-     }
-
-     private void verifiablePresentationIsGenuine(JSONArray args, CallbackContext callbackContext) throws JSONException {
-         int idx = 0;
-
-         JSONObject pres = args.getJSONObject(idx++);
-
-         if (args.length() != idx) {
-             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
-             return;
-         }
-
-         try {
-             VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
-
-             JSONObject r = new JSONObject();
-             r.put("isgenuine", presentation.isGenuine());
-             callbackContext.success();
-         } catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
-         }
-     }
-
-     private boolean ensureCredentialIDFormat(String didUrl) {
-         if (didUrl.startsWith("#"))
-             return true;
-
-         URI uri = URI.create(didUrl);
-         if (uri == null || uri.getFragment() == null || uri.getFragment().equals(""))
-             return false;
-
-         return true;
-     }
-
      /**
       * Converts long or short form DIDURL into short form (fragment).
       * did:elastos:abcdef#my-key -> my-key

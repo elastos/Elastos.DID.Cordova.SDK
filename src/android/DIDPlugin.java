@@ -533,7 +533,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer adapterId = args.getInt(idx++);
+        String didStoreId = args.getString(idx++);
         String resolver = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -542,7 +542,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDPluginAdapter didAdapter = mDidAdapterMap.get(adapterId);
+            DIDPluginAdapter didAdapter = mDidAdapterMap.get(didStoreId);
             didAdapter.setResolver(resolver);
             callbackContext.success();
         }
@@ -717,8 +717,8 @@ public class DIDPlugin extends TrinityPlugin {
     private void storeDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        Integer didId = args.getInt(idx++);
-        DIDDocument didDocument = mDocumentMap.get(didId);
+        String didString = args.getString(idx++);
+        DIDDocument didDocument = mDocumentMap.get(didString);
         String alias = args.getString(idx++);
 
         if (args.length() != idx) {

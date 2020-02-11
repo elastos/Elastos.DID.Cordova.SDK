@@ -22,6 +22,7 @@
 
 import Foundation
 import ElastosDIDSDK
+import Alamofire
 
 class DIDPluginAdapter : DIDAdapter {
     private let TAG = "DIDPluginAdapter"
@@ -34,7 +35,7 @@ class DIDPluginAdapter : DIDAdapter {
     // TestNet
     // private let resolver = "http://api.elastos.io:21606"
     // MainNet
-    private let resolver = "http://api.elastos.io:20606"
+    private var resolver = "http://api.elastos.io:20606"
 
     init(id: Int, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
         self.callbackId = id
@@ -50,10 +51,9 @@ class DIDPluginAdapter : DIDAdapter {
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
 
-    /*
-    public func setResolver(resolver: String) {
+    public func setResolver(_ resolver: String) {
         self.resolver = resolver
-    }*/
+    }
 
     func createIdTransaction(_ payload: String, _ memo: String?) throws -> String {
         let ret = NSMutableDictionary()
@@ -64,46 +64,62 @@ class DIDPluginAdapter : DIDAdapter {
     }
     
     func resolve(_ requestId: String, _ did: String, _ all: Bool) throws -> String {
-        /*
-         DIDResolveException {
-         try {
-             Log.d(TAG, "Resolving remote did: " + did);
-             URL url = new URL(this.resolver);
-             HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-             connection.setRequestMethod("POST");
-             connection.setRequestProperty("User-Agent",
-                     "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
-             connection.setRequestProperty("Content-Type", "application/json");
-             connection.setRequestProperty("Accept", "application/json");
-             connection.setDoOutput(true);
-             connection.connect();
-
-             OutputStream os = connection.getOutputStream();
-             JsonFactory factory = new JsonFactory();
-             JsonGenerator generator = factory.createGenerator(os, JsonEncoding.UTF8);
-             generator.writeStartObject();
-             generator.writeStringField("id", requestId);
-             generator.writeStringField("method", "resolvedid");
-             generator.writeFieldName("params");
-             generator.writeStartObject();
-             generator.writeStringField("did", did);
-             generator.writeBooleanField("all", all);
-             generator.writeEndObject();
-             generator.writeEndObject();
-             generator.close();
-             os.close();
-
-             int code = connection.getResponseCode();
-             if (code != HttpURLConnection.HTTP_OK)
-                 throw new DIDResolveException("Unable to resolve DID: "+code+" "+connection.getResponseMessage());
-
-             return connection.getInputStream();
-         }
-         catch (IOException e) {
-             throw new DIDResolveException("Network error.", e);
-         }
-         */
+        NSLog("DIDPlugin adapter resolve() called for \(did)")
         
-        return "" // TODO
+        var resolveError: DIDError? = nil
+        var responseData: Data? = nil
+        
+        // Currently, DID SDK requires a synchronous response, so we convert our async http to a sync call using semaphores
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        let parameters: [String: Any] = [
+            "id" : requestId,
+            "method" : "resolvedid",
+            "params": [
+                "did": did,
+                "all": all
+            ]
+        ]
+        
+        let headers: HTTPHeaders = [
+          "User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        ]
+      
+        // Run our request and ask to receive the response in a background thread as we are going to lock
+        // the main thread with a semaphore.
+        let queue = DispatchQueue(label: "did_resolver", qos: .background, attributes: .concurrent)
+        Alamofire.request(self.resolver, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseJSON(queue: queue) { response in
+                
+                if (response.response == nil || response.response?.statusCode != 200) {
+                    print(response)
+                    
+                    resolveError = DIDError.didResolveError(_desc: "Unable to resolve DID: \(response.response?.statusCode ?? -1) \(response.description)")
+                }
+                else {
+                    responseData = response.data
+                }
+                semaphore.signal()
+            }
+        
+        _ = semaphore.wait(timeout: DispatchTime.distantFuture)
+
+        if (resolveError != nil) {
+            throw resolveError!
+        }
+        
+        if (responseData == nil) {
+            throw DIDError.didResolveError(_desc: "Empty data received")
+        }
+        
+        if let ret = String(data: responseData!, encoding: .utf8) {
+            print(ret)
+            return ret
+        }
+        else {
+            throw DIDError.didResolveError(_desc: "Received data is not valid a UTF8 string")
+        }
     }
 }
