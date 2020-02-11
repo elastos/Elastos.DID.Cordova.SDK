@@ -15,12 +15,17 @@
         <source-file src="src/android/JSONObjectHolder.java" target-dir="src/org/elastos/trinity/plugins/did" />
         <framework src="src/android/did.gradle" custom="true" type="gradleReference"/>
     </platform>
-        <platform name="ios">
+    <platform name="ios">
         <config-file target="config.xml" parent="/*">
             <feature name="DIDPlugin">
                 <param name="ios-package" value="DIDPlugin" />
             </feature>
         </config-file>
+        <source-file src="src/ios/DIDPlugin.swift" />
+        <source-file src="src/ios/DIDPluginAdapter.swift" />
+        <source-file src="src/ios/JSONObjectHolder.swift" />
+        <framework src="src/ios/libs/ElastosDIDSDK.framework" custom="true" embed="true" />
+        <framework src="src/ios/libs/Antlr4.framework" custom="true" embed="true" />
     </platform>
 </plugin>
 
