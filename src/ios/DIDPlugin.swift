@@ -57,6 +57,7 @@ class DIDPlugin : TrinityPlugin {
     internal var idTransactionCC: CDVInvokedUrlCommand? = nil
     
     internal var mDIDStoreMap : [String: DIDStore] = [:]
+    internal var mDIDMap: [String : DID] = [:]
     internal var mDocumentMap : [String: DIDDocument] = [:]
     internal var mIssuerMap : [String: Issuer] = [:]
     internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
@@ -272,10 +273,9 @@ class DIDPlugin : TrinityPlugin {
                  DIDBackend.initialize()
              }
 
-             let didDocument = try DID(didString).resolve(forceRemote)
              let ret = NSMutableDictionary()
 
-             if let didDocument = didDocument {
+             if let didDocument = try DID(didString).resolve(forceRemote) {
                 ret.setValue(didDocument.description(true), forKey: "diddoc")
                 ret.setValue(didDocument.getUpdated(), forKey: "updated")
              }
@@ -300,8 +300,7 @@ class DIDPlugin : TrinityPlugin {
         let newPassword = command.arguments[2] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 try didStore.changePassword(oldPassword, newPassword);
                 self.success(command)
             }
@@ -324,8 +323,7 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore  {
+            if let didStore = mDIDStoreMap[didStoreId]  {
                 let ret = try didStore.containsPrivateIdentity()
                 self.success(command, retAsString: (ret ? "true" : "false"))
             }
@@ -353,8 +351,7 @@ class DIDPlugin : TrinityPlugin {
         let force = command.arguments[5] as! Bool
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 try didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
                 self.success(command)
             }
@@ -378,8 +375,7 @@ class DIDPlugin : TrinityPlugin {
         let storepass = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let mnemonic = try didStore.exportMnemonic(storepass)
                 self.success(command, retAsString: mnemonic)
             }
@@ -402,14 +398,9 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let resolver = command.arguments[1] as! String
         
-        do {
-            let didAdapter = mDidAdapterMap[didStoreId]!
-            didAdapter.setResolver(resolver)
-            self.success(command)
-        }
-        catch {
-            self.exception(error, command)
-        }
+        let didAdapter = mDidAdapterMap[didStoreId]!
+        didAdapter.setResolver(resolver)
+        self.success(command)
     }
     
     @objc func synchronize(_ command: CDVInvokedUrlCommand) {
@@ -422,9 +413,8 @@ class DIDPlugin : TrinityPlugin {
         let storepass = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
-                try didStore.synchronize(storepass)
+            if let didStore = mDIDStoreMap[didStoreId] {
+                // TODO - DISABLED WAITING FOR SDK FIX try didStore.synchronize(storepass)
                 self.success(command)
             }
             else {
@@ -447,8 +437,7 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 _ = try didStore.deleteDid(didString)
                 self.success(command)
             }
@@ -475,8 +464,7 @@ class DIDPlugin : TrinityPlugin {
         let alias = command.arguments[2] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let didDocument = try didStore.newDid(storepass: passphrase, alias: alias)
                 
                 let did = didDocument.subject! // assume a DIDDocument always has a non null DID.
@@ -508,16 +496,13 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
-                let didDocument = try didStore.loadDid(didString)
-                
-                if (didDocument != nil) { // Should normally not happen but... happened (sdk bug).
-                    mDocumentMap[didDocument!.subject!.description] = didDocument
+            if let didStore = mDIDStoreMap[didStoreId] {
+                if let didDocument = try didStore.loadDid(didString) {
+                    mDocumentMap[didDocument.subject!.description] = didDocument
                     
                     let r = NSMutableDictionary()
-                    r.setValue(didDocument!.description(true), forKey: "diddoc")
-                    r.setValue(didDocument!.getUpdated(), forKey: "updated")
+                    r.setValue(didDocument.description(true), forKey: "diddoc")
+                    r.setValue(didDocument.getUpdated(), forKey: "updated")
                    
                     self.success(command, retAsDict: r)
                 }
@@ -546,9 +531,8 @@ class DIDPlugin : TrinityPlugin {
         let filter = command.arguments[1] as! Int
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
             var dids: [DID]? = nil
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 dids = try didStore.listDids(filter)
             }
             let r = try JSONObjectHolder.getDIDsInfoJson(dids: dids)
@@ -570,8 +554,7 @@ class DIDPlugin : TrinityPlugin {
         let storepass = command.arguments[2] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let txId = try didStore.publishDid(didString, storepass)
                 self.success(command, retAsString: txId!)
             }
@@ -623,8 +606,7 @@ class DIDPlugin : TrinityPlugin {
         
         if let didDocument = mDocumentMap[didString] {
             do {
-                let didStore = mDIDStoreMap[didStoreId]
-                if let didStore = didStore {
+                if let didStore = mDIDStoreMap[didStoreId] {
                     try didStore.storeDid(didDocument, alias)
                     self.success(command)
                 }
@@ -653,8 +635,7 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
                 let issuer = try Issuer(did, didStore)
                 mIssuerMap[didString] = issuer
@@ -670,8 +651,8 @@ class DIDPlugin : TrinityPlugin {
     }
     
     @objc func CreateCredential(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 9 else {
-            self.sendWrongParametersCount(command, expected: 9)
+        guard command.arguments.count == 8 else {
+            self.sendWrongParametersCount(command, expected: 8)
             return
         }
         
@@ -680,55 +661,53 @@ class DIDPlugin : TrinityPlugin {
         let subjectDidString = command.arguments[2] as! String
         let credentialId = command.arguments[3] as! String
         let type = command.arguments[4] as! String //JSONArray type = args.getJSONArray(idx++);
-        let typeArray = command.arguments[5] as! String
-        //String[] typeArray = JSONArray2Array(type);
-        let days = command.arguments[6] as! String
-        let properties = command.arguments[7] as! String //JSONObject properties = args.getJSONObject(idx++);
+        let typeArray : [String] = [] // TODO = JSONArray2Array(type);
+        let days = command.arguments[5] as! Int
+        let properties = command.arguments[6] as! String //JSONObject properties = args.getJSONObject(idx++);
         //Map<String, String> props = JSONObject2Map(properties);
-        let passphrase = command.arguments[8] as! String
+        let passphrase = command.arguments[7] as! String
         
-        /*
-         if (!ensureCredentialIDFormat(credentialId)) {
-             errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+credentialId);
-             return;
-         }
-
-         try {
-             DID subjectDid = new DID(subjectDidString);
-
-             Issuer issuer = mIssuerMap.get(didString);
-             if (issuer == null) {
-                 DIDStore didStore = mDIDStoreMap.get(didStoreId);
-                 DID did = new DID(didString);
-                 issuer = new Issuer(did, didStore);
-                 mIssuerMap.put(didString, issuer);
-             }
-
-             Calendar cal = Calendar.getInstance();
-             cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);
-             Date expire = cal.getTime();
-
-             VerifiableCredential vc = issuer.issueFor(subjectDid)
-                     .id(getDidUrlFragment(credentialId))
-                     .type(typeArray)
-                     .expirationDate(expire)
-                     .properties(props)
-                     .seal(passphrase);
-
-             //Integer objId = System.identityHashCode(vc);
-
-             //mCredentialMap.put(objId, vc);
-             JSONObject ret= new JSONObject();
-             ret.put("credential", vc.toString(true));
-             System.out.println("credential="+vc.toString(true));
-             callbackContext.success(ret);
-         }
-         catch(DIDException e) {
-             exceptionProcess(e, callbackContext, "CreateCredential ");
-         }
-         */
+        if (!self.ensureCredentialIDFormat(didUrl: credentialId)) {
+            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(credentialId)")
+            return
+        }
         
-        self.sendNotImplementedError(command);
+        do {
+            let subjectDid = try DID(subjectDidString)
+            
+            var issuer = mIssuerMap[didString]
+            if (issuer == nil) {
+                if let didStore = mDIDStoreMap[didStoreId] {
+                    let did = try DID(didString)
+                    issuer = try Issuer(did, didStore)
+                    mIssuerMap[didString] = issuer
+                    
+                    /* TODO Calendar cal = Calendar.getInstance();
+                     cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);
+                     Date expire = cal.getTime();*/
+                    
+                    let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
+                    
+                    let vc = try issuer!.issueFor(did: subjectDid)
+                        .idString(credentialId)
+                        .types(typeArray)
+                        .expirationDate(expire)
+                        // TODO .properties(props)
+                        .seal(storepass: passphrase)
+                    
+                    let ret = NSMutableDictionary()
+                    ret.setValue(vc.description(true), forKey: "credential")
+                    self.success(command, retAsDict: ret)
+                }
+                else {
+                    self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                    return
+                }
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func loadCredential(_ command: CDVInvokedUrlCommand) {
@@ -787,8 +766,7 @@ class DIDPlugin : TrinityPlugin {
         let credentialJson = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let credential = try VerifiableCredential.fromJson(credentialJson)
                 try didStore.storeCredential(credential)
                 mCredentialMap[credential.id.description] = credential
@@ -820,9 +798,7 @@ class DIDPlugin : TrinityPlugin {
         }
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
-                
+            if let didStore = mDIDStoreMap[didStoreId] {
                 var ret = false
                 if (didUrlString.hasPrefix("did:elastos:")) {
                     ret = try didStore.deleteCredential(DID(didString), DIDURL(didUrlString))
@@ -858,8 +834,7 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         
         do {
-            let didStore = mDIDStoreMap[didStoreId]
-            if let didStore = didStore {
+            if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
                 let unloadedCredentials = try didStore.listCredentials(did)
 
@@ -931,30 +906,34 @@ class DIDPlugin : TrinityPlugin {
         let credentialJson = command.arguments[2] as! String
         let storepass = command.arguments[3] as! String
         
-        /*
-        try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                if let didDocument = mDocumentMap[didString] {
+                    let db = didDocument.edit()
 
-            DIDDocument didDocument = mDocumentMap.get(didString);
-            DIDDocument.Builder db = didDocument.edit();
+                    let vc = try VerifiableCredential.fromJson(credentialJson)
+                    _ = db.addCredential(vc)
+                    let issuer = try db.seal(storepass: storepass)
+                    try didStore.storeDid(issuer)
 
-            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
-            db.addCredential(vc);
-            DIDDocument issuer = db.seal(storepass);
-            didStore.storeDid(issuer);
+                    // Update cached document with newly generated one
+                    mDocumentMap[didString] = issuer
 
-            // Update cached document with newly generated one
-            mDocumentMap.put(didString, issuer);
-
-            callbackContext.success();
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID document found matching string \(didString)")
+                    return
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
         }
-        catch (DIDException e) {
-            e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "addCredential exception: " + e.toString());
+        catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func DIDDocument_deleteCredential(_ command: CDVInvokedUrlCommand) {
@@ -1028,16 +1007,17 @@ class DIDPlugin : TrinityPlugin {
         }
         
         let didString = command.arguments[0] as! String
-        //DIDDocument didDocument = mDocumentMap.get(didString);
         let storepass = command.arguments[1] as! String
         let originString = command.arguments[2] as! String
         
-        /*
-        String signString = didDocument.sign(storepass, originString.getBytes());
-        callbackContext.success(signString);
-         */
-        
-        self.sendNotImplementedError(command);
+        if let didDocument = mDocumentMap[didString] {
+            // TODO let signString = didDocument.sign(storepass, <#T##count: Int##Int#>, <#T##inputs: [CVarArg]##[CVarArg]#>) storepass, originString.getBytes());
+            // TODO self.success(command, retAsString: signString)
+        }
+        else {
+            self.error(command, retAsString: "No DID document found matching string \(didString)")
+            return
+        }
     }
     
     @objc func verify(_ command: CDVInvokedUrlCommand) {
@@ -1073,11 +1053,12 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         
-        /*
-        DID did = mDIDMap.get(didString);
-        String method = did.getMethod();
-        callbackContext.success(method);
-         */
+        if let did = mDIDMap[didString] {
+            self.success(command, retAsString: did.method)
+        }
+        else {
+            self.error(command, retAsString: "No DID found in map for string \(didString)")
+        }
         
         self.sendNotImplementedError(command);
     }
@@ -1090,13 +1071,12 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         
-        /*
-        DID did = mDIDMap.get(didString);
-        String methodSpecificId = did.getMethodSpecificId();
-        callbackContext.success(methodSpecificId);
-         */
-        
-        self.sendNotImplementedError(command);
+        if let did = mDIDMap[didString] {
+            self.success(command, retAsString: did.methodSpecificId)
+        }
+        else {
+            self.error(command, retAsString: "No DID found in map for string \(didString)")
+        }
     }
     
     @objc func getController(_ command: CDVInvokedUrlCommand) {
@@ -1236,18 +1216,20 @@ class DIDPlugin : TrinityPlugin {
         return true
     }
     
-  /*
      /**
       * Converts long or short form DIDURL into short form (fragment).
       * did:elastos:abcdef#my-key -> my-key
       * my-key -> my-key
-      */
-     private String getDidUrlFragment(String didUrl) {
-         if (!didUrl.contains("#"))
-             return didUrl;
-
-         return URI.create(didUrl).getFragment();
-     }
-     
      */
+    private func getDidUrlFragment(didUrl: String) -> String {
+        if (!didUrl.contains("#")) {
+            return didUrl;
+        }
+        
+        if let url = URL(string: didUrl) {
+            return url.fragment!
+        }
+        
+        return didUrl
+    }
 }
