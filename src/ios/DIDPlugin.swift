@@ -253,40 +253,40 @@ class DIDPlugin : TrinityPlugin {
     }
     
     @objc func DIDManager_resolveDIDDocument(_ command: CDVInvokedUrlCommand) {
-       guard command.arguments.count == 2 else {
-           self.sendWrongParametersCount(command, expected: 2)
-           return
-       }
-       
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
         let didString = command.arguments[0] as! String
         let forceRemote = command.arguments[1] as! Bool
-       
-          do {
-             // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
-             // This is "ok" as long as the DID App is the only one to call publish().
-             //
-             // If no initDidStore() has been called yet, we need to initialize the DID backend
-             // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
-             // DIDBackend.initialize() with a real adapter that will overwrite our init.
-             if (globalDidAdapter == nil) {
+        
+        do {
+            // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
+            // This is "ok" as long as the DID App is the only one to call publish().
+            //
+            // If no initDidStore() has been called yet, we need to initialize the DID backend
+            // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
+            // DIDBackend.initialize() with a real adapter that will overwrite our init.
+            if (globalDidAdapter == nil) {
                 // TODO ? WHY NO ADAPTER ON IOS ? let tempAdapter = DIDPluginAdapter(id: -1, command: command, commandDelegate: self.commandDelegate)
-                 DIDBackend.initialize()
-             }
-
-             let ret = NSMutableDictionary()
-
-             if let didDocument = try DID(didString).resolve(forceRemote) {
+                DIDBackend.initialize()
+            }
+            
+            let ret = NSMutableDictionary()
+            
+            if let didDocument = try DID(didString).resolve(forceRemote) {
                 ret.setValue(didDocument.description(true), forKey: "diddoc")
                 ret.setValue(didDocument.getUpdated(), forKey: "updated")
-             }
-             else {
+            }
+            else {
                 ret.setValue(nil, forKey: "diddoc")
-             }
+            }
             self.success(command, retAsDict: ret)
-         }
-         catch  {
-             self.exception(error, command)
-         }
+        }
+        catch  {
+            self.exception(error, command)
+        }
     }
     
     @objc func DIDStore_changePassword(_ command: CDVInvokedUrlCommand) {
@@ -660,10 +660,9 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         let subjectDidString = command.arguments[2] as! String
         let credentialId = command.arguments[3] as! String
-        let type = command.arguments[4] as! String //JSONArray type = args.getJSONArray(idx++);
-        let typeArray : [String] = [] // TODO = JSONArray2Array(type);
+        let types = command.arguments[4] as! Array<String>
         let days = command.arguments[5] as! Int
-        let properties = command.arguments[6] as! String //JSONObject properties = args.getJSONObject(idx++);
+        let properties = command.arguments[6] as! Dictionary<String, Any>
         //Map<String, String> props = JSONObject2Map(properties);
         let passphrase = command.arguments[7] as! String
         
@@ -681,29 +680,25 @@ class DIDPlugin : TrinityPlugin {
                     let did = try DID(didString)
                     issuer = try Issuer(did, didStore)
                     mIssuerMap[didString] = issuer
-                    
-                    /* TODO Calendar cal = Calendar.getInstance();
-                     cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);
-                     Date expire = cal.getTime();*/
-                    
-                    let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
-                    
-                    let vc = try issuer!.issueFor(did: subjectDid)
-                        .idString(credentialId)
-                        .types(typeArray)
-                        .expirationDate(expire)
-                        // TODO .properties(props)
-                        .seal(storepass: passphrase)
-                    
-                    let ret = NSMutableDictionary()
-                    ret.setValue(vc.description(true), forKey: "credential")
-                    self.success(command, retAsDict: ret)
                 }
                 else {
                     self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
                     return
                 }
             }
+            
+            let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
+            
+            let vc = try issuer!.issueFor(did: subjectDid)
+                .idString(credentialId)
+                .types(types)
+                .expirationDate(expire)
+                .properties(properties)
+                .seal(storepass: passphrase)
+            
+            let ret = NSMutableDictionary()
+            ret.setValue(vc.description(true), forKey: "credential")
+            self.success(command, retAsDict: ret)
         }
         catch {
             self.exception(error, command)
@@ -720,40 +715,40 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
         
-        /*
-         if (!ensureCredentialIDFormat(didUrlString)) {
-             errorProcess(callbackContext, errCodeInvalidArg, "Wrong DIDURL format: "+didUrlString);
-             return;
-         }
-         
-         try {
-             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-
-             VerifiableCredential vc = null;
-
-             if (didUrlString.startsWith("did:elastos:")) {
-                 vc = didStore.loadCredential(new DID(didString), new DIDURL(didUrlString));
-             }
-             else {
-                 vc = didStore.loadCredential(didString, didUrlString);
-             }
-
-             if (vc == null) {
-                 errorProcess(callbackContext, errCodeInvalidArg, " Null credential returned for didString "+didString+" and didUrlString "+didUrlString);
-                 return;
-             }
-
-             mCredentialMap.put(didUrlString, vc);
-             JSONObject ret= new JSONObject();
-             ret.put("credential", vc.toString(true));
-             callbackContext.success(ret);
-         }
-         catch (DIDException e) {
-             exceptionProcess(e, callbackContext, "loadCredential ");
-         }
-         */
+        if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
+            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
+            return
+        }
         
-        self.sendNotImplementedError(command);
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                var vc: VerifiableCredential? = nil
+                
+                if (didUrlString.hasPrefix("did:elastos:")) {
+                    vc = try didStore.loadCredential(DID(didString), DIDURL(didUrlString))
+                }
+                else {
+                    vc = try didStore.loadCredential(didString, didUrlString)
+                }
+                
+                if (vc == nil) {
+                    self.error(command, code: errCodeInvalidArg, msg: " Null credential returned for didString \(didString) and didUrlString \(didUrlString)")
+                    return
+                }
+                
+                mCredentialMap[didUrlString] = vc
+                let ret = NSMutableDictionary()
+                ret.setValue(vc?.description(true), forKey: "credential")
+                self.success(command, retAsDict: ret)
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func storeCredential(_ command: CDVInvokedUrlCommand) {
@@ -763,11 +758,11 @@ class DIDPlugin : TrinityPlugin {
         }
         
         let didStoreId = command.arguments[0] as! String
-        let credentialJson = command.arguments[1] as! String
+        let credentialDict = command.arguments[1] as! Dictionary<String, Any>
         
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let credential = try VerifiableCredential.fromJson(credentialJson)
+                let credential = try VerifiableCredential.fromJson(credentialDict)
                 try didStore.storeCredential(credential)
                 mCredentialMap[credential.id.description] = credential
                 self.success(command)
@@ -860,39 +855,39 @@ class DIDPlugin : TrinityPlugin {
     }
     
     @objc func getDefaultPublicKey(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 2 else {
-            self.sendWrongParametersCount(command, expected: 2)
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
             return
         }
         
         let didUrl = command.arguments[0] as! String
-        let didString = command.arguments[1] as! String
         
-        /*
-        
-        DIDDocument didDocument = mDocumentMap.get(didUrl);
-        DIDURL publicKeyId = didDocument.getDefaultPublicKey();
+        do {
+            if let didDocument = mDocumentMap[didUrl] {
+                let publicKeyId = didDocument.getDefaultPublicKey()
 
-        JSONObject r = new JSONObject();
-        if (publicKeyId != null) {
-            DIDDocument.PublicKey pk = didDocument.getPublicKey(publicKeyId);
-            if (pk == null)
-                r.put("publickey", null);
+                let r = NSMutableDictionary()
+                
+                if let pk = try didDocument.getPublicKey(publicKeyId) {
+                    let publicKeyJson = NSMutableDictionary()
+                    publicKeyJson.setValue(pk.controller.description, forKey: "controller")
+                    publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
+                    r.setValue(publicKeyJson.description, forKey: "publickey")
+                }
+                else {
+                    r.setValue(nil, forKey: "publickey")
+                }
+               
+                self.success(command, retAsDict: r)
+            }
             else {
-                JSONObject publicKeyJson = new JSONObject();
-                publicKeyJson.put("controller", pk.getController().toString());
-                publicKeyJson.put("keyBase58", pk.getPublicKeyBase58());
-                r.put("publickey", publicKeyJson.toString());
+                self.error(command, retAsString: "No DID document found matching url \(didUrl)")
+                return
             }
         }
-        else {
-            r.put("publickey", null);
+        catch {
+            self.exception(error, command)
         }
-
-        callbackContext.success(r);
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func addCredential(_ command: CDVInvokedUrlCommand) {
@@ -1008,15 +1003,20 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
-        let originString = command.arguments[2] as! String
+        let stringToSign = command.arguments[2] as! String
         
-        if let didDocument = mDocumentMap[didString] {
-            // TODO let signString = didDocument.sign(storepass, <#T##count: Int##Int#>, <#T##inputs: [CVarArg]##[CVarArg]#>) storepass, originString.getBytes());
-            // TODO self.success(command, retAsString: signString)
+        do {
+            if let didDocument = mDocumentMap[didString] {
+                let signString = try didDocument.sign(storepass, 1, [stringToSign, 1])
+                self.success(command, retAsString: signString)
+            }
+            else {
+                self.error(command, retAsString: "No DID document found matching string \(didString)")
+                return
+            }
         }
-        else {
-            self.error(command, retAsString: "No DID document found matching string \(didString)")
-            return
+        catch {
+            self.exception(error, command)
         }
     }
     
