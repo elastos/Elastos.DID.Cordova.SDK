@@ -942,30 +942,34 @@ class DIDPlugin : TrinityPlugin {
         let credentialJson = command.arguments[2] as! String
         let storepass = command.arguments[3] as! String
         
-        /*
-        try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                if let didDocument = mDocumentMap[didString] {
+                    let db = didDocument.edit();
 
-            DIDDocument didDocument = mDocumentMap.get(didString);
-            DIDDocument.Builder db = didDocument.edit();
+                    let vc = try VerifiableCredential.fromJson(credentialJson)
+                    _ = db.removeCredential(vc.id)
+                    let issuer = try db.seal(storepass: storepass)
+                    try didStore.storeDid(issuer)
 
-            VerifiableCredential vc = VerifiableCredential.fromJson(credentialJson);
-            db.removeCredential(vc.getId());
-            DIDDocument issuer = db.seal(storepass);
-            didStore.storeDid(issuer);
+                    // Update cached document with newly generated one
+                    mDocumentMap[didString] = issuer
 
-            // Update cached document with newly generated one
-            mDocumentMap.put(didString, issuer);
-
-            callbackContext.success();
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID document found matching string \(didString)")
+                    return
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
         }
-        catch (DIDException e) {
-            e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_deleteCredential exception: " + e.toString());
+        catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func DIDDocument_getCredentials(_ command: CDVInvokedUrlCommand) {
@@ -976,23 +980,18 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         
-        /*
-        try {
-            DIDDocument didDocument = mDocumentMap.get(didString);
-            List<VerifiableCredential> credentials = didDocument.getCredentials();
+        if let didDocument = mDocumentMap[didString] {
+            let credentials = didDocument.getCredentials()
 
-            JSONObject r = new JSONObject();
-            r.put("credentials", credentials);
+            let r = NSMutableDictionary()
+            r.setValue(credentials, forKey: "credentials")
 
-            callbackContext.success();
+            self.success(command, retAsDict: r)
         }
-        catch (Exception e) {
-            e.printStackTrace();
-            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_getCredentials exception: " + e.toString());
+        else {
+            self.error(command, retAsString: "No DID document found matching string \(didString)")
+            return
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func sign(_ command: CDVInvokedUrlCommand) {
@@ -1007,6 +1006,7 @@ class DIDPlugin : TrinityPlugin {
         
         do {
             if let didDocument = mDocumentMap[didString] {
+                // TODO: Does the SDK really use NULL terminated strings here?
                 let signString = try didDocument.sign(storepass, 1, [stringToSign, 1])
                 self.success(command, retAsString: signString)
             }
@@ -1027,21 +1027,28 @@ class DIDPlugin : TrinityPlugin {
         }
         
         let didString = command.arguments[0] as! String
-        //DIDDocument didDocument = mDocumentMap.get(didString);
         let signString = command.arguments[1] as! String
         let originString = command.arguments[2] as! String
         
-        /*
-        boolean ret = didDocument.verify(signString, originString.getBytes());
-        if (ret) {
-            callbackContext.success();
+        do {
+            if let didDocument = mDocumentMap[didString] {
+                // TODO: Does the SDK really use NULL terminated strings here?
+                let ret = try didDocument.verify(signString, 1, [originString, 1])
+                if ret {
+                    self.success(command)
+                }
+                else {
+                    self.error(command, code: errCodeVerify, msg: "verify return false!")
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID document found matching string \(didString)")
+                return
+            }
         }
-        else {
-            errorProcess(callbackContext, errCodeVerify, "verify return false!");
+        catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     // PublicKey
@@ -1079,44 +1086,6 @@ class DIDPlugin : TrinityPlugin {
         }
     }
     
-    @objc func getController(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 1 else {
-            self.sendWrongParametersCount(command, expected: 1)
-            return
-        }
-        
-        let id = command.arguments[0] as! Int
-        
-        /*
-        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
-        DID did = publicKey.getController();
-
-        mDIDMap.put(did.toString(), did);
-        JSONObject r = new JSONObject();
-        r.put("didstring", did.toString());
-        callbackContext.success(r);
-         */
-        
-        self.sendNotImplementedError(command);
-    }
-    
-    @objc func getPublicKeyBase58(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 1 else {
-            self.sendWrongParametersCount(command, expected: 1)
-            return
-        }
-        
-        let id = command.arguments[0] as! Int
-        
-        /*
-        DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
-        String keyBase58 = publicKey.getPublicKeyBase58();
-        callbackContext.success(keyBase58);
-         */
-        
-        self.sendNotImplementedError(command);
-    }
-    
     @objc func createVerifiablePresentationFromCredentials(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 6 else {
             self.sendWrongParametersCount(command, expected: 6)
@@ -1125,36 +1094,36 @@ class DIDPlugin : TrinityPlugin {
         
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        let creds = command.arguments[2] as! NSDictionary // TODO good type for JSONArray?
+        let creds = command.arguments[2] as! Array<String>
         let realm = command.arguments[3] as! String
         let nonce = command.arguments[4] as! String
         let storePass = command.arguments[5] as! String
         
-        /*
-        try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            DID did = new DID(didString);
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                let did = try DID(didString)
 
-            // Rebuild our credentials from their JSON form
-            ArrayList<VerifiableCredential> credentials = new ArrayList<>();
-            for (int i=0; i<creds.length(); i++) {
-                credentials.add(VerifiableCredential.fromJson(creds.getJSONObject(i).toString()));
+                // Rebuild our credentials from their JSON form
+                var credentials : Array<VerifiableCredential> = Array()
+                for cred in creds {
+                    credentials.append(try VerifiableCredential.fromJson(cred))
+                }
+
+                let builder = try VerifiablePresentation.createFor(did, didStore)
+                let presentation = try builder.credentials(credentials)
+                        .nonce(nonce)
+                        .realm(realm)
+                        .seal(storePass);
+
+                self.success(command, retAsString: presentation.description)
             }
-
-            VerifiablePresentation.Builder builder = VerifiablePresentation.createFor(did, didStore);
-            VerifiableCredential[] credsArray = credentials.toArray(new VerifiableCredential[creds.length()]);
-            VerifiablePresentation presentation = builder.credentials(credsArray)
-                    .nonce(nonce)
-                    .realm(realm)
-                    .seal(storePass);
-
-            callbackContext.success(presentation.toString());
-        } catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "createVerifiablePresentationFromCredentials ");
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        } catch  {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func verifiablePresentationIsValid(_ command: CDVInvokedUrlCommand) {
@@ -1163,21 +1132,17 @@ class DIDPlugin : TrinityPlugin {
             return
         }
         
-        let pres = command.arguments[0] as! NSDictionary //JSONObject pres = args.getJSONObject(idx++);
+        let pres = command.arguments[0] as! String
         
-        /*
-        try {
-            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+        do {
+            let presentation = try VerifiablePresentation.fromJson(pres.description);
 
-            JSONObject r = new JSONObject();
-            r.put("isvalid", presentation.isValid());
-            callbackContext.success();
-        } catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "verifiablePresentationIsValid ");
+            let r = NSMutableDictionary()
+            r.setValue(try presentation.isValid(), forKey: "isvalid");
+            self.success(command, retAsDict: r)
+        } catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func verifiablePresentationIsGenuine(_ command: CDVInvokedUrlCommand) {
@@ -1185,22 +1150,18 @@ class DIDPlugin : TrinityPlugin {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
+                
+        let pres = command.arguments[0] as! String
         
-        let pres = command.arguments[0] as! NSDictionary //JSONObject pres = args.getJSONObject(idx++);
-        
-        /*
-        try {
-            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+        do {
+            let presentation = try VerifiablePresentation.fromJson(pres.description);
 
-            JSONObject r = new JSONObject();
-            r.put("isgenuine", presentation.isGenuine());
-            callbackContext.success();
-        } catch (DIDException e) {
-            exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
+            let r = NSMutableDictionary()
+            r.setValue(try presentation.isGenuine(), forKey: "isgenuine");
+            self.success(command, retAsDict: r)
+        } catch {
+            self.exception(error, command)
         }
-         */
-        
-        self.sendNotImplementedError(command);
     }
     
     private func ensureCredentialIDFormat(didUrl: String) -> Bool {

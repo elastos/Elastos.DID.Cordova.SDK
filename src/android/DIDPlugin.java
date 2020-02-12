@@ -1056,7 +1056,7 @@ public class DIDPlugin extends TrinityPlugin {
             JSONObject r = new JSONObject();
             r.put("credentials", credentials);
 
-            callbackContext.success();
+            callbackContext.success(r);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -1190,7 +1190,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             JSONObject r = new JSONObject();
             r.put("isvalid", presentation.isValid());
-            callbackContext.success();
+            callbackContext.success(r);
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "verifiablePresentationIsValid ");
         }
@@ -1211,7 +1211,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             JSONObject r = new JSONObject();
             r.put("isgenuine", presentation.isGenuine());
-            callbackContext.success();
+            callbackContext.success(r);
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
         }
