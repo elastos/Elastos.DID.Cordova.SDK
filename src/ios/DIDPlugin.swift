@@ -23,6 +23,9 @@
 import Foundation
 import ElastosDIDSDK
 
+// TODO: Implement Mnemonic.isValid() when ready in SDK
+// TODO: Re-enable synchronize() when infinite loop bug fixed in SDK
+
 @objc(DIDPlugin)
 class DIDPlugin : TrinityPlugin {
     internal static let TAG = "DIDPlugin"
@@ -130,12 +133,8 @@ class DIDPlugin : TrinityPlugin {
             return
     }
     
-    private func sendNotImplementedError(_ command: CDVInvokedUrlCommand) {
-        self.error(command, code: errCodeActionNotFound, msg: "Method not yet implemented")
-    }
-    
     private func getDIDDataDir() -> String {
-        return Bundle.main.sharedSupportPath!
+        return Bundle.main.sharedSupportPath! + "data/did/"
     }
 
     private func getBackendCacheDir() -> String {
@@ -210,16 +209,17 @@ class DIDPlugin : TrinityPlugin {
             return
         }
         
-        //String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
+        let didStoreId = command.arguments[0] as! String
         
-        //java.io.File dirFile = new java.io.File(dataDir);
-        //deleteFile(dirFile);
-        //callbackContext.success();
+        do {
+            let dataDir = getDIDDataDir() + didStoreId
+            try FileManager.default.removeItem(at: URL(fileURLWithPath: dataDir))
+        }
+        catch {
+            self.exception(error, command)
+        }
         
-        //let ret: NSDictionary = [:];
-        //self.success(command, retAsDict: ret);
-        
-        self.sendNotImplementedError(command)
+        self.success(command)
      }
     
     @objc func generateMnemonic(_ command: CDVInvokedUrlCommand) {
@@ -449,8 +449,6 @@ class DIDPlugin : TrinityPlugin {
         catch {
             self.exception(error, command)
         }
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func newDid(_ command: CDVInvokedUrlCommand) {
@@ -1066,8 +1064,6 @@ class DIDPlugin : TrinityPlugin {
         else {
             self.error(command, retAsString: "No DID found in map for string \(didString)")
         }
-        
-        self.sendNotImplementedError(command);
     }
     
     @objc func getMethodSpecificId(_ command: CDVInvokedUrlCommand) {
