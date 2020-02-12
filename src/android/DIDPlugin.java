@@ -353,11 +353,18 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
         try {
-            // NOTE: this overwrite any previously initialized adapter if any.
-            globalDidAdapter = new DIDPluginAdapter(callbackId, idTransactionCC);//map the adapter?
-            mDidAdapterMap.put(didStoreId, globalDidAdapter);
+            // NOTE: Temporary, fix it after update DID sdk
+            try {
+                globalDidAdapter = (DIDPluginAdapter)DIDBackend.getInstance().getAdapter();
+            }
+            catch (DIDException e) {
+                // DIDBackend::instance is null
+                globalDidAdapter = new DIDPluginAdapter(callbackId);
+                DIDBackend.initialize(globalDidAdapter);
+            }
 
-            DIDBackend.initialize(globalDidAdapter);
+            mDidAdapterMap.put(didStoreId, globalDidAdapter);// remove ?
+            globalDidAdapter.setCallbackContext(idTransactionCC);
 
             DIDStore didStore = DIDStore.open("filesystem", dataDir);
             mDIDStoreMap.put(didStoreId, didStore);
@@ -433,7 +440,7 @@ public class DIDPlugin extends TrinityPlugin {
             // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
             // DIDBackend.initialize() with a real adapter that will overwrite our init.
             if (globalDidAdapter == null) {
-                DIDPluginAdapter tempAdapter = new DIDPluginAdapter(-1, null);
+                DIDPluginAdapter tempAdapter = new DIDPluginAdapter(-1);
                 DIDBackend.initialize(tempAdapter);
             }
 

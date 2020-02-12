@@ -46,16 +46,15 @@ import java.net.URL;
 public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
-    private final CallbackContext callbackContext;
+    private CallbackContext callbackContext;
     // private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
     // TestNet
     // private String resolver = "http://api.elastos.io:21606";
     // MainNet
     private String resolver = "http://api.elastos.io:20606";
 
-    DIDPluginAdapter(int id, CallbackContext callbackContext) {
+    DIDPluginAdapter(int id) {
         this.callbackId = id;
-        this.callbackContext = callbackContext;
     }
 
     private void sendEvent(JSONObject info) throws JSONException {
@@ -64,6 +63,10 @@ public class DIDPluginAdapter implements DIDAdapter {
         PluginResult res = new PluginResult(PluginResult.Status.OK, info);
         res.setKeepCallback(true);
         callbackContext.sendPluginResult(res);
+    }
+
+    public void setCallbackContext(CallbackContext callbackContext) {
+        this.callbackContext = callbackContext;
     }
 
     public void setResolver(String resolver) {
