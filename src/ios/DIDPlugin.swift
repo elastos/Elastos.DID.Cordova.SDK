@@ -189,7 +189,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             let cacheDir = self.getBackendCacheDir()
-            try DIDBackend.creatInstance(globalDidAdapter!, cacheDir)
+            try DIDBackend.createInstance(globalDidAdapter!, cacheDir)
 
             // NOTE: this overwrite any previously initialized adapter if any.
             let didStore = try DIDStore.open("filesystem", dataDir)
@@ -230,9 +230,13 @@ class DIDPlugin : TrinityPlugin {
 
         let language = command.arguments[0] as! Int
 
-        let mnemonic = HDKey.generateMnemonic(language)
-       
-        self.success(command, retAsString: mnemonic);
+        do {
+            let mnemonic = try Mnemonic.generate(language)
+            self.success(command, retAsString: mnemonic);
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func isMnemonicValid(_ command: CDVInvokedUrlCommand) {
@@ -244,12 +248,13 @@ class DIDPlugin : TrinityPlugin {
         let language = command.arguments[0] as! Int
         let mnemonic = command.arguments[1] as! String
 
-       /* TODO
-         Boolean ret = Mnemonic.isValid(language, mnemonic);
-       callbackContext.success(ret.toString());
-         */
-        
-        self.success(command, retAsFakeBool: true) // TMP ! TODO
+        do {
+            let isValid = try Mnemonic.isValid(language, mnemonic)
+            self.success(command, retAsFakeBool: isValid)
+        }
+        catch {
+            self.exception(error, command)
+        }
     }
     
     @objc func DIDManager_resolveDIDDocument(_ command: CDVInvokedUrlCommand) {
@@ -414,7 +419,7 @@ class DIDPlugin : TrinityPlugin {
         
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                // TODO - DISABLED WAITING FOR SDK FIX try didStore.synchronize(storepass)
+                try didStore.synchronize(storepass)
                 self.success(command)
             }
             else {
@@ -533,6 +538,7 @@ class DIDPlugin : TrinityPlugin {
             if let didStore = mDIDStoreMap[didStoreId] {
                 dids = try didStore.listDids(filter)
             }
+            print(dids) // TMP
             let r = try JSONObjectHolder.getDIDsInfoJson(dids: dids)
             self.success(command, retAsDict: r)
         }
@@ -688,7 +694,7 @@ class DIDPlugin : TrinityPlugin {
             let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
             
             let vc = try issuer!.issueFor(did: subjectDid)
-                .idString(credentialId)
+                .idString(self.getDidUrlFragment(didUrl: credentialId))
                 .types(types)
                 .expirationDate(expire)
                 .properties(properties)
@@ -1004,8 +1010,7 @@ class DIDPlugin : TrinityPlugin {
         
         do {
             if let didDocument = mDocumentMap[didString] {
-                // TODO: Does the SDK really use NULL terminated strings here?
-                let signString = try didDocument.sign(storepass, 1, [stringToSign, 1])
+                let signString = try didDocument.sign(storepass, stringToSign)
                 self.success(command, retAsString: signString)
             }
             else {
@@ -1026,12 +1031,11 @@ class DIDPlugin : TrinityPlugin {
         
         let didString = command.arguments[0] as! String
         let signString = command.arguments[1] as! String
-        let originString = command.arguments[2] as! String
+        let stringToVerify = command.arguments[2] as! String
         
         do {
             if let didDocument = mDocumentMap[didString] {
-                // TODO: Does the SDK really use NULL terminated strings here?
-                let ret = try didDocument.verify(signString, 1, [originString, 1])
+                let ret = try didDocument.verify(signString, stringToVerify)
                 if ret {
                     self.success(command)
                 }
