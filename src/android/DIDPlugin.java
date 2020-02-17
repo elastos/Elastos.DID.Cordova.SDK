@@ -29,6 +29,7 @@ import org.elastos.did.Mnemonic;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDStoreException;
 import org.elastos.did.exception.MalformedDocumentException;
+import org.elastos.trinity.runtime.ConfigManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -303,6 +304,14 @@ public class DIDPlugin extends TrinityPlugin {
         file.delete();
     }
 
+    private String getDefaultResolverUrl() {
+        return ConfigManager.getShareInstance().getStringValue("did.resolver", "http://api.elastos.io:20606");
+    }
+
+    private String getDefaultCacheDir() {
+        return cordova.getActivity().getFilesDir() + "/data/did/.cache.did.elastos";
+    }
+
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
         String version = "ElastosDIDSDK-v0.1";
         callbackContext.success(version);
@@ -353,20 +362,16 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
         try {
-            // NOTE: Temporary, fix it after update DID sdk
-            try {
-                globalDidAdapter = (DIDPluginAdapter)DIDBackend.getInstance().getAdapter();
-            }
-            catch (DIDException e) {
-                // DIDBackend::instance is null
-                globalDidAdapter = new DIDPluginAdapter(callbackId);
-                DIDBackend.initialize(globalDidAdapter);
-            }
+            String cacheDir = getDefaultCacheDir();
+            String resolver = getDefaultResolverUrl();
+            DIDBackend.initialize(resolver, cacheDir);
 
-            mDidAdapterMap.put(didStoreId, globalDidAdapter);// remove ?
+            globalDidAdapter = new DIDPluginAdapter(callbackId);
+
+            mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
 
-            DIDStore didStore = DIDStore.open("filesystem", dataDir);
+            DIDStore didStore = DIDStore.open("filesystem", dataDir, globalDidAdapter);
             mDIDStoreMap.put(didStoreId, didStore);
 
             callbackContext.success();
@@ -440,8 +445,9 @@ public class DIDPlugin extends TrinityPlugin {
             // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
             // DIDBackend.initialize() with a real adapter that will overwrite our init.
             if (globalDidAdapter == null) {
-                DIDPluginAdapter tempAdapter = new DIDPluginAdapter(-1);
-                DIDBackend.initialize(tempAdapter);
+                String cacheDir = getDefaultCacheDir();
+                String resolver = getDefaultResolverUrl();
+                DIDBackend.initialize(resolver, cacheDir);
             }
 
             DIDDocument didDocument = new DID(didString).resolve(forceRemote);
@@ -549,8 +555,8 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            DIDPluginAdapter didAdapter = mDidAdapterMap.get(didStoreId);
-            didAdapter.setResolver(resolver);
+            String cacheDir = getDefaultCacheDir();
+            DIDBackend.initialize(resolver, cacheDir);
             callbackContext.success();
         }
         catch(Exception e) {
