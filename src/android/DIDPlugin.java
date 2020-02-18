@@ -376,7 +376,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             callbackContext.success();
         }
-        catch(DIDStoreException e) {
+        catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initDidStore ");
         }
     }
