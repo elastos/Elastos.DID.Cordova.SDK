@@ -1207,6 +1207,8 @@ class DIDPlugin : TrinityPlugin {
             return didUrl;
         }
         
+        // TODO: url probably returns nil ! implement differently !
+        fatalError("getDidUrlFragment(): Implement me differently")
         if let url = URL(string: didUrl) {
             return url.fragment!
         }
