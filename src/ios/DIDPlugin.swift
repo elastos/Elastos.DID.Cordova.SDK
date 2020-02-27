@@ -23,9 +23,6 @@
 import Foundation
 import ElastosDIDSDK
 
-// TODO: Implement Mnemonic.isValid() when ready in SDK
-// TODO: Re-enable synchronize() when infinite loop bug fixed in SDK
-
 @objc(DIDPlugin)
 class DIDPlugin : TrinityPlugin {
     internal static let TAG = "DIDPlugin"
@@ -134,15 +131,15 @@ class DIDPlugin : TrinityPlugin {
     }
     
     private func getDIDDataDir() -> String {
-        return Bundle.main.sharedSupportPath! + "data/did/"
+        return self.getDataPath()+"/did"
     }
 
     private func getBackendCacheDir() -> String {
         // TODO: this is NOT a auto-cleanable folder! We need to let our cache folder be cleanable by system/user
-        let cacheDir = Bundle.main.sharedSupportPath! + "cache/"
+        let cacheDir = self.getDataPath() + "/did/.cache.did.elastos"
         
         // Create folder in case it's missing
-        try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: false, attributes: nil)
+        try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true, attributes: nil)
         
         return cacheDir
     }
@@ -282,7 +279,14 @@ class DIDPlugin : TrinityPlugin {
             
             if let didDocument = try DID(didString).resolve(forceRemote) {
                 ret.setValue(didDocument.description(true), forKey: "diddoc")
-                ret.setValue(didDocument.getUpdated(), forKey: "updated")
+                
+                if let updated = didDocument.getUpdated() {
+                    let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                    ret.setValue(isoDate, forKey: "updated")
+                }
+                else {
+                    ret.setValue(nil, forKey: "updated")
+                }
             }
             else {
                 ret.setValue(nil, forKey: "diddoc")
@@ -505,7 +509,14 @@ class DIDPlugin : TrinityPlugin {
                     
                     let r = NSMutableDictionary()
                     r.setValue(didDocument.description(true), forKey: "diddoc")
-                    r.setValue(didDocument.getUpdated(), forKey: "updated")
+                    
+                    if let updated = didDocument.getUpdated() {
+                        let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                        r.setValue(isoDate, forKey: "updated")
+                    }
+                    else {
+                        r.setValue(nil, forKey: "updated")
+                    }
                    
                     self.success(command, retAsDict: r)
                 }
@@ -538,7 +549,6 @@ class DIDPlugin : TrinityPlugin {
             if let didStore = mDIDStoreMap[didStoreId] {
                 dids = try didStore.listDids(filter)
             }
-            print(dids) // TMP
             let r = try JSONObjectHolder.getDIDsInfoJson(dids: dids)
             self.success(command, retAsDict: r)
         }
@@ -837,15 +847,23 @@ class DIDPlugin : TrinityPlugin {
                 let did = try DID(didString)
                 let unloadedCredentials = try didStore.listCredentials(did)
 
-                var credentials: [VerifiableCredential] = []
+                var credentials: [Any] = []
                 for url in unloadedCredentials {
-                    let credential = try didStore.loadCredential(did, url)
-                    credentials.append(credential!)
+                    if let credential = try didStore.loadCredential(did, url) {
+                        let credAsJson = try JSONSerialization.jsonObject(with: credential.description(true).data(using: .utf8)!, options:[])
+                        credentials.append(credAsJson)
+                    }
+                    else {
+                        print("Failed to load credential \(url)")
+                    }
                 }
+            
+                // items should be a JSON string representing an array of credentials...
+                let credsAsJsonString = String(data: try!JSONSerialization.data(withJSONObject: credentials, options: []), encoding: .utf8)!
 
                 let r = NSMutableDictionary()
-                r.setValue(credentials, forKey: "items")
-                
+                r.setValue(credsAsJsonString, forKey: "items")
+                                
                 self.success(command, retAsDict: r)
             }
             else {
@@ -902,15 +920,15 @@ class DIDPlugin : TrinityPlugin {
         
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        let credentialJson = command.arguments[2] as! String
+        let credential = command.arguments[2] as! Dictionary<String, Any>
         let storepass = command.arguments[3] as! String
         
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
                     let db = didDocument.edit()
-
-                    let vc = try VerifiableCredential.fromJson(credentialJson)
+                    
+                    let vc = try VerifiableCredential.fromJson(credential)
                     _ = db.addCredential(vc)
                     let issuer = try db.seal(storepass: storepass)
                     try didStore.storeDid(issuer)
@@ -943,7 +961,7 @@ class DIDPlugin : TrinityPlugin {
         
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        let credentialJson = command.arguments[2] as! String
+        let credential = command.arguments[2] as! Dictionary<String, Any>
         let storepass = command.arguments[3] as! String
         
         do {
@@ -951,7 +969,7 @@ class DIDPlugin : TrinityPlugin {
                 if let didDocument = mDocumentMap[didString] {
                     let db = didDocument.edit();
 
-                    let vc = try VerifiableCredential.fromJson(credentialJson)
+                    let vc = try VerifiableCredential.fromJson(credential)
                     _ = db.removeCredential(vc.id)
                     let issuer = try db.seal(storepass: storepass)
                     try didStore.storeDid(issuer)
@@ -1164,17 +1182,19 @@ class DIDPlugin : TrinityPlugin {
         }
     }
     
+    // Acceptable formats:
+    // #cred
+    // did:xxxxxx#cred
     private func ensureCredentialIDFormat(didUrl: String) -> Bool {
         if (didUrl.hasPrefix("#")) {
             return true
         }
 
-        let uri = URL(string: didUrl)
-        if (uri == nil || uri!.fragment == nil || uri!.fragment! == "") {
-            return false
+        if (didUrl.hasPrefix("did:") && didUrl.contains("#")) {
+            return true
         }
 
-        return true
+        return false
     }
     
      /**
@@ -1192,5 +1212,26 @@ class DIDPlugin : TrinityPlugin {
         }
         
         return didUrl
+    }
+}
+
+/**
+ * The DID SDK returns OrderedDictionary which contains additional keys creating exception when trying to convert to JSON.
+ * This extensions allows converting it to a NSDictionary that can then work well with JSON.
+ */
+extension OrderedDictionary {
+    func asUnorderedDictionary() -> NSDictionary {
+        let dict = NSMutableDictionary()
+        self.forEach { pair in
+            let key = pair.0 as! String
+            if let value = pair.1 as? OrderedDictionary {
+                dict.setValue(value.asUnorderedDictionary(), forKey: key)
+            }
+            else {
+                let value = pair.1
+                dict.setValue(value, forKey: key)
+            }
+        }
+        return dict
     }
 }

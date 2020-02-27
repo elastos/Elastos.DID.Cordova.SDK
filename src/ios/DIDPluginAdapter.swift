@@ -93,9 +93,7 @@ class DIDPluginAdapter : DIDAdapter {
         Alamofire.request(self.resolver, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
             .responseJSON(queue: queue) { response in
                 
-                if (response.response == nil || response.response?.statusCode != 200) {
-                    print(response)
-                    
+                if (response.response == nil || response.response?.statusCode != 200) {                    
                     resolveError = DIDError.didResolveError(_desc: "Unable to resolve DID: \(response.response?.statusCode ?? -1) \(response.description)")
                 }
                 else {
@@ -115,7 +113,6 @@ class DIDPluginAdapter : DIDAdapter {
         }
         
         if let ret = String(data: responseData!, encoding: .utf8) {
-            print(ret)
             return ret
         }
         else {
