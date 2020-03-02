@@ -1242,14 +1242,16 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     /**
-     * Converts long or short form DIDURL into short form (fragment).
+     * Converts long or short form DIDURL into the a fragment only.
      * did:elastos:abcdef#my-key -> my-key
-     * my-key -> my-key
+     * #my-key -> my-key
      */
     private String getDidUrlFragment(String didUrl) {
-        if (!didUrl.contains("#"))
+        if (didUrl.indexOf("#") == 0)
+            return didUrl.substring(1);
+        else if (didUrl.contains("#")) 
+            return didUrl.substring(didUrl.indexOf("#")+1);
+        else
             return didUrl;
-
-        return URI.create(didUrl).getFragment();
     }
 }

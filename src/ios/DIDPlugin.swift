@@ -1198,22 +1198,20 @@ class DIDPlugin : TrinityPlugin {
     }
     
      /**
-      * Converts long or short form DIDURL into short form (fragment).
-      * did:elastos:abcdef#my-key -> my-key
-      * my-key -> my-key
+     * Converts long or short form DIDURL into the a fragment only.
+     * did:elastos:abcdef#my-key -> my-key
+     * #my-key -> my-key
      */
     private func getDidUrlFragment(didUrl: String) -> String {
-        if (!didUrl.contains("#")) {
-            return didUrl;
+        if (didUrl.hasPrefix("#")) {
+            return String(didUrl.suffix(from: (didUrl.index(didUrl.startIndex, offsetBy: 1))))
         }
-        
-        // TODO: url probably returns nil ! implement differently !
-        fatalError("getDidUrlFragment(): Implement me differently")
-        if let url = URL(string: didUrl) {
-            return url.fragment!
+        else if (didUrl.contains("#")) {
+            return String(didUrl.suffix(from: didUrl.index(didUrl.index(of: "#")!, offsetBy: 1)))
         }
-        
-        return didUrl
+        else {
+            return didUrl
+        }
     }
 }
 
