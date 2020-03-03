@@ -47,6 +47,7 @@ class DIDPlugin : TrinityPlugin {
     internal let errCodeVerify                     = 10013
     internal let errCodeActionNotFound             = 10014
     internal let errCodeUnspecified                = 10015
+    internal let errCodeWrongPassword              = 10016
     internal let errCodeDidException               = 20000
     internal let errCodeException                  = 20001
     
@@ -95,32 +96,41 @@ class DIDPlugin : TrinityPlugin {
     }
     
     private func error(_ command: CDVInvokedUrlCommand, code: Int, msg: String) {
-           let errJson : NSMutableDictionary = [:]
-           errJson.setValue(code, forKey: keyCode)
-           errJson.setValue(msg, forKey: keyMessage)
-           
-           self.log(message: "(" + command.methodName + ") - " + errJson.description)
-           
-           let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
-           self.commandDelegate.send(result, callbackId: command.callbackId)
-       }
+        let errJson : NSMutableDictionary = [:]
+        errJson.setValue(code, forKey: keyCode)
+        errJson.setValue(msg, forKey: keyMessage)
+        
+        self.log(message: "(" + command.methodName + ") - " + errJson.description)
+        
+        let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
+        self.commandDelegate.send(result, callbackId: command.callbackId)
+    }
     
+    /**
+     * Tries to rework a DID SDK exceprtion into something more user friendly. Otherwise, simply throw the original exception.
+     */
     private func exception(_ e: Error, _ command: CDVInvokedUrlCommand) {
         let msg = "(" + command.methodName + ") - " + e.localizedDescription
         
         NSLog(msg)
         
+        if let err = e as? DIDError {
+            switch err {
+            case .didStoreError(let desc):
+                if desc != nil && desc!.contains("decryptFromBase64 error") {
+                    // Wrong password exception
+                    self.error(command, code: errCodeWrongPassword, msg: msg)
+                    return
+                }
+            default:
+                self.error(command, code: errCodeDidException, msg: msg)
+                break
+            }
+        }
+        
         self.error(command, code: errCodeException, msg: msg)
     }
     
-    private func exception(_ e: DIDError, _ command: CDVInvokedUrlCommand) {
-        let msg = "(" + command.methodName + ") - " + e.localizedDescription
-        
-        NSLog(msg)
-        
-        self.error(command, code: errCodeDidException, msg: msg)
-    }
-
     private func log(message: String) {
         NSLog(DIDPlugin.TAG+": "+message)
     }
