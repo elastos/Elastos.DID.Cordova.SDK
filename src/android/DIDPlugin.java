@@ -197,6 +197,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "publishDid":
                     this.publishDid(args, callbackContext);
                     break;
+                case "setTransactionResult":
+                    this.setTransactionResult(args, callbackContext);
+                    break;
                 case "resolveDid":
                     this.resolveDid(args, callbackContext);
                     break;
@@ -694,12 +697,68 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            String txId = didStore.publishDid(didString, storepass);
+            // TODO: force to override?
+            String txId = didStore.publishDid(didString, 0, null, true, storepass);
             callbackContext.success(txId);
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "publishDid ");
         }
+    }
+
+    // use thread to do publishDID,
+    // then dapp send the txID to did sdk by setTransactionResult
+    private void publishDidAsync(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String didString = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        globalDidAdapter.setPublishAsync(true);
+
+        new Thread(() -> {
+            try {
+                DIDStore didStore = mDIDStoreMap.get(didStoreId);
+                didStore.publishDid(didString, storepass);
+            }
+            catch (DIDException e) {
+                synchronized (globalDidAdapter) {
+                    globalDidAdapter.notifyAll();
+                }
+                exceptionProcess(e, callbackContext, "publishDid ");
+            }
+        }).start();
+
+        try {
+            synchronized (globalDidAdapter) {
+                globalDidAdapter.wait();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (globalDidAdapter.isWaitIdTransaction())
+            callbackContext.success();
+    }
+
+    private void setTransactionResult(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String txID = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        globalDidAdapter.setTransactionID(txID);
+
+        callbackContext.success();
     }
 
     private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -1249,7 +1308,7 @@ public class DIDPlugin extends TrinityPlugin {
     private String getDidUrlFragment(String didUrl) {
         if (didUrl.indexOf("#") == 0)
             return didUrl.substring(1);
-        else if (didUrl.contains("#")) 
+        else if (didUrl.contains("#"))
             return didUrl.substring(didUrl.indexOf("#")+1);
         else
             return didUrl;

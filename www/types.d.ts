@@ -235,6 +235,7 @@ declare module DIDPlugin {
          */
         synchronize(storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void);
         exportMnemonic(storePass: string, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
+        setTransactionResult(txID: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
     }
 
     interface DIDManager {

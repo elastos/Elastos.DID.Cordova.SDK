@@ -22,37 +22,28 @@
 
 package org.elastos.trinity.plugins.did;
 
-import android.util.Log;
-
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
-import org.elastos.did.DIDResolver;
-import org.elastos.did.exception.DIDResolveException;
-import org.elastos.trinity.runtime.AppManager;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 
 public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private CallbackContext callbackContext;
+    private String transactionID = "";
+    private boolean waitIdTransaction = false;
+    private boolean publishAsync = false;
+
     // private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
     // TestNet
     // private String resolver = "http://api.elastos.io:21606";
     // MainNet
     // private String resolver = "http://api.elastos.io:20606";
+
+    private class LockObj {}
+    private LockObj transactionLock = new LockObj();
 
     DIDPluginAdapter(int id) {
         this.callbackId = id;
@@ -74,12 +65,51 @@ public class DIDPluginAdapter implements DIDAdapter {
     public void createIdTransaction(String payload, String memo, int confirms, TransactionCallback callback) {
         JSONObject ret = new JSONObject();
         try {
+            this.waitIdTransaction = true;
+            int status = 0;
+
+            if (this.publishAsync) {
+                synchronized (this) {
+                    this.notifyAll();
+                }
+            }
+
+            this.transactionID = "";
             ret.put("payload", payload);
             ret.put("memo", memo);
             sendEvent(ret);
-            callback.accept("", 0, null);
+
+            if (this.publishAsync) {
+                synchronized (transactionLock) {
+                    transactionLock.wait();
+                }
+
+                if (this.transactionID.isEmpty()) status = 1;
+            }
+
+            this.waitIdTransaction = false;
+
+            callback.accept(this.transactionID, status, null);
         } catch (JSONException e) {
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+    }
+
+    void setTransactionID(String txID) {
+        this.transactionID = txID;
+
+        synchronized (transactionLock) {
+            transactionLock.notify();
+        }
+    }
+
+    boolean isWaitIdTransaction() {
+        return this.waitIdTransaction;
+    }
+
+    void setPublishAsync(boolean isAsync) {
+        this.publishAsync = isAsync;
     }
 }

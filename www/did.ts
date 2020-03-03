@@ -569,6 +569,10 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     exportMnemonic(storepass: string, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'exportMnemonic', [this.objId, storepass]);
     }
+
+    setTransactionResult(txID: string, onSuccess?: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'setTransactionResult', [this.objId, txID]);
+    }
 }
 
 const LISTENER_IDTRANSACTION = 1;
@@ -673,7 +677,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
             let jsonObj = JSON.parse(credentialJson);
             let credential = new VerifiableCredentialImpl();
             Object.assign(credential, jsonObj);
-            
+
             // Override values with non basic (string, number) types
             if (jsonObj.expirationDate)
                 credential.expirationDate = new Date(jsonObj.expirationDate);
