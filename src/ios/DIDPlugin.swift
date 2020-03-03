@@ -26,11 +26,11 @@ import ElastosDIDSDK
 @objc(DIDPlugin)
 class DIDPlugin : TrinityPlugin {
     internal static let TAG = "DIDPlugin"
-    
+
     internal let keyCode        = "code"
     internal let keyMessage     = "message"
     internal let keyException   = "exception"
-    
+
     internal let errCodeParseJsonInAction          = 10000
     internal let errCodeInvalidArg                 = 10001
     internal let errCodeNullPointer                = 10002
@@ -50,70 +50,73 @@ class DIDPlugin : TrinityPlugin {
     internal let errCodeWrongPassword              = 10016
     internal let errCodeDidException               = 20000
     internal let errCodeException                  = 20001
-    
+
     internal static let IDTRANSACTION  = 1
-    
+
     // Model
     internal var globalDidAdapter: DIDPluginAdapter? = nil
     internal var idTransactionCC: CDVInvokedUrlCommand? = nil
-    
+
     internal var mDIDStoreMap : [String: DIDStore] = [:]
     internal var mDIDMap: [String : DID] = [:]
     internal var mDocumentMap : [String: DIDDocument] = [:]
     internal var mIssuerMap : [String: Issuer] = [:]
     internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
     internal var mCredentialMap : [String: VerifiableCredential] = [:]
-    
+
+    // TODO remove it when upgrade did sdk  2020-03-03
+    internal var languageMap:[Int] = [0, 1, 2, 4, 5, 3]
+
     private func success(_ command: CDVInvokedUrlCommand) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK);
 
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
-    
+
     private func success(_ command: CDVInvokedUrlCommand, retAsString: String) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK,
                                      messageAs: retAsString);
 
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
-    
+
     private func success(_ command: CDVInvokedUrlCommand, retAsDict: NSDictionary) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK,
                                      messageAs: (retAsDict as! [AnyHashable : Any]));
 
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
-    
+
     /** Dirty way to convert booleans to strings but we are following the original implementation mechanism for now. */
     private func success(_ command: CDVInvokedUrlCommand, retAsFakeBool: Bool) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (retAsFakeBool ? "true" : "false"));
 
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
-    
+
     private func error(_ command: CDVInvokedUrlCommand, retAsString: String) {
         self.error(command, code: errCodeUnspecified, msg: retAsString)
     }
-    
+
     private func error(_ command: CDVInvokedUrlCommand, code: Int, msg: String) {
         let errJson : NSMutableDictionary = [:]
         errJson.setValue(code, forKey: keyCode)
         errJson.setValue(msg, forKey: keyMessage)
-        
+
         self.log(message: "(" + command.methodName + ") - " + errJson.description)
-        
+
         let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
-    
+
     /**
      * Tries to rework a DID SDK exceprtion into something more user friendly. Otherwise, simply throw the original exception.
      */
     private func exception(_ e: Error, _ command: CDVInvokedUrlCommand) {
         let msg = "(" + command.methodName + ") - " + e.localizedDescription
-        
+
         NSLog(msg)
-        
+
         if let err = e as? DIDError {
             switch err {
             case .didStoreError(let desc):
@@ -127,19 +130,19 @@ class DIDPlugin : TrinityPlugin {
                 break
             }
         }
-        
+
         self.error(command, code: errCodeException, msg: msg)
     }
-    
+
     private func log(message: String) {
         NSLog(DIDPlugin.TAG+": "+message)
     }
-    
+
     private func sendWrongParametersCount(_ command: CDVInvokedUrlCommand, expected: Int) {
         self.error(command, code: errCodeInvalidArg, msg: "Wrong number of parameters passed. Expected \(expected).")
             return
     }
-    
+
     private func getDIDDataDir() -> String {
         return self.getDataPath()+"/did"
     }
@@ -147,10 +150,10 @@ class DIDPlugin : TrinityPlugin {
     private func getBackendCacheDir() -> String {
         // TODO: this is NOT a auto-cleanable folder! We need to let our cache folder be cleanable by system/user
         let cacheDir = self.getDataPath() + "/did/.cache.did.elastos"
-        
+
         // Create folder in case it's missing
         try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true, attributes: nil)
-        
+
         return cacheDir
     }
 
@@ -159,7 +162,7 @@ class DIDPlugin : TrinityPlugin {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let type = command.arguments[0] as! Int
 
         switch (type) {
@@ -181,12 +184,12 @@ class DIDPlugin : TrinityPlugin {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         guard idTransactionCC != nil else {
             self.error(command, retAsString: "Transaction ID callback not set. Call setListener() first")
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let dataDir = getDIDDataDir() + didStoreId;
         let callbackId = command.arguments[1] as! Int
@@ -201,7 +204,7 @@ class DIDPlugin : TrinityPlugin {
             // NOTE: this overwrite any previously initialized adapter if any.
             let didStore = try DIDStore.open("filesystem", dataDir)
             mDIDStoreMap[didStoreId] = didStore
-            
+
             let ret: NSDictionary = [:];
             self.success(command, retAsDict: ret);
         }
@@ -215,9 +218,9 @@ class DIDPlugin : TrinityPlugin {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
-        
+
         do {
             let dataDir = getDIDDataDir() + didStoreId
             try FileManager.default.removeItem(at: URL(fileURLWithPath: dataDir))
@@ -225,17 +228,18 @@ class DIDPlugin : TrinityPlugin {
         catch {
             self.exception(error, command)
         }
-        
+
         self.success(command)
      }
-    
+
     @objc func generateMnemonic(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
            self.sendWrongParametersCount(command, expected: 1)
            return
         }
 
-        let language = command.arguments[0] as! Int
+        let languageTemp = command.arguments[0] as! Int
+        let language = languageMap[languageTemp]
 
         do {
             let mnemonic = try Mnemonic.generate(language)
@@ -245,15 +249,17 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func isMnemonicValid(_ command: CDVInvokedUrlCommand) {
        guard command.arguments.count == 2 else {
            self.sendWrongParametersCount(command, expected: 2)
            return
        }
-       
-        let language = command.arguments[0] as! Int
+
+        let languageTemp = command.arguments[0] as! Int
         let mnemonic = command.arguments[1] as! String
+
+        let language = languageMap[languageTemp]
 
         do {
             let isValid = try Mnemonic.isValid(language, mnemonic)
@@ -263,16 +269,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDManager_resolveDIDDocument(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
         let forceRemote = command.arguments[1] as! Bool
-        
+
         do {
             // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
             // This is "ok" as long as the DID App is the only one to call publish().
@@ -284,12 +290,12 @@ class DIDPlugin : TrinityPlugin {
                 // TODO ? WHY NO ADAPTER ON IOS ? let tempAdapter = DIDPluginAdapter(id: -1, command: command, commandDelegate: self.commandDelegate)
                 DIDBackend.initialize()
             }
-            
+
             let ret = NSMutableDictionary()
-            
+
             if let didDocument = try DID(didString).resolve(forceRemote) {
                 ret.setValue(didDocument.description(true), forKey: "diddoc")
-                
+
                 if let updated = didDocument.getUpdated() {
                     let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                     ret.setValue(isoDate, forKey: "updated")
@@ -307,17 +313,17 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDStore_changePassword(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let oldPassword = command.arguments[1] as! String
         let newPassword = command.arguments[2] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 try didStore.changePassword(oldPassword, newPassword);
@@ -332,15 +338,15 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func containsPrivateIdentity(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId]  {
                 let ret = try didStore.containsPrivateIdentity()
@@ -355,20 +361,22 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func initPrivateIdentity(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 6 else {
             self.sendWrongParametersCount(command, expected: 6)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
-        let language = command.arguments[1] as! Int
+        let languageTemp = command.arguments[1] as! Int
         let mnemonic = command.arguments[2] as! String
         let passphrase = command.arguments[3] as? String ?? ""
         let storepass = command.arguments[4] as! String
         let force = command.arguments[5] as! Bool
-        
+
+        let language = languageMap[languageTemp]
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 try didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
@@ -383,16 +391,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func exportMnemonic(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let mnemonic = try didStore.exportMnemonic(storepass)
@@ -407,30 +415,30 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func setResolverUrl(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let resolver = command.arguments[1] as! String
-        
+
         let didAdapter = mDidAdapterMap[didStoreId]!
         didAdapter.setResolver(resolver)
         self.success(command)
     }
-    
+
     @objc func synchronize(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 try didStore.synchronize(storepass)
@@ -445,16 +453,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func deleteDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 _ = try didStore.deleteDid(didString)
@@ -469,26 +477,26 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func newDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let passphrase = command.arguments[1] as! String
         let alias = command.arguments[2] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let didDocument = try didStore.newDid(storepass: passphrase, alias: alias)
-                
+
                 let did = didDocument.subject! // assume a DIDDocument always has a non null DID.
                 let didString = did.description
-                
+
                 mDocumentMap[didString] = didDocument
-                
+
                 let r = NSMutableDictionary()
                 r.setValue(didString, forKey: "did")
                 self.success(command, retAsDict: r)
@@ -502,24 +510,24 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func loadDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = try didStore.loadDid(didString) {
                     mDocumentMap[didDocument.subject!.description] = didDocument
-                    
+
                     let r = NSMutableDictionary()
                     r.setValue(didDocument.description(true), forKey: "diddoc")
-                    
+
                     if let updated = didDocument.getUpdated() {
                         let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                         r.setValue(isoDate, forKey: "updated")
@@ -527,7 +535,7 @@ class DIDPlugin : TrinityPlugin {
                     else {
                         r.setValue(nil, forKey: "updated")
                     }
-                   
+
                     self.success(command, retAsDict: r)
                 }
                 else {
@@ -544,16 +552,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func listDids(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let filter = command.arguments[1] as! Int
-        
+
         do {
             var dids: [DID]? = nil
             if let didStore = mDIDStoreMap[didStoreId] {
@@ -566,17 +574,17 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func publishDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let txId = try didStore.publishDid(didString, storepass)
@@ -591,43 +599,43 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func resolveDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
-        
+
         do {
             let did = try DID(didString)
             // Resolve and force to NOT use a locally cached copy.
             let didDocument = try did.resolve(true)
-            
+
             mDocumentMap[didDocument!.subject!.description] = didDocument
-            
+
             let r = NSMutableDictionary()
             r.setValue(didDocument!.description(true), forKey: "diddoc")
             r.setValue(didDocument!.getUpdated(), forKey: "updated")
-            
+
             self.success(command, retAsDict: r)
         }
         catch {
             self.exception(error, command)
         }
     }
-    
+
     @objc func storeDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let alias = command.arguments[2] as! String
-        
+
         if let didDocument = mDocumentMap[didString] {
             do {
                 if let didStore = mDIDStoreMap[didStoreId] {
@@ -648,16 +656,16 @@ class DIDPlugin : TrinityPlugin {
             return
         }
     }
-    
+
     @objc func prepareIssuer(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
@@ -673,13 +681,13 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func CreateCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 8 else {
             self.sendWrongParametersCount(command, expected: 8)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let subjectDidString = command.arguments[2] as! String
@@ -689,15 +697,15 @@ class DIDPlugin : TrinityPlugin {
         let properties = command.arguments[6] as! Dictionary<String, Any>
         //Map<String, String> props = JSONObject2Map(properties);
         let passphrase = command.arguments[7] as! String
-        
+
         if (!self.ensureCredentialIDFormat(didUrl: credentialId)) {
             self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(credentialId)")
             return
         }
-        
+
         do {
             let subjectDid = try DID(subjectDidString)
-            
+
             var issuer = mIssuerMap[didString]
             if (issuer == nil) {
                 if let didStore = mDIDStoreMap[didStoreId] {
@@ -710,16 +718,16 @@ class DIDPlugin : TrinityPlugin {
                     return
                 }
             }
-            
+
             let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
-            
+
             let vc = try issuer!.issueFor(did: subjectDid)
                 .idString(self.getDidUrlFragment(didUrl: credentialId))
                 .types(types)
                 .expirationDate(expire)
                 .properties(properties)
                 .seal(storepass: passphrase)
-            
+
             let ret = NSMutableDictionary()
             ret.setValue(vc.description(true), forKey: "credential")
             self.success(command, retAsDict: ret)
@@ -728,38 +736,38 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func loadCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
-        
+
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
             self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
             return
         }
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 var vc: VerifiableCredential? = nil
-                
+
                 if (didUrlString.hasPrefix("did:elastos:")) {
                     vc = try didStore.loadCredential(DID(didString), DIDURL(didUrlString))
                 }
                 else {
                     vc = try didStore.loadCredential(didString, didUrlString)
                 }
-                
+
                 if (vc == nil) {
                     self.error(command, code: errCodeInvalidArg, msg: " Null credential returned for didString \(didString) and didUrlString \(didUrlString)")
                     return
                 }
-                
+
                 mCredentialMap[didUrlString] = vc
                 let ret = NSMutableDictionary()
                 ret.setValue(vc?.description(true), forKey: "credential")
@@ -774,16 +782,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func storeCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let credentialDict = command.arguments[1] as! Dictionary<String, Any>
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let credential = try VerifiableCredential.fromJson(credentialDict)
@@ -800,22 +808,22 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func deleteCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
-        
+
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
             self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
             return
         }
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 var ret = false
@@ -825,7 +833,7 @@ class DIDPlugin : TrinityPlugin {
                 else {
                     ret = try didStore.deleteCredential(didString, didUrlString)
                 }
-                
+
                 if (ret) {
                     self.success(command)
                 }
@@ -842,16 +850,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DID_loadCredentials(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
@@ -867,13 +875,13 @@ class DIDPlugin : TrinityPlugin {
                         print("Failed to load credential \(url)")
                     }
                 }
-            
+
                 // items should be a JSON string representing an array of credentials...
                 let credsAsJsonString = String(data: try!JSONSerialization.data(withJSONObject: credentials, options: []), encoding: .utf8)!
 
                 let r = NSMutableDictionary()
                 r.setValue(credsAsJsonString, forKey: "items")
-                                
+
                 self.success(command, retAsDict: r)
             }
             else {
@@ -885,21 +893,21 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func getDefaultPublicKey(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didUrl = command.arguments[0] as! String
-        
+
         do {
             if let didDocument = mDocumentMap[didUrl] {
                 let publicKeyId = didDocument.getDefaultPublicKey()
 
                 let r = NSMutableDictionary()
-                
+
                 if let pk = try didDocument.getPublicKey(publicKeyId) {
                     let publicKeyJson = NSMutableDictionary()
                     publicKeyJson.setValue(pk.controller.description, forKey: "controller")
@@ -909,7 +917,7 @@ class DIDPlugin : TrinityPlugin {
                 else {
                     r.setValue(nil, forKey: "publickey")
                 }
-               
+
                 self.success(command, retAsDict: r)
             }
             else {
@@ -921,23 +929,23 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func addCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
             self.sendWrongParametersCount(command, expected: 4)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let credential = command.arguments[2] as! Dictionary<String, Any>
         let storepass = command.arguments[3] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
                     let db = didDocument.edit()
-                    
+
                     let vc = try VerifiableCredential.fromJson(credential)
                     _ = db.addCredential(vc)
                     let issuer = try db.seal(storepass: storepass)
@@ -962,18 +970,18 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDDocument_deleteCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
             self.sendWrongParametersCount(command, expected: 4)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let credential = command.arguments[2] as! Dictionary<String, Any>
         let storepass = command.arguments[3] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
@@ -1003,15 +1011,15 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDDocument_getCredentials(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
-        
+
         if let didDocument = mDocumentMap[didString] {
             let credentials = didDocument.getCredentials()
 
@@ -1025,17 +1033,17 @@ class DIDPlugin : TrinityPlugin {
             return
         }
     }
-    
+
     @objc func sign(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
         let stringToSign = command.arguments[2] as! String
-        
+
         do {
             if let didDocument = mDocumentMap[didString] {
                 let signString = try didDocument.sign(storepass, stringToSign)
@@ -1050,17 +1058,17 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func verify(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
         let signString = command.arguments[1] as! String
         let stringToVerify = command.arguments[2] as! String
-        
+
         do {
             if let didDocument = mDocumentMap[didString] {
                 let ret = try didDocument.verify(signString, stringToVerify)
@@ -1080,16 +1088,16 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     // PublicKey
     @objc func getMethod(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
-        
+
         if let did = mDIDMap[didString] {
             self.success(command, retAsString: did.method)
         }
@@ -1097,15 +1105,15 @@ class DIDPlugin : TrinityPlugin {
             self.error(command, retAsString: "No DID found in map for string \(didString)")
         }
     }
-    
+
     @objc func getMethodSpecificId(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let didString = command.arguments[0] as! String
-        
+
         if let did = mDIDMap[didString] {
             self.success(command, retAsString: did.methodSpecificId)
         }
@@ -1113,20 +1121,20 @@ class DIDPlugin : TrinityPlugin {
             self.error(command, retAsString: "No DID found in map for string \(didString)")
         }
     }
-    
+
     @objc func createVerifiablePresentationFromCredentials(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 6 else {
             self.sendWrongParametersCount(command, expected: 6)
             return
         }
-        
+
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let creds = command.arguments[2] as! Array<Dictionary<String, Any>>
         let realm = command.arguments[3] as! String
         let nonce = command.arguments[4] as! String
         let storePass = command.arguments[5] as! String
-        
+
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
@@ -1153,15 +1161,15 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func verifiablePresentationIsValid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-        
+
         let pres = command.arguments[0] as! String
-        
+
         do {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
@@ -1172,15 +1180,15 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func verifiablePresentationIsGenuine(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-                
+
         let pres = command.arguments[0] as! String
-        
+
         do {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
@@ -1191,7 +1199,7 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     // Acceptable formats:
     // #cred
     // did:xxxxxx#cred
@@ -1206,7 +1214,7 @@ class DIDPlugin : TrinityPlugin {
 
         return false
     }
-    
+
      /**
      * Converts long or short form DIDURL into the a fragment only.
      * did:elastos:abcdef#my-key -> my-key
