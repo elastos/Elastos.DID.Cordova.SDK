@@ -365,7 +365,7 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let language = command.arguments[1] as! Int
         let mnemonic = command.arguments[2] as! String
-        let passphrase = command.arguments[3] as! String
+        let passphrase = command.arguments[3] as? String ?? ""
         let storepass = command.arguments[4] as! String
         let force = command.arguments[5] as! Bool
         
@@ -1122,7 +1122,7 @@ class DIDPlugin : TrinityPlugin {
         
         let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
-        let creds = command.arguments[2] as! Array<String>
+        let creds = command.arguments[2] as! Array<Dictionary<String, Any>>
         let realm = command.arguments[3] as! String
         let nonce = command.arguments[4] as! String
         let storePass = command.arguments[5] as! String
