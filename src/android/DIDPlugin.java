@@ -29,6 +29,7 @@ import org.elastos.did.Mnemonic;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDStoreException;
 import org.elastos.did.exception.MalformedDocumentException;
+import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.trinity.runtime.ConfigManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
@@ -87,6 +88,8 @@ public class DIDPlugin extends TrinityPlugin {
     private int errCodeDeleteCredential           = 10012;
     private int errCodeVerify                     = 10013;
     private int errCodeActionNotFound             = 10014;
+    private int errCodeUnspecified                = 10015;
+    private int errCodeWrongPassword              = 10016;
 
     private int errCodeDidException               = 20000;
 
@@ -110,7 +113,13 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             JSONObject errJson = new JSONObject();
-            errJson.put(keyCode, errCodeDidException);
+
+            // Try to specialized the error code
+            if (e instanceof WrongPasswordException)
+                errJson.put(keyCode, errCodeWrongPassword);
+            else
+                errJson.put(keyCode, errCodeDidException);
+
             errJson.put(keyMessage, msg + ": " + e.toString());
             Log.e(TAG, errJson.toString());
             cc.error(errJson);
