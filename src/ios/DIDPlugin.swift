@@ -64,9 +64,6 @@ class DIDPlugin : TrinityPlugin {
     internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
     internal var mCredentialMap : [String: VerifiableCredential] = [:]
 
-    // TODO remove it when upgrade did sdk  2020-03-03
-    internal var languageMap:[Int] = [0, 1, 2, 4, 5, 3]
-
     private func success(_ command: CDVInvokedUrlCommand) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK);
 
@@ -238,8 +235,7 @@ class DIDPlugin : TrinityPlugin {
            return
         }
 
-        let languageTemp = command.arguments[0] as! Int
-        let language = languageMap[languageTemp]
+        let language = command.arguments[0] as! Int
 
         do {
             let mnemonic = try Mnemonic.generate(language)
@@ -256,10 +252,8 @@ class DIDPlugin : TrinityPlugin {
            return
        }
 
-        let languageTemp = command.arguments[0] as! Int
+        let language = command.arguments[0] as! Int
         let mnemonic = command.arguments[1] as! String
-
-        let language = languageMap[languageTemp]
 
         do {
             let isValid = try Mnemonic.isValid(language, mnemonic)
@@ -369,13 +363,11 @@ class DIDPlugin : TrinityPlugin {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let languageTemp = command.arguments[1] as! Int
+        let language = command.arguments[1] as! Int
         let mnemonic = command.arguments[2] as! String
         let passphrase = command.arguments[3] as? String ?? ""
         let storepass = command.arguments[4] as! String
         let force = command.arguments[5] as! Bool
-
-        let language = languageMap[languageTemp]
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
@@ -490,7 +482,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let didDocument = try didStore.newDid(storepass: passphrase, alias: alias)
+                let didDocument = try didStore.newDid(alias, passphrase)
 
                 let did = didDocument.subject! // assume a DIDDocument always has a non null DID.
                 let didString = did.description
