@@ -904,7 +904,10 @@ class DIDPlugin : TrinityPlugin {
                     let publicKeyJson = NSMutableDictionary()
                     publicKeyJson.setValue(pk.controller.description, forKey: "controller")
                     publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
-                    r.setValue(publicKeyJson.description, forKey: "publickey")
+                    
+                    let publicKeyAsString = String(data: try!JSONSerialization.data(withJSONObject: publicKeyJson, options: []), encoding: .utf8)!
+                    
+                    r.setValue(publicKeyAsString, forKey: "publickey")
                 }
                 else {
                     r.setValue(nil, forKey: "publickey")
@@ -1038,7 +1041,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didDocument = mDocumentMap[didString] {
-                let signString = try didDocument.sign(storepass, stringToSign)
+                let signString = try didDocument.sign(storepass: storepass, inputs: stringToSign)
                 self.success(command, retAsString: signString)
             }
             else {
