@@ -532,7 +532,7 @@ public class DIDPlugin extends TrinityPlugin {
             didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
             callbackContext.success();
         }
-        catch(Exception e) {
+        catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initPrivateIdentity");
         }
     }
@@ -551,7 +551,7 @@ public class DIDPlugin extends TrinityPlugin {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
             callbackContext.success(didStore.exportMnemonic(storepass));
         }
-        catch(Exception e) {
+        catch(DIDException e) {
             exceptionProcess(e, callbackContext, "exportMnemonic");
         }
     }
@@ -570,6 +570,9 @@ public class DIDPlugin extends TrinityPlugin {
             String cacheDir = getDefaultCacheDir();
             DIDBackend.initialize(resolver, cacheDir);
             callbackContext.success();
+        }
+        catch(DIDException e) {
+            exceptionProcess(e, callbackContext, "setResolverUrl");
         }
         catch(Exception e) {
             exceptionProcess(e, callbackContext, "setResolverUrl");
@@ -591,7 +594,7 @@ public class DIDPlugin extends TrinityPlugin {
             didStore.synchronize(storepass);
             callbackContext.success();
         }
-        catch(Exception e) {
+        catch(DIDException e) {
             exceptionProcess(e, callbackContext, "synchronize");
         }
     }
