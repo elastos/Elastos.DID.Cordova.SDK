@@ -478,7 +478,7 @@ class DIDPlugin : TrinityPlugin {
 
         let didStoreId = command.arguments[0] as! String
         let passphrase = command.arguments[1] as! String
-        let alias = command.arguments[2] as! String
+        let alias = command.arguments[2] as? String ?? ""
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {

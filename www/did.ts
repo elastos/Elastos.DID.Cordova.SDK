@@ -509,7 +509,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, alias]);
     }
 
-    listDids(filter: any, onSuccess: (dids: DIDPlugin.DID[])=>void, onError?: (err: any)=>void) {
+    listDids(filter: DIDPlugin.DIDStoreFilter, onSuccess: (dids: DIDPlugin.DID[])=>void, onError?: (err: any)=>void) {
         var didStoreId = this.objId;
         var _onSuccess = function(ret) {
             let dids: DIDPlugin.DID[] = [];
