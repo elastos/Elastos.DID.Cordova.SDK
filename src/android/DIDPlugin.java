@@ -316,6 +316,10 @@ public class DIDPlugin extends TrinityPlugin {
         file.delete();
     }
 
+    private String getStringFromJSONArray(JSONArray jsonArray, int index) throws JSONException {
+        return jsonArray.isNull(index) ? "" : jsonArray.getString(index);
+    }
+
     private String getDefaultResolverUrl() {
         return ConfigManager.getShareInstance().getStringValue("did.resolver", "http://api.elastos.io:20606");
     }
@@ -518,7 +522,7 @@ public class DIDPlugin extends TrinityPlugin {
         String didStoreId = args.getString(idx++);
         int language = args.getInt(idx++);
         String mnemonic = args.getString(idx++);
-        String passphrase = args.getString(idx++);
+        String passphrase = getStringFromJSONArray(args, idx++);
         String storepass = args.getString(idx++);
         boolean force = args.getBoolean(idx++);
 
