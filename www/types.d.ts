@@ -122,13 +122,13 @@ declare module DIDPlugin {
          * @param subjectDID DIDString of the target subject that will own this credential.
          * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
          * @param types List of credential type names that help categorizing this credential.
-         * @param expirationDate Date at which the credential will become invalid.
+         * @param validityDays Number of Days at which the credential will become invalid, the max validity days is 5 years.
          * @param properties Any multi-level object that contains the actual information about this credential.
          * @param passphrase Password of the issuer's DIDStore, used to sign the created credential with the issuer's DID.
          * @param onSuccess Callback returning the created VerifiableCredential object in case of success.
          * @param onError Callback returning an error object in case of error.
          */
-        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
+        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], validityDays: Number, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
 
         addCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void);

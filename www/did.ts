@@ -75,7 +75,7 @@ class DIDImpl implements DIDPlugin.DID {
         exec(onSuccess, null, 'DIDPlugin', 'prepareIssuer', [this.storeId, this.didString]);
     }
 
-    issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], expirationDate: Date, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
+    issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], validityDays: Number, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
             let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
             let credential = javaVc.toVerifiableCredential();
@@ -84,7 +84,7 @@ class DIDImpl implements DIDPlugin.DID {
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateCredential',
-            [this.storeId, this.didString, subjectDID, credentialId, types, expirationDate, properties, passphrase]);
+            [this.storeId, this.didString, subjectDID, credentialId, types, validityDays, properties, passphrase]);
     }
 
     async addCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
