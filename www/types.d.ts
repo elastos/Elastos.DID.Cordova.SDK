@@ -21,13 +21,14 @@
  */
 
  /**
-* This is about DID which is a new type of identifier to provide verifiable,
-* decentralized digital identity.
+* This plugin is the Elastos implementation of W3C's Decentralized Identity specification.
+* Decentralized identities allow users to be owner of their identities, without relying on third party 
+* providers.
+*
 * <br><br>
-* Please use 'DIDPlugin' as the plugin name in the manifest.json if you want to use
-* this facility.
+* Add 'DIDPlugin' as plugin name in your manifest.json in order to request permission to use this plugin.
 * <br><br>
-* Usage:
+* Declaration:
 * <br>
 * declare let didManager: DIDPlugin.DIDManager;
 */
@@ -56,7 +57,9 @@ declare module DIDPlugin {
 
     /**
      * A DIDURL is a DIDString with an additional fragment part.
-     * Ex: did:elastos:abcdef#my-special-use or #my-special-use
+     * Ex: did:elastos:abcdef#my-special-use or #my-special-use.
+     * 
+     * For simplicity, generally use the short form only.
      */
     type DIDURL = string;
 
@@ -102,8 +105,25 @@ declare module DIDPlugin {
         getPublicKeyBase58(): Base58PublicKey;
     }
 
+    interface Service {
+        getId(): DIDURL;
+        getType(): string;
+        getEndpoint(): string;
+    }
+
+    interface ServiceBuilder {
+        /**
+         * Creates a new Service object with the given properties.
+         * All fields are mandatory.
+         * 
+         * @param id Unique identifier for this service. Usually use a short form DIDURL such as "#myservicename"
+         * @param type Application specific string that identities your type of service.
+         * @param endpoint HTTP address or any other network protocol based endpoint that can be used to communicate with the service.
+         */
+        createService(id: DIDURL, type: string, endpoint: string): Service;
+    }
+
     interface DID {
-        // TODO: define onSuccess and onError? callbacks parameters with more accurate types
         getDIDString():string;
         getMethod(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
         getMethodSpecificId(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
@@ -161,11 +181,49 @@ declare module DIDPlugin {
         getUpdated(): Date;
         setSubject(subject: DID);
         getSubject(): DID;
+        
         getPublicKeyCount(): Number;
         getDefaultPublicKey(onSuccess: (publicKey: PublicKey) => void, onError?: (err: any) => void);
-        getPublicKey(didString: DIDURL): PublicKey;
+        getPublicKey(didUrl: DIDURL): PublicKey;
         getPublicKeys(): PublicKey[];
 
+        /**
+         * Returns the number of currently registered services in this DID document.
+         * 
+         * @returns The number of services.
+         */
+        getServicesCount(): Number;
+
+        /**
+         * Returns a service, if existing, from its DID string.
+         * 
+         * @param didString The Service's did string identifier.
+         * 
+         * @returns The searched service if any, null otherwise.
+         */
+        getService(didUrl: DIDURL): Service;
+
+        /**
+         * Returns all services currently registered in this DID document.
+         * 
+         * @returns All services.
+         */
+        getServices(): Service[];
+
+        /**
+         * Adds a new service to this DID document.
+         * 
+         * @param service The service to be added. Usually, create one with ServiceBuilder.createService().
+         */
+        addService(service: Service, storePass: string, onSuccess?: () => void, onError?: (err: any) => void);
+
+        /**
+         * Removes a given service from the DID document.
+         * 
+         * @param didURL DID url identifier of the service to be removed.
+         */
+        removeService(didURL: DIDURL, storePass: string, onSuccess?: () => void, onError?: (err: any) => void);
+        
         addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
         getCredentials(): DIDPlugin.VerifiableCredential[];
@@ -258,5 +316,6 @@ declare module DIDPlugin {
 
         VerifiableCredentialBuilder: VerifiableCredentialBuilder;
         VerifiablePresentationBuilder: VerifiablePresentationBuilder;
+        ServiceBuilder: ServiceBuilder;
     }
 }

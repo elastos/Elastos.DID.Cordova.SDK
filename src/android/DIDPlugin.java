@@ -234,6 +234,12 @@ public class DIDPlugin extends TrinityPlugin {
                 case "getDefaultPublicKey":
                     this.getDefaultPublicKey(args, callbackContext);
                     break;
+                case "DIDDocument_addService":
+                    this.DIDDocument_addService(args, callbackContext);
+                    break;
+                case "DIDDocument_removeService":
+                    this.DIDDocument_removeService(args, callbackContext);
+                    break;
                 case "addCredential":
                     this.addCredential(args, callbackContext);
                     break;
@@ -1058,6 +1064,82 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         callbackContext.success(r);
+    }
+
+    private void DIDDocument_addService(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String didString = args.getString(idx++);
+        String serviceJson = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+
+            DIDDocument didDocument = mDocumentMap.get(didString);
+            DIDDocument.Builder db = didDocument.edit();
+
+            JSONObject serviceJsonObj = new JSONObject(serviceJson);
+
+            String serviceId = serviceJsonObj.getString("id");
+            String serviceType = serviceJsonObj.getString("type");
+            String serviceEndpoint = serviceJsonObj.getString("endpoint");
+
+            db.addService(serviceId, serviceType, serviceEndpoint);
+            DIDDocument document = db.seal(storepass);
+            didStore.storeDid(document);
+
+            // Update cached document with newly generated one
+            mDocumentMap.put(didString, document);
+
+            callbackContext.success();
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_addService exception: " + e.toString());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_addService exception: " + e.toString());
+        }
+    }
+
+    private void DIDDocument_removeService(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
+        int idx = 0;
+        String didStoreId = args.getString(idx++);
+        String didString = args.getString(idx++);
+        String serviceDidUrl = args.getString(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDStore didStore = mDIDStoreMap.get(didStoreId);
+
+            DIDDocument didDocument = mDocumentMap.get(didString);
+            DIDDocument.Builder db = didDocument.edit();
+
+            db.removeService(serviceDidUrl);
+            DIDDocument document = db.seal(storepass);
+            didStore.storeDid(document);
+
+            // Update cached document with newly generated one
+            mDocumentMap.put(didString, document);
+
+            callbackContext.success();
+        }
+        catch (DIDException e) {
+            e.printStackTrace();
+            errorProcess(callbackContext, errCodeNullPointer, "DIDDocument_removeService exception: " + e.toString());
+        }
     }
 
     private void addCredential(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {

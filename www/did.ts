@@ -64,7 +64,7 @@ class DIDImpl implements DIDPlugin.DID {
     resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
         var storeId = this.storeId;
         var _onSuccess = function(ret: {diddoc: string, updated: string}) {
-            var diddoc = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
+            var diddoc = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(diddoc.toDIDDocument(storeId));
         }
 
@@ -77,8 +77,8 @@ class DIDImpl implements DIDPlugin.DID {
 
     issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], validityDays: Number, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
-            let credential = javaVc.toVerifiableCredential();
+            let nativeVc = NativeVerifiableCredential.createFromJson(ret.credential);
+            let credential = nativeVc.toVerifiableCredential();
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -101,7 +101,7 @@ class DIDImpl implements DIDPlugin.DID {
                     onSuccess();
             };
 
-            let passedCredential = JavaVerifiableCredential.createFromVerifiableCredential(credential);
+            let passedCredential = NativeVerifiableCredential.createFromVerifiableCredential(credential);
 
             exec(_onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.storeId, passedCredential]);
         }
@@ -117,8 +117,8 @@ class DIDImpl implements DIDPlugin.DID {
             self.loadedCredentials = [];
             let items = JSON.parse(ret.items);
             items.map((credentialJson)=>{
-                let javaCredential = JavaVerifiableCredential.createFromJson(JSON.stringify(credentialJson));
-                self.loadedCredentials.push(javaCredential.toVerifiableCredential());
+                let nativeCredential = NativeVerifiableCredential.createFromJson(JSON.stringify(credentialJson));
+                self.loadedCredentials.push(nativeCredential.toVerifiableCredential());
             });
 
             onSuccess(self.loadedCredentials);
@@ -175,8 +175,8 @@ class DIDImpl implements DIDPlugin.DID {
 
     loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret) {
-            let javaVc = JavaVerifiableCredential.createFromJson(ret.credential);
-            let credential = javaVc.toVerifiableCredential();
+            let nativeVc = NativeVerifiableCredential.createFromJson(ret.credential);
+            let credential = nativeVc.toVerifiableCredential();
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -186,9 +186,9 @@ class DIDImpl implements DIDPlugin.DID {
 
     createVerifiablePresentation(credentials: DIDPlugin.VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
         // Convert our credentials format to java format
-        let javaCredentials: JavaVerifiableCredential[] = [];
-        javaCredentials = credentials.map((cred)=>{
-            return JavaVerifiableCredential.createFromVerifiableCredential(cred);
+        let nativeCredentials: NativeVerifiableCredential[] = [];
+        nativeCredentials = credentials.map((cred)=>{
+            return NativeVerifiableCredential.createFromVerifiableCredential(cred);
         });
 
         var _onSuccess = function(presentationJson) {
@@ -197,11 +197,11 @@ class DIDImpl implements DIDPlugin.DID {
             onSuccess(presentation);
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [this.storeId, this.didString, javaCredentials, realm, nonce, storepass]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'createVerifiablePresentationFromCredentials', [this.storeId, this.didString, nativeCredentials, realm, nonce, storepass]);
     }
 }
 
-class JavaDIDDocument {
+class NativeDIDDocument {
     id: string; // W3C spec: getSubject() actually maps to "id".
     created: string = null; // Not a JS Date, so keep this as a string.
     updated: string = null; // Not a JS Date, so keep this as a string.
@@ -209,7 +209,7 @@ class JavaDIDDocument {
     publicKey: any[];
     authentication: any[];
     authorization: any[];
-    //services: Map<DIDPlugin.DIDURL, DIDPlugin.Service>;
+    services: any[];
     expires: string; // Not a JS Date, so keep this as a string.
     //proof: any;
     //deactivated: boolean;
@@ -227,8 +227,16 @@ class JavaDIDDocument {
         didDocument.verifiableCredential = []
         if (this.verifiableCredential) { // Could be undefined
             this.verifiableCredential.forEach((c)=>{
-                let vc = JavaVerifiableCredential.createFromJson(JSON.stringify(c));
+                let vc = NativeVerifiableCredential.createFromJson(JSON.stringify(c));
                 didDocument.verifiableCredential.push(vc.toVerifiableCredential());
+            });
+        }
+
+        didDocument.services = []
+        if (this.services) { // Could be undefined
+            this.services.forEach((s)=>{
+                let service = NativeService.createFromJson(JSON.stringify(s));
+                didDocument.services.push(service.toService());
             });
         }
 
@@ -240,40 +248,45 @@ class JavaDIDDocument {
         return didDocument;
     }
 
-    static createFromDIDDocument(didDocument: DIDPlugin.DIDDocument): JavaDIDDocument {
-        let javaDidDocument = new JavaDIDDocument();
+    static createFromDIDDocument(didDocument: DIDPlugin.DIDDocument): NativeDIDDocument {
+        let nativeDidDocument = new NativeDIDDocument();
         // JS Date format is ISO format, including milliseconds, but Java side is expecting
         // no milliseconds, so we make a dirty convertion here.
-        javaDidDocument.id = didDocument.getSubject().getDIDString();
+        nativeDidDocument.id = didDocument.getSubject().getDIDString();
 
         if (didDocument.getCreated())
-            javaDidDocument.created = didDocument.getCreated().toISOString().replace(".000","");
+            nativeDidDocument.created = didDocument.getCreated().toISOString().replace(".000","");
 
         if (didDocument.getUpdated())
-            javaDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
+            nativeDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
 
-        javaDidDocument.verifiableCredential = [];
+        nativeDidDocument.verifiableCredential = [];
         didDocument.getCredentials().forEach((c)=>{
-            javaDidDocument.verifiableCredential.push(JavaVerifiableCredential.createFromVerifiableCredential(c));
+            nativeDidDocument.verifiableCredential.push(NativeVerifiableCredential.createFromVerifiableCredential(c));
         });
 
-        javaDidDocument.publicKey = null; // TODO
-        javaDidDocument.authentication = null; // TODO
-        javaDidDocument.authorization = null; // TODO
-        javaDidDocument.expires = null; // TODO
-        return javaDidDocument;
+        nativeDidDocument.services = [];
+        didDocument.getServices().forEach((s)=>{
+            nativeDidDocument.services.push(NativeService.createFromService(s));
+        });
+
+        nativeDidDocument.publicKey = null; // TODO
+        nativeDidDocument.authentication = null; // TODO
+        nativeDidDocument.authorization = null; // TODO
+        nativeDidDocument.expires = null; // TODO
+        return nativeDidDocument;
     }
 
-    static createFromJson(javaDidDocumentJson: string, updated: string): JavaDIDDocument {
+    static createFromJson(nativeDidDocumentJson: string, updated: string): NativeDIDDocument {
         try {
-            let jsonObj = JSON.parse(javaDidDocumentJson);
-            let javaDidDocument = new JavaDIDDocument();
-            Object.assign(javaDidDocument, jsonObj);
+            let jsonObj = JSON.parse(nativeDidDocumentJson);
+            let nativeDidDocument = new NativeDIDDocument();
+            Object.assign(nativeDidDocument, jsonObj);
 
             // "updated" is handled separately because it's not part of the document, it's provided by the sdk.
-            javaDidDocument.updated = updated;
+            nativeDidDocument.updated = updated;
 
-            return javaDidDocument;
+            return nativeDidDocument;
         }
         catch (e) {
             throw e;
@@ -292,7 +305,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     publicKey: DIDPlugin.PublicKey[];
     authentication: DIDPlugin.PublicKey[];
     authorization: DIDPlugin.PublicKey[];
-    //services: DIDPlugin.Service[];
+    services: ServiceImpl[];
     expires: Date;
     //proof: DIDPlugin.Proof;
     //deactivated: boolean;
@@ -321,15 +334,15 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     getDefaultPublicKey(onSuccess: (publicKey: DIDPlugin.PublicKey) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret: {publickey: string}) {
             console.log("(plugin) getDefaultPublicKey json:", ret.publickey)
-            var javaPublicKey = JavaPublicKey.createFromJson(ret.publickey);
-            console.log("(plugin) getDefaultPublicKey javaPublicKey:", javaPublicKey);
-            onSuccess(javaPublicKey.toPublicKey());
+            var nativePublicKey = NativePublicKey.createFromJson(ret.publickey);
+            console.log("(plugin) getDefaultPublicKey nativePublicKey:", nativePublicKey);
+            onSuccess(nativePublicKey.toPublicKey());
         }
 
         exec(_onSuccess, onError, 'DIDPlugin', 'getDefaultPublicKey', [this.id.getDIDString()]);
     }
 
-    getPublicKey(didString: DIDURL): DIDPlugin.PublicKey {
+    getPublicKey(didUrl: DIDURL): DIDPlugin.PublicKey {
         return null; // TODO
     }
 
@@ -337,8 +350,57 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         return this.publicKey;
     }
 
+    getServicesCount(): Number {
+        return this.services.length;
+    }
+
+    getService(didUrl: string): DIDPlugin.Service {
+        return this.services.find(s => {
+            return DIDURL.shortForm(s.getId()) == DIDURL.shortForm(didUrl);
+        });
+    }
+
+    getServices(): DIDPlugin.Service[] {
+        return this.services;
+    }
+
+    addService(service: ServiceImpl, storePass: string, onSuccess?: () => void, onError?: (err: any) => void) {
+        let nativeService = NativeService.createFromService(service);
+
+        exec(() => {
+            // Also save the service locally. Remove first if it already exists (update case)
+            this.deleteLocalService(service);
+            this.services.push(service);
+
+            if (onSuccess)
+                onSuccess();
+        }, onError, 'DIDPlugin', 'DIDDocument_addService', [this.storeId, this.id.getDIDString(), nativeService, storePass]);
+    }
+
+    removeService(didUrl: DIDPlugin.DIDURL, storePass: string, onSuccess?: () => void, onError?: (err: any) => void) {
+        exec(() => {
+            // Also remove the service locally.
+            this.deleteLocalServiceByUrl(didUrl);
+
+            if (onSuccess)
+                onSuccess();
+        }, onError, 'DIDPlugin', 'DIDDocument_removeService', [this.storeId, this.id.getDIDString(), didUrl, storePass]);
+    }
+
+    private deleteLocalService(service: DIDPlugin.Service) {
+        return this.deleteLocalServiceByUrl(service.getId());
+    }
+
+    private deleteLocalServiceByUrl(didUrl: DIDPlugin.DIDURL) {
+        let serviceIndex = this.services.findIndex((s)=>{
+            return DIDURL.shortForm(s.getId()) == DIDURL.shortForm(didUrl);
+        })
+        if (serviceIndex >= 0)
+            this.services.splice(serviceIndex, 1);
+    }
+
     addCredential(credential: DIDPlugin.VerifiableCredential, storePass: string, onSuccess?: () => void, onError?: (err: any) => void) {
-        let javaVc = JavaVerifiableCredential.createFromVerifiableCredential(credential);
+        let nativeVc = NativeVerifiableCredential.createFromVerifiableCredential(credential);
 
         var self = this;
         var _onSuccess = function() {
@@ -350,7 +412,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
                 onSuccess();
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'addCredential', [this.storeId, this.id.getDIDString(), javaVc, storePass]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'addCredential', [this.storeId, this.id.getDIDString(), nativeVc, storePass]);
     }
 
     private deleteLocalCredential(credential: DIDPlugin.VerifiableCredential) {
@@ -362,7 +424,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     deleteCredential(credential: DIDPlugin.VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
-        let javaVc = JavaVerifiableCredential.createFromVerifiableCredential(credential);
+        let nativeVc = NativeVerifiableCredential.createFromVerifiableCredential(credential);
 
         var self = this;
         var _onSuccess = function() {
@@ -373,7 +435,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
                 onSuccess();
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'DIDDocument_deleteCredential', [this.storeId, this.id.getDIDString(), javaVc, storePass]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'DIDDocument_deleteCredential', [this.storeId, this.id.getDIDString(), nativeVc, storePass]);
     }
 
     getCredential(credentialId: DIDPlugin.CredentialID) {
@@ -433,8 +495,8 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
         // Re-create real credential objects based on json data
         presentation.verifiableCredential = [];
         jsonPresentation.verifiableCredential.map((jsonVc)=>{
-            let javaVc = JavaVerifiableCredential.createFromJson(JSON.stringify(jsonVc));
-            let vc = javaVc.toVerifiableCredential();
+            let nativeVc = NativeVerifiableCredential.createFromJson(JSON.stringify(jsonVc));
+            let vc = nativeVc.toVerifiableCredential();
             presentation.verifiableCredential.push(vc);
         })
 
@@ -527,9 +589,9 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
          var storeId = this.objId;
          var _onSuccess = function(ret: {diddoc: string, updated: string}) {
              console.log("(plugin) loadDidDocument json:", ret.diddoc)
-             var javaDidDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
-             console.log("(plugin) loadDidDocument javaDidDocument:", javaDidDocument);
-             onSuccess(javaDidDocument.toDIDDocument(storeId));
+             var nativeDidDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
+             console.log("(plugin) loadDidDocument nativeDidDocument:", nativeDidDocument);
+             onSuccess(nativeDidDocument.toDIDDocument(storeId));
          }
 
          exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
@@ -537,7 +599,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
     // resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
     //     var _onSuccess = function(ret: {diddoc: string}) {
-    //         var diddoc = JavaDIDDocument.createFromJson(ret.diddoc);
+    //         var diddoc = NativeDIDDocument.createFromJson(ret.diddoc);
     //         onSuccess(diddoc.toDIDDocument());
     //     }
 
@@ -554,8 +616,8 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     // updateDidDocument(didDocument: DIDDocumentImpl, storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
-    //     let javaDidDocument = JavaDIDDocument.createFromDIDDocument(didDocument);
-    //     exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), javaDidDocument, storepass]);
+    //     let nativeDidDocument = NativeDIDDocument.createFromDIDDocument(didDocument);
+    //     exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), nativeDidDocument, storepass]);
     // }
 
     setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
@@ -593,12 +655,14 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(DIDDocumentImpl.prototype);
         Object.freeze(DIDImpl.prototype);
         Object.freeze(PublicKeyImpl.prototype);
+        Object.freeze(ServiceImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
 
         this.setListener(LISTENER_IDTRANSACTION, (event) => {
             this.createIdTransactionEvent.callback(event.payload, event.memo);
         });
     }
+    ServiceBuilder: DIDPlugin.ServiceBuilder;
 
     addCreateIdTransactionCB(callback) {
         var eventcb: DIDManagerEvent = {
@@ -639,7 +703,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 
     createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
         var _onSuccess = function(ret: {diddoc: string, updated: string}) {
-            var didDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
+            var didDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(didDocument.toDIDDocument());
         }
 
@@ -660,7 +724,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret: { diddoc?: string, updated: string }) {
             if (ret.diddoc) {
-                var didDocument = JavaDIDDocument.createFromJson(ret.diddoc, ret.updated);
+                var didDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
                 onSuccess(didDocument.toDIDDocument());
             }
             else
@@ -740,7 +804,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     }
 }
 
-class JavaVerifiableCredential {
+class NativeVerifiableCredential {
     id: string;
     expirationDate: string; // Not a JS Date, so keep this as a string.
     issuanceDate: string; // Not a JS Date, so keep this as a string.
@@ -761,26 +825,26 @@ class JavaVerifiableCredential {
         return credential;
     }
 
-    static createFromVerifiableCredential(vc: DIDPlugin.VerifiableCredential): JavaVerifiableCredential {
-        let javaVc = new JavaVerifiableCredential();
+    static createFromVerifiableCredential(vc: DIDPlugin.VerifiableCredential): NativeVerifiableCredential {
+        let nativeVc = new NativeVerifiableCredential();
         // The native part needs a id field, not credentialId, so we just give it.
-        javaVc.id = vc.getId();
+        nativeVc.id = vc.getId();
         // JS Date format is ISO format, including milliseconds, but Java side is expecting
         // no milliseconds, so we make a dirty convertion here.
-        javaVc.expirationDate = (vc.getExpirationDate()?vc.getExpirationDate().toISOString().replace(".000",""):null);
-        javaVc.issuanceDate = (vc.getIssuanceDate()?vc.getIssuanceDate().toISOString().replace(".000",""):null);
-        javaVc.issuer = vc.getIssuer();
-        javaVc.credentialSubject = vc.getSubject();
-        javaVc.proof = vc.getProof();
-        javaVc.type = vc.getTypes();
-        return javaVc;
+        nativeVc.expirationDate = (vc.getExpirationDate()?vc.getExpirationDate().toISOString().replace(".000",""):null);
+        nativeVc.issuanceDate = (vc.getIssuanceDate()?vc.getIssuanceDate().toISOString().replace(".000",""):null);
+        nativeVc.issuer = vc.getIssuer();
+        nativeVc.credentialSubject = vc.getSubject();
+        nativeVc.proof = vc.getProof();
+        nativeVc.type = vc.getTypes();
+        return nativeVc;
     }
 
-    static createFromJson(javaVcJson: string): JavaVerifiableCredential {
+    static createFromJson(nativeVcJson: string): NativeVerifiableCredential {
         try {
-            let jsonObj = JSON.parse(javaVcJson);
-            let javaVc = new JavaVerifiableCredential();
-            Object.assign(javaVc, jsonObj);
+            let jsonObj = JSON.parse(nativeVcJson);
+            let nativeVc = new NativeVerifiableCredential();
+            Object.assign(nativeVc, jsonObj);
             /*credential.id = jsonObj.id;
             credential.expirationDate = new Date(jsonObj.expirationDate);
             credential.fragment = new URL(jsonObj.id).hash.replace("#","");
@@ -789,7 +853,7 @@ class JavaVerifiableCredential {
             credential.credentialSubject = jsonObj.credentialSubject;
             credential.proof = jsonObj.proof;
             credential.type = jsonObj.type;*/
-            return javaVc;
+            return nativeVc;
         }
         catch (e) {
             throw e;
@@ -797,7 +861,7 @@ class JavaVerifiableCredential {
     }
 }
 
-class JavaPublicKey {
+class NativePublicKey {
     controller: string;
     keyBase58: string;
 
@@ -809,12 +873,12 @@ class JavaPublicKey {
         return publicKey;
     }
 
-    static createFromJson(javaPublicKeyJson: string): JavaPublicKey {
+    static createFromJson(nativePublicKeyJson: string): NativePublicKey {
         try {
-            let jsonObj = JSON.parse(javaPublicKeyJson);
-            let javaPublicKey = new JavaPublicKey();
-            Object.assign(javaPublicKey, jsonObj);
-            return javaPublicKey;
+            let jsonObj = JSON.parse(nativePublicKeyJson);
+            let nativePublicKey = new NativePublicKey();
+            Object.assign(nativePublicKey, jsonObj);
+            return nativePublicKey;
         }
         catch (e) {
             throw e;
@@ -832,6 +896,54 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
 
     getPublicKeyBase58(): DIDPlugin.Base58PublicKey {
         return this.keyBase58;
+    }
+}
+
+class NativeService {
+    id: string;
+    type: string;
+    endpoint: string;
+
+    toService(): ServiceImpl {
+        let service = new ServiceImpl();
+        Object.assign(service, this);
+        return service;
+    }
+
+    static createFromService(service: DIDPlugin.Service): NativeService {
+        let nativeService = new NativeService();
+        Object.assign(nativeService, service);
+        return nativeService;
+    }
+
+    static createFromJson(nativeServiceJson: string): NativeService {
+        try {
+            let jsonObj = JSON.parse(nativeServiceJson);
+            let nativeService = new NativeService();
+            Object.assign(nativeService, jsonObj);
+            return nativeService;
+        }
+        catch (e) {
+            throw e;
+        }
+    }
+}
+
+class ServiceImpl implements DIDPlugin.Service {
+    id: string;
+    type: string;
+    endpoint;
+
+    getId(): string {
+        return this.id;
+    }
+
+    getType(): string {
+        return this.type;
+    }
+
+    getEndpoint(): string {
+        return this.endpoint;
     }
 }
 

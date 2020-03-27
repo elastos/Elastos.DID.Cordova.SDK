@@ -924,6 +924,90 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
+    
+    @objc func DIDDocument_addService(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 4 else {
+            self.sendWrongParametersCount(command, expected: 4)
+            return
+        }
+
+        let didStoreId = command.arguments[0] as! String
+        let didString = command.arguments[1] as! String
+        let service = command.arguments[2] as! Dictionary<String, Any>
+        let storepass = command.arguments[3] as! String
+
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                if let didDocument = mDocumentMap[didString] {
+                    let db = didDocument.edit()
+                    
+                    let serviceId = service["id"] as! String
+                    let serviceType = service["type"] as! String
+                    let serviceEndpoint = service["endpoint"] as! String
+
+                    _ = try db.addService(serviceId, serviceType, serviceEndpoint)
+                    let issuer = try db.seal(storepass: storepass)
+                    try didStore.storeDid(issuer)
+
+                    // Update cached document with newly generated one
+                    mDocumentMap[didString] = issuer
+
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID document found matching string \(didString)")
+                    return
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
+    }
+    
+    @objc func DIDDocument_removeService(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 4 else {
+            self.sendWrongParametersCount(command, expected: 4)
+            return
+        }
+
+        let didStoreId = command.arguments[0] as! String
+        let didString = command.arguments[1] as! String
+        let serviceDidUrl = command.arguments[2] as! String
+        let storepass = command.arguments[3] as! String
+
+        do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                if let didDocument = mDocumentMap[didString] {
+                    let db = didDocument.edit();
+
+                    _ = try db.removeService(serviceDidUrl)
+                    let issuer = try db.seal(storepass: storepass)
+                    try didStore.storeDid(issuer)
+
+                    // Update cached document with newly generated one
+                    mDocumentMap[didString] = issuer
+
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID document found matching string \(didString)")
+                    return
+                }
+            }
+            else {
+                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
+    }
 
     @objc func addCredential(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
