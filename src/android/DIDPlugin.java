@@ -31,6 +31,7 @@ import org.elastos.did.exception.DIDStoreException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.trinity.runtime.ConfigManager;
+import org.elastos.trinity.runtime.PreferenceManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -327,7 +328,7 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private String getDefaultResolverUrl() {
-        return ConfigManager.getShareInstance().getStringValue("did.resolver", "http://api.elastos.io:20606");
+        return PreferenceManager.getShareInstance().getDIDResolver();
     }
 
     private String getDefaultCacheDir() {
