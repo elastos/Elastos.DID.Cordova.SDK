@@ -270,7 +270,7 @@ class DIDPlugin : TrinityPlugin {
             return
         }
 
-        let didString = command.arguments[0] as! String
+        let didString = command.arguments[0] as? String ?? ""
         let forceRemote = command.arguments[1] as! Bool
 
         do {
