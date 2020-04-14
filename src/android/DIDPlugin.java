@@ -420,7 +420,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void generateMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer language = args.getInt(idx++);
+        String language = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
@@ -428,7 +428,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            String mnemonic = Mnemonic.generate(language);
+            String mnemonic = Mnemonic.getInstance(language).generate();
             callbackContext.success(mnemonic);
         }
         catch (DIDException e) {
@@ -438,7 +438,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void isMnemonicValid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        Integer language = args.getInt(idx++);
+        String language = args.getString(idx++);
         String mnemonic = args.getString(idx++);
 
         if (args.length() != idx) {
@@ -446,8 +446,12 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-        Boolean ret = Mnemonic.isValid(language, mnemonic);
-        callbackContext.success(ret.toString());
+        try {
+            Boolean ret = Mnemonic.getInstance(language).isValid(mnemonic);
+            callbackContext.success(ret.toString());
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "isMnemonicValid ");
+        }
     }
 
     private void DIDManager_resolveDIDDocument(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -527,7 +531,7 @@ public class DIDPlugin extends TrinityPlugin {
     private void initPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        int language = args.getInt(idx++);
+        String language = args.getString(idx++);
         String mnemonic = args.getString(idx++);
         String passphrase = getStringFromJSONArray(args, idx++);
         String storepass = args.getString(idx++);
@@ -720,7 +724,6 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            // TODO: force to override?
             String txId = didStore.publishDid(didString, 0, null, true, storepass);
             callbackContext.success(txId);
         }

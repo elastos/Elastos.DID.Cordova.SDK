@@ -27,7 +27,7 @@ class JSONObjectHolder {
     public static func getDIDInfoJson(entry: DID) throws -> NSDictionary {
         let r = NSMutableDictionary()
         r.setValue(entry.description, forKey: "did") // TODO: initially "toString()" in java, does "description" work for ios ?
-        r.setValue(entry.alias, forKey: "alias")
+        r.setValue(entry.aliasName, forKey: "alias")
         return r
     }
     

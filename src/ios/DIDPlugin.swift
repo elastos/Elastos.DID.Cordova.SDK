@@ -60,7 +60,7 @@ class DIDPlugin : TrinityPlugin {
     internal var mDIDStoreMap : [String: DIDStore] = [:]
     internal var mDIDMap: [String : DID] = [:]
     internal var mDocumentMap : [String: DIDDocument] = [:]
-    internal var mIssuerMap : [String: Issuer] = [:]
+    internal var mIssuerMap : [String: VerifiableCredentialIssuer] = [:]
     internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
     internal var mCredentialMap : [String: VerifiableCredential] = [:]
 
@@ -140,6 +140,10 @@ class DIDPlugin : TrinityPlugin {
             return
     }
 
+    private func getDIDResolverUrl() -> String {
+        return PreferenceManager.getShareInstance().getDIDResolver();
+    }
+
     private func getDIDDataDir() -> String {
         return self.getDataPath()+"/did"
     }
@@ -191,15 +195,17 @@ class DIDPlugin : TrinityPlugin {
         let dataDir = getDIDDataDir() + didStoreId;
         let callbackId = command.arguments[1] as! Int
 
-        globalDidAdapter = DIDPluginAdapter(id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
-        mDidAdapterMap[didStoreId] = globalDidAdapter
-
         do {
-            let cacheDir = self.getBackendCacheDir()
-            try DIDBackend.createInstance(globalDidAdapter!, cacheDir)
+            let cacheDir = getBackendCacheDir();
+            let resolver = getDIDResolverUrl();
+
+            try DIDBackend.initializeInstance(resolver, cacheDir);
+
+            globalDidAdapter = DIDPluginAdapter(id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
+            mDidAdapterMap[didStoreId] = globalDidAdapter
 
             // NOTE: this overwrite any previously initialized adapter if any.
-            let didStore = try DIDStore.open("filesystem", dataDir)
+            let didStore = try DIDStore.open(atPath: dataDir, withType: "filesystem", adapter: globalDidAdapter!);
             mDIDStoreMap[didStoreId] = didStore
 
             let ret: NSDictionary = [:];
@@ -235,7 +241,7 @@ class DIDPlugin : TrinityPlugin {
            return
         }
 
-        let language = command.arguments[0] as! Int
+        let language = command.arguments[0] as! String
 
         do {
             let mnemonic = try Mnemonic.generate(language)
@@ -252,7 +258,7 @@ class DIDPlugin : TrinityPlugin {
            return
        }
 
-        let language = command.arguments[0] as! Int
+        let language = command.arguments[0] as! String
         let mnemonic = command.arguments[1] as! String
 
         do {
@@ -279,19 +285,20 @@ class DIDPlugin : TrinityPlugin {
             //
             // If no initDidStore() has been called yet, we need to initialize the DID backend
             // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
-            // DIDBackend.initialize() with a real adapter that will overwrite our init.
+            // DIDBackend.initializeInstance() with a real adapter that will overwrite our init.
             if (globalDidAdapter == nil) {
-                // TODO ? WHY NO ADAPTER ON IOS ? let tempAdapter = DIDPluginAdapter(id: -1, command: command, commandDelegate: self.commandDelegate)
-                DIDBackend.initialize()
+                let cacheDir = getBackendCacheDir();
+                let resolver = getDIDResolverUrl();
+                try DIDBackend.initializeInstance(resolver, cacheDir);
             }
 
             let ret = NSMutableDictionary()
 
-            if let didDocument = try DID(didString).resolve(forceRemote) {
-                ret.setValue(didDocument.description(true), forKey: "diddoc")
+            if let didDocument: DIDDocument = try DID(didString).resolve(forceRemote) {
+                ret.setValue(didDocument.description, forKey: "diddoc")
 
-                if let updated = didDocument.getUpdated() {
-                    let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                if let updated: Date? = try didDocument.updatedDate {
+                    let isoDate = ISO8601DateFormatter.string(from: updated!, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                     ret.setValue(isoDate, forKey: "updated")
                 }
                 else {
@@ -363,7 +370,7 @@ class DIDPlugin : TrinityPlugin {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let language = command.arguments[1] as! Int
+        let language = command.arguments[1] as! String
         let mnemonic = command.arguments[2] as! String
         let passphrase = command.arguments[3] as? String ?? ""
         let storepass = command.arguments[4] as! String
@@ -371,7 +378,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                try didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
+                try didStore.initializePrivateIdentity(language, mnemonic, passphrase, storepass, force);
                 self.success(command)
             }
             else {
@@ -395,7 +402,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let mnemonic = try didStore.exportMnemonic(storepass)
+                let mnemonic = try didStore.exportMnemonic(using: storepass)
                 self.success(command, retAsString: mnemonic)
             }
             else {
@@ -417,8 +424,13 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let resolver = command.arguments[1] as! String
 
-        let didAdapter = mDidAdapterMap[didStoreId]!
-        didAdapter.setResolver(resolver)
+        let cacheDir = getBackendCacheDir();
+        do {
+            try DIDBackend.initializeInstance(resolver, cacheDir);
+        }
+        catch {
+            self.exception(error, command)
+        }
         self.success(command)
     }
 
@@ -433,7 +445,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                try didStore.synchronize(storepass)
+                try didStore.synchronize(using: storepass)
                 self.success(command)
             }
             else {
@@ -482,9 +494,9 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let didDocument = try didStore.newDid(alias, passphrase)
+                let didDocument = try didStore.newDid(withAlias: alias, using: passphrase)
 
-                let did = didDocument.subject! // assume a DIDDocument always has a non null DID.
+                let did = didDocument.subject // assume a DIDDocument always has a non null DID.
                 let didString = did.description
 
                 mDocumentMap[didString] = didDocument
@@ -514,13 +526,13 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                if let didDocument = try didStore.loadDid(didString) {
-                    mDocumentMap[didDocument.subject!.description] = didDocument
+                if let didDocument: DIDDocument = try didStore.loadDid(didString) {
+                    mDocumentMap[didDocument.subject.description] = didDocument
 
                     let r = NSMutableDictionary()
-                    r.setValue(didDocument.description(true), forKey: "diddoc")
+                    r.setValue(didDocument.description, forKey: "diddoc")
 
-                    if let updated = didDocument.getUpdated() {
+                    if let updated = didDocument.updatedDate {
                         let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                         r.setValue(isoDate, forKey: "updated")
                     }
@@ -557,7 +569,7 @@ class DIDPlugin : TrinityPlugin {
         do {
             var dids: [DID]? = nil
             if let didStore = mDIDStoreMap[didStoreId] {
-                dids = try didStore.listDids(filter)
+                dids = try didStore.listDids(using: filter)
             }
             let r = try JSONObjectHolder.getDIDsInfoJson(dids: dids)
             self.success(command, retAsDict: r)
@@ -579,8 +591,8 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let txId = try didStore.publishDid(didString, storepass)
-                self.success(command, retAsString: txId!)
+                let txId = try didStore.publishDid(for: didString, using: storepass)
+                self.success(command, retAsString: txId)
             }
             else {
                 self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
@@ -605,11 +617,11 @@ class DIDPlugin : TrinityPlugin {
             // Resolve and force to NOT use a locally cached copy.
             let didDocument = try did.resolve(true)
 
-            mDocumentMap[didDocument!.subject!.description] = didDocument
+            mDocumentMap[didDocument.subject.description] = didDocument
 
             let r = NSMutableDictionary()
-            r.setValue(didDocument!.description(true), forKey: "diddoc")
-            r.setValue(didDocument!.getUpdated(), forKey: "updated")
+            r.setValue(didDocument.description, forKey: "diddoc")
+            r.setValue(didDocument.updatedDate, forKey: "updated")
 
             self.success(command, retAsDict: r)
         }
@@ -631,7 +643,7 @@ class DIDPlugin : TrinityPlugin {
         if let didDocument = mDocumentMap[didString] {
             do {
                 if let didStore = mDIDStoreMap[didStoreId] {
-                    try didStore.storeDid(didDocument, alias)
+                    try didStore.storeDid(using: didDocument, with: alias)
                     self.success(command)
                 }
                 else {
@@ -661,7 +673,7 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
-                let issuer = try Issuer(did, didStore)
+                let issuer = try VerifiableCredentialIssuer(did, didStore)
                 mIssuerMap[didString] = issuer
             }
             else {
@@ -686,7 +698,7 @@ class DIDPlugin : TrinityPlugin {
         let credentialId = command.arguments[3] as! String
         let types = command.arguments[4] as! Array<String>
         let days = command.arguments[5] as! Int
-        let properties = command.arguments[6] as! Dictionary<String, Any>
+        let properties = command.arguments[6] as! Dictionary<String, String>
         //Map<String, String> props = JSONObject2Map(properties);
         let passphrase = command.arguments[7] as! String
 
@@ -702,7 +714,7 @@ class DIDPlugin : TrinityPlugin {
             if (issuer == nil) {
                 if let didStore = mDIDStoreMap[didStoreId] {
                     let did = try DID(didString)
-                    issuer = try Issuer(did, didStore)
+                    issuer = try VerifiableCredentialIssuer(did, didStore)
                     mIssuerMap[didString] = issuer
                 }
                 else {
@@ -713,15 +725,15 @@ class DIDPlugin : TrinityPlugin {
 
             let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
 
-            let vc = try issuer!.issueFor(did: subjectDid)
-                .idString(self.getDidUrlFragment(didUrl: credentialId))
-                .types(types)
-                .expirationDate(expire)
-                .properties(properties)
-                .seal(storepass: passphrase)
+            let vc = try issuer!.editingVerifiableCredentialFor(did: subjectDid)
+                .withId(self.getDidUrlFragment(didUrl: credentialId))
+                .withTypes(types)
+                .withExpirationDate(expire)
+                .withProperties(properties)
+                .sealed(using: passphrase)
 
             let ret = NSMutableDictionary()
-            ret.setValue(vc.description(true), forKey: "credential")
+            ret.setValue(vc.description, forKey: "credential")
             self.success(command, retAsDict: ret)
         }
         catch {
@@ -749,10 +761,10 @@ class DIDPlugin : TrinityPlugin {
                 var vc: VerifiableCredential? = nil
 
                 if (didUrlString.hasPrefix("did:elastos:")) {
-                    vc = try didStore.loadCredential(DID(didString), DIDURL(didUrlString))
+                    vc = try didStore.loadCredential(for: DID(didString), byId: DIDURL(didUrlString))
                 }
                 else {
-                    vc = try didStore.loadCredential(didString, didUrlString)
+                    vc = try didStore.loadCredential(for: didString, byId: didUrlString)
                 }
 
                 if (vc == nil) {
@@ -762,7 +774,7 @@ class DIDPlugin : TrinityPlugin {
 
                 mCredentialMap[didUrlString] = vc
                 let ret = NSMutableDictionary()
-                ret.setValue(vc?.description(true), forKey: "credential")
+                ret.setValue(vc?.description, forKey: "credential")
                 self.success(command, retAsDict: ret)
             }
             else {
@@ -782,13 +794,13 @@ class DIDPlugin : TrinityPlugin {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let credentialDict = command.arguments[1] as! Dictionary<String, Any>
+        let credentials = command.arguments[1] as! Dictionary<String, Any>
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                let credential = try VerifiableCredential.fromJson(credentialDict)
-                try didStore.storeCredential(credential)
-                mCredentialMap[credential.id.description] = credential
+                let credential = try VerifiableCredential.fromJson(credentials)
+                try didStore.storeCredential(using: credential)
+                mCredentialMap[credential.getId().description] = credential
                 self.success(command)
             }
             else {
@@ -820,10 +832,10 @@ class DIDPlugin : TrinityPlugin {
             if let didStore = mDIDStoreMap[didStoreId] {
                 var ret = false
                 if (didUrlString.hasPrefix("did:elastos:")) {
-                    ret = try didStore.deleteCredential(DID(didString), DIDURL(didUrlString))
+                    ret = try didStore.deleteCredential(for: DID(didString), id: DIDURL(didUrlString))
                 }
                 else {
-                    ret = try didStore.deleteCredential(didString, didUrlString)
+                    ret = didStore.deleteCredential(for: didString, id: didUrlString)
                 }
 
                 if (ret) {
@@ -855,12 +867,12 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 let did = try DID(didString)
-                let unloadedCredentials = try didStore.listCredentials(did)
+                let unloadedCredentials = try didStore.listCredentials(for: did)
 
                 var credentials: [Any] = []
                 for url in unloadedCredentials {
-                    if let credential = try didStore.loadCredential(did, url) {
-                        let credAsJson = try JSONSerialization.jsonObject(with: credential.description(true).data(using: .utf8)!, options:[])
+                    if let credential = try didStore.loadCredential(for: did, byId: url) {
+                        let credAsJson = try JSONSerialization.jsonObject(with: credential.description.data(using: .utf8)!, options:[])
                         credentials.append(credAsJson)
                     }
                     else {
@@ -896,17 +908,17 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didDocument = mDocumentMap[didUrl] {
-                let publicKeyId = didDocument.getDefaultPublicKey()
+                let publicKeyId = didDocument.defaultPublicKey
 
                 let r = NSMutableDictionary()
 
-                if let pk = try didDocument.getPublicKey(publicKeyId) {
+                if let pk = try didDocument.authorizationKey(ofId: publicKeyId) {
                     let publicKeyJson = NSMutableDictionary()
                     publicKeyJson.setValue(pk.controller.description, forKey: "controller")
                     publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
-                    
+
                     let publicKeyAsString = String(data: try!JSONSerialization.data(withJSONObject: publicKeyJson, options: []), encoding: .utf8)!
-                    
+
                     r.setValue(publicKeyAsString, forKey: "publickey")
                 }
                 else {
@@ -924,7 +936,7 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDDocument_addService(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
             self.sendWrongParametersCount(command, expected: 4)
@@ -939,15 +951,15 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
-                    let db = didDocument.edit()
-                    
+                    let db = didDocument.editing()
+
                     let serviceId = service["id"] as! String
                     let serviceType = service["type"] as! String
                     let serviceEndpoint = service["endpoint"] as! String
 
-                    _ = try db.addService(serviceId, serviceType, serviceEndpoint)
-                    let issuer = try db.seal(storepass: storepass)
-                    try didStore.storeDid(issuer)
+                    _ = try db.appendService(with: serviceId, type: serviceType, endpoint: serviceEndpoint)
+                    let issuer = try db.sealed(using: storepass)
+                    try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
                     mDocumentMap[didString] = issuer
@@ -968,7 +980,7 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
-    
+
     @objc func DIDDocument_removeService(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
             self.sendWrongParametersCount(command, expected: 4)
@@ -983,11 +995,11 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
-                    let db = didDocument.edit();
+                    let db = didDocument.editing();
 
-                    _ = try db.removeService(serviceDidUrl)
-                    let issuer = try db.seal(storepass: storepass)
-                    try didStore.storeDid(issuer)
+                    _ = try db.removeService(with: serviceDidUrl)
+                    let issuer = try db.sealed(using: storepass)
+                    try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
                     mDocumentMap[didString] = issuer
@@ -1023,12 +1035,12 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
-                    let db = didDocument.edit()
+                    let db = didDocument.editing()
 
                     let vc = try VerifiableCredential.fromJson(credential)
-                    _ = db.addCredential(vc)
-                    let issuer = try db.seal(storepass: storepass)
-                    try didStore.storeDid(issuer)
+                    _ = try db.appendCredential(with: vc)
+                    let issuer = try db.sealed(using: storepass)
+                    try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
                     mDocumentMap[didString] = issuer
@@ -1064,12 +1076,12 @@ class DIDPlugin : TrinityPlugin {
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
                 if let didDocument = mDocumentMap[didString] {
-                    let db = didDocument.edit();
+                    let db = didDocument.editing();
 
                     let vc = try VerifiableCredential.fromJson(credential)
-                    _ = db.removeCredential(vc.id)
-                    let issuer = try db.seal(storepass: storepass)
-                    try didStore.storeDid(issuer)
+                    _ = try db.removeCredential(with: vc.getId())
+                    let issuer = try db.sealed(using: storepass)
+                    try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
                     mDocumentMap[didString] = issuer
@@ -1100,7 +1112,7 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[0] as! String
 
         if let didDocument = mDocumentMap[didString] {
-            let credentials = didDocument.getCredentials()
+            let credentials = didDocument.credentials()
 
             let r = NSMutableDictionary()
             r.setValue(credentials, forKey: "credentials")
@@ -1125,7 +1137,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didDocument = mDocumentMap[didString] {
-                let signString = try didDocument.sign(storepass: storepass, inputs: stringToSign)
+                let signString = try didDocument.sign(using: storepass, for: stringToSign.data(using: .utf8)!)
                 self.success(command, retAsString: signString)
             }
             else {
@@ -1150,7 +1162,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didDocument = mDocumentMap[didString] {
-                let ret = try didDocument.verify(signString, stringToVerify)
+                let ret = try didDocument.verify(signature: signString, onto: stringToVerify.data(using: .utf8)!)
                 if ret {
                     self.success(command)
                 }
@@ -1224,11 +1236,11 @@ class DIDPlugin : TrinityPlugin {
                     credentials.append(try VerifiableCredential.fromJson(cred))
                 }
 
-                let builder = try VerifiablePresentation.createFor(did, didStore)
-                let presentation = try builder.credentials(credentials)
-                        .nonce(nonce)
-                        .realm(realm)
-                        .seal(storePass);
+                let builder = try VerifiablePresentation.editingVerifiablePresentation(for: did, using: didStore)
+                let presentation = try builder.withCredentials(credentials)
+                        .withNonce(nonce)
+                        .withRealm(realm)
+                        .sealed(using: storePass);
 
                 self.success(command, retAsString: presentation.description)
             }
@@ -1253,7 +1265,7 @@ class DIDPlugin : TrinityPlugin {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(try presentation.isValid(), forKey: "isvalid");
+            r.setValue(try presentation.isValid, forKey: "isvalid");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)
@@ -1272,7 +1284,7 @@ class DIDPlugin : TrinityPlugin {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(try presentation.isGenuine(), forKey: "isgenuine");
+            r.setValue(try presentation.isGenuine, forKey: "isgenuine");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)

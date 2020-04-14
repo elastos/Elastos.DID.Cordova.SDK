@@ -538,7 +538,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         return this.objId;
     }
 
-    initPrivateIdentity(language: number, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+    initPrivateIdentity(language: DIDPlugin.MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
     }
 
