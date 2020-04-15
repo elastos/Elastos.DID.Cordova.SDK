@@ -861,7 +861,6 @@ public class DIDPlugin extends TrinityPlugin {
 
         Integer days = args.getInt(idx++);
         JSONObject properties = args.getJSONObject(idx++);
-        Map<String, String> props = JSONObject2Map(properties);
         String passphrase = args.getString(idx++);
 
         if (!ensureCredentialIDFormat(credentialId)) {
@@ -893,7 +892,7 @@ public class DIDPlugin extends TrinityPlugin {
                     .id(getDidUrlFragment(credentialId))
                     .type(typeArray)
                     .expirationDate(expire)
-                    .properties(props)
+                    .properties(properties.toString())
                     .seal(passphrase);
 
             //Integer objId = System.identityHashCode(vc);
