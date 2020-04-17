@@ -209,7 +209,7 @@ class NativeDIDDocument {
     publicKey: any[];
     authentication: any[];
     authorization: any[];
-    services: any[];
+    service: any[];
     expires: string; // Not a JS Date, so keep this as a string.
     //proof: any;
     //deactivated: boolean;
@@ -223,6 +223,7 @@ class NativeDIDDocument {
 
         didDocument.created = (this.created?new Date(this.created):null);
         didDocument.updated = (this.updated?new Date(this.updated):null);
+        didDocument.expires = new Date(this.expires);
 
         didDocument.verifiableCredential = []
         if (this.verifiableCredential) { // Could be undefined
@@ -233,17 +234,23 @@ class NativeDIDDocument {
         }
 
         didDocument.services = []
-        if (this.services) { // Could be undefined
-            this.services.forEach((s)=>{
+        if (this.service) { // Could be undefined
+            this.service.forEach(function (s) {
                 let service = NativeService.createFromJson(JSON.stringify(s));
                 didDocument.services.push(service.toService());
             });
         }
 
-        didDocument.publicKey = null; // TODO
+        didDocument.publicKey = [];
+        if (this.publicKey) { // Could be undefined
+            this.publicKey.forEach(function (k) {
+                let publicKey = NativePublicKey.createFromJson(JSON.stringify(k));
+                didDocument.publicKey.push(publicKey.toPublicKey());
+            });
+        }
+
         didDocument.authentication = null; // TODO
         didDocument.authorization = null; // TODO
-        didDocument.expires = null; // TODO
         didDocument.storeId = storeId;
         return didDocument;
     }
@@ -260,20 +267,22 @@ class NativeDIDDocument {
         if (didDocument.getUpdated())
             nativeDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
 
+        if (didDocument.getExpires())
+            nativeDidDocument.expires = didDocument.getExpires().toISOString().replace(".000", "");
+
         nativeDidDocument.verifiableCredential = [];
         didDocument.getCredentials().forEach((c)=>{
             nativeDidDocument.verifiableCredential.push(NativeVerifiableCredential.createFromVerifiableCredential(c));
         });
 
-        nativeDidDocument.services = [];
+        nativeDidDocument.service = [];
         didDocument.getServices().forEach((s)=>{
-            nativeDidDocument.services.push(NativeService.createFromService(s));
+            nativeDidDocument.service.push(NativeService.createFromService(s));
         });
 
         nativeDidDocument.publicKey = null; // TODO
         nativeDidDocument.authentication = null; // TODO
         nativeDidDocument.authorization = null; // TODO
-        nativeDidDocument.expires = null; // TODO
         return nativeDidDocument;
     }
 
@@ -325,6 +334,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     getUpdated(): Date {
         return this.updated;
+    }
+
+    getExpires(): Date {
+        return this.expires;
     }
 
     getPublicKeyCount(): Number {

@@ -179,6 +179,7 @@ declare module DIDPlugin {
     interface DIDDocument {
         getCreated(): Date;
         getUpdated(): Date;
+        getExpires(): Date;
         setSubject(subject: DID);
         getSubject(): DID;
 
