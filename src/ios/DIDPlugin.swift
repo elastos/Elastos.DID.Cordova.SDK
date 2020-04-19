@@ -698,7 +698,7 @@ class DIDPlugin : TrinityPlugin {
         let credentialId = command.arguments[3] as! String
         let types = command.arguments[4] as! Array<String>
         let days = command.arguments[5] as! Int
-        let properties = command.arguments[6] as! Dictionary<String, String>
+        let properties = command.arguments[6] as! Dictionary<String, Any>
         //Map<String, String> props = JSONObject2Map(properties);
         let passphrase = command.arguments[7] as! String
 
@@ -725,16 +725,21 @@ class DIDPlugin : TrinityPlugin {
 
             let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
 
-            let vc = try issuer!.editingVerifiableCredentialFor(did: subjectDid)
-                .withId(self.getDidUrlFragment(didUrl: credentialId))
-                .withTypes(types)
-                .withExpirationDate(expire)
-                .withProperties(properties)
-                .sealed(using: passphrase)
+            if let propsAsString = properties.toString() {
+                let vc = try issuer!.editingVerifiableCredentialFor(did: subjectDid)
+                    .withId(self.getDidUrlFragment(didUrl: credentialId))
+                    .withTypes(types)
+                    .withExpirationDate(expire)
+                    .withProperties(propsAsString)
+                    .sealed(using: passphrase)
 
-            let ret = NSMutableDictionary()
-            ret.setValue(vc.description, forKey: "credential")
-            self.success(command, retAsDict: ret)
+                let ret = NSMutableDictionary()
+                ret.setValue(vc.description, forKey: "credential")
+                self.success(command, retAsDict: ret)
+            }
+            else {
+                self.error(command, retAsString: "Invalid json format for credential properties")
+            }
         }
         catch {
             self.exception(error, command)
