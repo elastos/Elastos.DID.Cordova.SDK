@@ -915,7 +915,7 @@ class PublicKeyImpl implements DIDPlugin.PublicKey {
 class NativeService {
     id: string;
     type: string;
-    endpoint: string;
+    serviceEndpoint: string;
 
     toService(): ServiceImpl {
         let service = new ServiceImpl();
@@ -945,7 +945,7 @@ class NativeService {
 class ServiceImpl implements DIDPlugin.Service {
     id: string;
     type: string;
-    endpoint;
+    serviceEndpoint;
 
     getId(): string {
         return this.id;
@@ -956,7 +956,7 @@ class ServiceImpl implements DIDPlugin.Service {
     }
 
     getEndpoint(): string {
-        return this.endpoint;
+        return this.serviceEndpoint;
     }
 }
 
