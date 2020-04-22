@@ -662,6 +662,8 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
 
     private createIdTransactionEvent:DIDManagerEvent;
 
+    hasSetListener = false;
+
     constructor() {
         Object.freeze(DIDManagerImpl.prototype);
         Object.freeze(DIDStoreImpl.prototype);
@@ -670,10 +672,6 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(PublicKeyImpl.prototype);
         Object.freeze(ServiceImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
-
-        this.setListener(LISTENER_IDTRANSACTION, (event) => {
-            this.createIdTransactionEvent.callback(event.payload, event.memo);
-        });
     }
     ServiceBuilder: DIDPlugin.ServiceBuilder;
 
@@ -696,6 +694,13 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
+        if (!this.hasSetListener) {
+            this.setListener(LISTENER_IDTRANSACTION, (event) => {
+                this.createIdTransactionEvent.callback(event.payload, event.memo);
+            });
+            this.hasSetListener = true;
+        }
+
         var callbackId = 0;
         if (typeof createIdTransactionCallback === "function") {
             callbackId = this.addCreateIdTransactionCB(createIdTransactionCallback);
