@@ -23,6 +23,7 @@
 package org.elastos.trinity.plugins.did;
 
 import android.util.Log;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.Mnemonic;
@@ -30,7 +31,14 @@ import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDStoreException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
-import org.elastos.trinity.runtime.ConfigManager;
+import org.elastos.did.jwt.Claims;
+import org.elastos.did.jwt.Header;
+import org.elastos.did.jwt.Jws;
+import org.elastos.did.jwt.JwsHeader;
+import org.elastos.did.jwt.JwtBuilder;
+import org.elastos.did.jwt.JwtException;
+import org.elastos.did.jwt.JwtParser;
+import org.elastos.did.jwt.JwtParserBuilder;
 import org.elastos.trinity.runtime.PreferenceManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
@@ -41,14 +49,12 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
 import org.elastos.did.*;
-
 
 /**
  * This class echoes a string called from JavaScript.
@@ -256,6 +262,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "verify":
                     this.verify(args, callbackContext);
                     break;
+                case "createJWT":
+                    this.createJWT(args, callbackContext);
+                    break;
                 //DID
                 case "getMethod":
                     this.getMethod(args, callbackContext);
@@ -294,13 +303,12 @@ public class DIDPlugin extends TrinityPlugin {
         return true;
     }
 
-    private Map<String, String> JSONObject2Map(JSONObject jsonobj)  throws JSONException {
-        Map<String, String> map = new HashMap<String, String>();
+    private Map<String, Object> JSONObject2Map(JSONObject jsonobj)  throws JSONException {
+        Map<String, Object> map = new HashMap<String, Object>();
         Iterator<String> keys = jsonobj.keys();
         while(keys.hasNext()) {
             String key = keys.next();
-            Object value = jsonobj.get(key);
-            map.put(key, value.toString());
+            map.put(key, jsonobj.get(key));
         }
         return map;
     }
@@ -885,7 +893,7 @@ public class DIDPlugin extends TrinityPlugin {
             }
 
             Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.DATE, cal.get(Calendar.DATE) + days);
+            cal.add(Calendar.DATE, days);
             Date expire = cal.getTime();
 
             VerifiableCredential vc = issuer.issueFor(subjectDid)
@@ -1275,6 +1283,51 @@ public class DIDPlugin extends TrinityPlugin {
         }
         else {
             errorProcess(callbackContext, errCodeVerify, "verify return false!");
+        }
+    }
+
+    private void createJWT(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didString = args.getString(idx++);
+        JSONObject properties = args.getJSONObject(idx++);
+        Map<String, Object> props = JSONObject2Map(properties);
+        Integer days = args.getInt(idx++);
+        String storepass = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            DIDDocument didDocument = mDocumentMap.get(didString);
+
+            JwsHeader header = JwtBuilder.createJwsHeader();
+            header.setType(Header.JWT_TYPE)
+                  .setContentType("json");
+
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.MILLISECOND, 0);
+            Date iat = cal.getTime();
+            cal.add(Calendar.DATE, days);
+            Date exp = cal.getTime();
+
+            Claims body = JwtBuilder.createClaims();
+            body.setIssuer(didString)
+                .setIssuedAt(iat)
+                .setExpiration(exp)
+                .putAll(props);
+
+            String token = didDocument.jwtBuilder()
+                .setHeader(header)
+                .setClaims(body)
+                .sign(storepass)
+                .compact();
+
+            callbackContext.success(token);
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "createJWT ");
         }
     }
 

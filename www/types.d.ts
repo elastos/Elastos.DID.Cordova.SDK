@@ -242,6 +242,14 @@ declare module DIDPlugin {
         sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
         verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
         publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+
+        /**
+         * create JWT, signed by DID document.
+         *
+         * @param validityDays Number of Days at which the JWT will become invalid.
+         * @param properties Any multi-level object that contains the actual information.
+         */
+        createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
     }
 
     interface VerifiablePresentationBuilder {

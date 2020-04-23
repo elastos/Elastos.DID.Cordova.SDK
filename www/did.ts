@@ -476,6 +476,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.storeId, this.id.getDIDString(), storepass]);
     }
+
+    createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string) => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'createJWT', [this.id.getDIDString(), properties, validityDays, storepass]);
+    }
 }
 
 class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentationBuilder {

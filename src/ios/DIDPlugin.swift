@@ -1185,6 +1185,33 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    @objc func createJWT(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 5 else {
+            self.sendWrongParametersCount(command, expected: 5)
+            return
+        }
+
+        let didString = command.arguments[1] as! String
+        let properties = command.arguments[2] as! Dictionary<String, Any>
+        let days = command.arguments[3] as! Int
+        let storepass = command.arguments[4] as! String
+
+        do {
+            if let didDocument = mDocumentMap[didString] {
+
+                // TODO
+                self.error(command, retAsString: "Not implemented")
+            }
+            else {
+                self.error(command, retAsString: "No DID document found matching did string \(didString)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
+    }
+
     // PublicKey
     @objc func getMethod(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
