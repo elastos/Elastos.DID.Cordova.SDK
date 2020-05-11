@@ -1290,7 +1290,6 @@ public class DIDPlugin extends TrinityPlugin {
         int idx = 0;
         String didString = args.getString(idx++);
         JSONObject properties = args.getJSONObject(idx++);
-        Map<String, Object> props = JSONObject2Map(properties);
         Integer days = args.getInt(idx++);
         String storepass = args.getString(idx++);
 
@@ -1316,7 +1315,7 @@ public class DIDPlugin extends TrinityPlugin {
             body.setIssuer(didString)
                 .setIssuedAt(iat)
                 .setExpiration(exp)
-                .putAll(props);
+                .putAllWithJson(properties.toString());
 
             String token = didDocument.jwtBuilder()
                 .setHeader(header)

@@ -246,8 +246,8 @@ declare module DIDPlugin {
         /**
          * create JWT, signed by DID document.
          *
+         * @param properties JSON object that contains the actual information.
          * @param validityDays Number of Days at which the JWT will become invalid.
-         * @param properties Any multi-level object that contains the actual information.
          */
         createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
     }
