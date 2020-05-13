@@ -917,7 +917,7 @@ class DIDPlugin : TrinityPlugin {
 
                 let r = NSMutableDictionary()
 
-                if let pk = try didDocument.authorizationKey(ofId: publicKeyId) {
+                if let pk = try didDocument.publicKey(ofId: publicKeyId) {
                     let publicKeyJson = NSMutableDictionary()
                     publicKeyJson.setValue(pk.controller.description, forKey: "controller")
                     publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
