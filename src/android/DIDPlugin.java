@@ -63,6 +63,8 @@ public class DIDPlugin extends TrinityPlugin {
     private static String TAG = "DIDPlugin";
 
     private static final int IDTRANSACTION  = 1;
+    private static final String DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did";
+    private static final String DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession";
 
     private CallbackContext idTransactionCC  = null;
 
@@ -382,10 +384,19 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    private String getStoreDataDir(String didStoreId) {
+        if (appId.equals(DID_APPLICATION_APP_ID) || appId.equals(DID_SESSION_APPLICATION_APP_ID)) {
+            return cordova.getActivity().getFilesDir() + "/data/did/useridentities/" + didStoreId;
+        }
+        else {
+            return getDataPath() + "did/" + didStoreId;
+        }
+    }
+
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
-        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + didStoreId;
+        String dataDir = getStoreDataDir(didStoreId);
         int callbackId = args.getInt(idx++);
 
         if (args.length() != idx) {
