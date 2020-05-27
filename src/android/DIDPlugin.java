@@ -496,17 +496,37 @@ public class DIDPlugin extends TrinityPlugin {
                 DIDBackend.initialize(resolver, cacheDir);
             }
 
-            DIDDocument didDocument = new DID(didString).resolve(forceRemote);
-            JSONObject ret = new JSONObject();
+            new AsyncTask<Void, Void, DIDDocument>() {
+                @Override
+                protected DIDDocument doInBackground(Void... voids) {
+                    DIDDocument didDocument;
+                    try {
+                        didDocument = new DID(didString).resolve(forceRemote);
+                    } catch (DIDException e) {
+                        e.printStackTrace();
+                        return null;
+                    }
+                    return didDocument;
+                }
 
-            if (didDocument != null) {
-                ret.put("diddoc", didDocument.toString(true));
-                ret.put("updated", didDocument.getUpdated());
-            }
-            else {
-                ret.put("diddoc", null);
-            }
-            callbackContext.success(ret);
+                @Override
+                protected void onPostExecute(DIDDocument didDocument) {
+                    JSONObject ret = new JSONObject();
+
+                    try {
+                        if (didDocument != null) {
+                            ret.put("diddoc", didDocument.toString(true));
+                            ret.put("updated", didDocument.getUpdated());
+                        } else {
+                            ret.put("diddoc", null);
+                        }
+                        callbackContext.success(ret);
+                    }
+                    catch (Exception e) {
+                        exceptionProcess(e, callbackContext, "DIDManager_resolveDIDDocument ");
+                    }
+                }
+            }.execute();
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "DIDManager_resolveDIDDocument ");
