@@ -22,14 +22,19 @@
 
 package org.elastos.trinity.plugins.did;
 
+import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.Mnemonic;
+import org.elastos.did.exception.DIDBackendException;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDStoreException;
+import org.elastos.did.exception.MalformedDIDException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.did.jwt.Claims;
@@ -470,6 +475,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    @SuppressLint("StaticFieldLeak")
     private void DIDManager_resolveDIDDocument(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didString = args.getString(idx++);
@@ -747,7 +753,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
-    private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    /*private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
         String didString = args.getString(idx++);
@@ -766,11 +772,20 @@ public class DIDPlugin extends TrinityPlugin {
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "publishDid ");
         }
-    }
+    }*/
 
-    // use thread to do publishDID,
-    // then dapp send the txID to did sdk by setTransactionResult
-    private void publishDidAsync(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    /**
+     * Initiate a DID document publication process from the local device to the DID sidechain.
+     *
+     * During this process, the DID SDK generates a "publish DID" request, and this request is passed
+     * to the createIdTransactionCallback() previously setup when calling initDIDStore.
+     *
+     * Application code in this callback is responsible for calling the wallet app, or any blockchain
+     * publication service, that will return the transaction ID DIDStore.setTransactionResult(). The
+     * chain transaction ID is necessary for the DID SDK to deal with DID document updates and
+     * synchronization.
+     */
+    private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
         String didString = args.getString(idx++);
@@ -781,42 +796,27 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-        globalDidAdapter.setPublishAsync(true);
-
         new Thread(() -> {
             try {
                 DIDStore didStore = mDIDStoreMap.get(didStoreId);
-                didStore.publishDid(didString, storepass);
+                String txID = didStore.publishDid(didString, storepass);
+                globalDidAdapter.setTransactionID(txID);
+                callbackContext.success();
             }
             catch (DIDException e) {
-                synchronized (globalDidAdapter) {
-                    globalDidAdapter.notifyAll();
-                }
                 exceptionProcess(e, callbackContext, "publishDid ");
             }
         }).start();
-
-        try {
-            synchronized (globalDidAdapter) {
-                globalDidAdapter.wait();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if (globalDidAdapter.isWaitIdTransaction())
-            callbackContext.success();
     }
 
     private void setTransactionResult(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        int idx = 0;
-        String didStoreId = args.getString(idx++);
-        String txID = args.getString(idx++);
-
-        if (args.length() != idx) {
-            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+        if (args.length() != 2) {
+            errorProcess(callbackContext, errCodeInvalidArg, "2 parameters are expected");
             return;
         }
+
+        String didStoreId = args.getString(0);
+        String txID = args.isNull(1) ? null : args.getString(1);
 
         globalDidAdapter.setTransactionID(txID);
 
