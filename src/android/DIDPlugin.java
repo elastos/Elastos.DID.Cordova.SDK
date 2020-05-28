@@ -22,6 +22,7 @@
 
 package org.elastos.trinity.plugins.did;
 
+import android.os.AsyncTask;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
@@ -33,12 +34,8 @@ import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.did.jwt.Claims;
 import org.elastos.did.jwt.Header;
-import org.elastos.did.jwt.Jws;
 import org.elastos.did.jwt.JwsHeader;
 import org.elastos.did.jwt.JwtBuilder;
-import org.elastos.did.jwt.JwtException;
-import org.elastos.did.jwt.JwtParser;
-import org.elastos.did.jwt.JwtParserBuilder;
 import org.elastos.trinity.runtime.PreferenceManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
