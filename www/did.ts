@@ -663,6 +663,7 @@ type DIDManagerEvent = {
 class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
+    ServiceBuilder: DIDPlugin.ServiceBuilder;
 
     private createIdTransactionEvent:DIDManagerEvent;
 
@@ -677,7 +678,6 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(ServiceImpl.prototype);
         Object.freeze(VerifiableCredentialImpl.prototype);
     }
-    ServiceBuilder: DIDPlugin.ServiceBuilder;
 
     addCreateIdTransactionCB(callback) {
         var eventcb: DIDManagerEvent = {
@@ -753,6 +753,16 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
                 onSuccess(null);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'DIDManager_resolveDIDDocument', [didString, forceRemote]);
+    }
+
+    parseJWT(shouldVerifySignature: boolean, jwtToken: String): Promise<DIDPlugin.ParseJWTResult> {
+        return new Promise((resolve, reject)=>{
+            exec((ret: DIDPlugin.ParseJWTResult)=>{
+                resolve(ret);
+            }, (err)=>{
+                reject(err);
+            }, 'DIDPlugin', 'DIDManager_parseJWT', [shouldVerifySignature, jwtToken]);
+        })
     }
 }
 

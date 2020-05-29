@@ -282,6 +282,7 @@ declare module DIDPlugin {
     interface DIDStore {
         getId():string;
         initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void);
+
         /**
          * Change the didstore password
          *
@@ -324,6 +325,16 @@ declare module DIDPlugin {
         setTransactionResult(txID: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
     }
 
+    /**
+     * Infomation returned after parsing a DID-signed JWT.
+     */
+    type ParseJWTResult = {
+        /** Whether the JWT signature was signed by a DID and verified successfully or not. False if shouldVerifySignature is false. */
+        signatureIsValid: boolean;
+        /** Raw JSON data extracted from the JWT */
+        payload: Object
+    }
+
     interface DIDManager {
         getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void);
         initDidStore(didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void);
@@ -334,13 +345,33 @@ declare module DIDPlugin {
 
         /**
          * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to
-         * resolve DID Document of public/friends/external DID entities that we don't own in a local DIDStore.
+         * resolve DID documents of public/friends/external DID entities that we don't own in a local DIDStore.
          *
          * Those resolved documents are cached inside the shared DIDBackend.
          *
          * @param forceRemote True will not use previously resolved document stored locally in cache. False will try to load locally then load from chain if nothing found (or expired).
          */
         resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+
+        /**
+         * Parses a JWT token and does several things:
+         * - Extract the JWT payload and return it
+         * - Optionally, verifies the signing DID using the DID sidechain.
+         * 
+         * If verifySignature is true, the issuing DID (iss)'s public key is retrieved from the DID
+         * sidechain, so that the JWT signature can be verified.
+         * 
+         * In case the DID cannot be found on chain, or if the signature is wrong, the app is informed of it and
+         * it (or the user) can decide to use the JWT or not.
+         * 
+         * In case the DID cannot be resolved on chain, signatureIsValid is considered as false, as it's impossible
+         * to verify the signature.
+         * 
+         * @param verifySignature True to resolve the DID on chain to verify the signatrue, false to not verify.
+         * 
+         * @returns Various informations about the parse result. See ParseJWTResult.
+         */
+        parseJWT(verifySignature: boolean, jwtToken: String): Promise<ParseJWTResult>;
 
         VerifiableCredentialBuilder: VerifiableCredentialBuilder;
         VerifiablePresentationBuilder: VerifiablePresentationBuilder;

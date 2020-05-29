@@ -23,24 +23,25 @@
 package org.elastos.trinity.plugins.did;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.Mnemonic;
-import org.elastos.did.exception.DIDBackendException;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDStoreException;
-import org.elastos.did.exception.MalformedDIDException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.did.jwt.Claims;
+import org.elastos.did.jwt.ExpiredJwtException;
 import org.elastos.did.jwt.Header;
 import org.elastos.did.jwt.JwsHeader;
+import org.elastos.did.jwt.JwsSignatureException;
+import org.elastos.did.jwt.Jwt;
 import org.elastos.did.jwt.JwtBuilder;
+import org.elastos.did.jwt.JwtParserBuilder;
+import org.elastos.trinity.runtime.IntentManager;
 import org.elastos.trinity.runtime.PreferenceManager;
 import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
@@ -295,6 +296,9 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "verifiablePresentationIsGenuine":
                     this.verifiablePresentationIsGenuine(args, callbackContext);
+                    break;
+                case "DIDManager_parseJWT":
+                    this.DIDManager_parseJWT(args, callbackContext);
                     break;
                 default:
                     errorProcess(callbackContext, errCodeActionNotFound, "Action '" + action + "' not found, please check!");
@@ -1355,6 +1359,75 @@ public class DIDPlugin extends TrinityPlugin {
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "createJWT ");
+        }
+    }
+
+    private void DIDManager_parseJWT(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        boolean verifySignature = args.getBoolean(idx++);
+        String jwtToken = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            if (verifySignature) {
+                JSONObject r = new JSONObject();
+
+                // The DID SDK JWT parser already does the whole verification itself. Run this in a
+                // background thread because there is potentially a network call involved.
+                new Thread(() -> {
+                    try {
+                        try {
+                            Jwt parsedAndVerifiedJwt = new JwtParserBuilder().build().parse(jwtToken);
+                            Claims claims = (Claims) parsedAndVerifiedJwt.getBody();
+                            JSONObject jsonPayload = new JSONObject(claims);
+
+                            r.put("signatureIsValid", true);
+                            r.put("payload", jsonPayload);
+                        } catch (JwsSignatureException e) {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                            r.put("signatureIsValid", false);
+                            r.put("payload", jsonPayload);
+                            r.put("errorReason", "DID not found on chain, or invalid signature");
+                        } catch (ExpiredJwtException e) {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                            r.put("signatureIsValid", false);
+                            r.put("payload", jsonPayload);
+                            r.put("errorReason", "JWT token is expired");
+                        }
+                        callbackContext.success(r);
+                    }
+                    catch (Exception e) {
+                        exceptionProcess(e, callbackContext, "DIDManager_parseJWT ");
+                    }
+                }).start();
+            }
+            else {
+                // No need to verify the JWT signature - just extract the payload manually without verification
+                // We can't use the DID parser as it will foce signature verification.
+                JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                JSONObject r = new JSONObject();
+                r.put("signatureIsValid", false);
+                r.put("payload", jsonPayload);
+
+                callbackContext.success(r);
+            }
+        }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "DIDManager_parseJWT ");
+        }
+        catch (Exception e) {
+            exceptionProcess(e, callbackContext, "DIDManager_parseJWT ");
         }
     }
 
