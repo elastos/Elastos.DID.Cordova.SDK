@@ -23,13 +23,24 @@
 package org.elastos.trinity.plugins.did;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
+import org.elastos.did.DID;
+import org.elastos.did.DIDBackend;
+import org.elastos.did.DIDDocument;
+import org.elastos.did.DIDStore;
+import org.elastos.did.DIDURL;
+import org.elastos.did.Issuer;
 import org.elastos.did.Mnemonic;
+import org.elastos.did.VerifiableCredential;
+import org.elastos.did.VerifiablePresentation;
 import org.elastos.did.exception.DIDException;
+import org.elastos.did.exception.DIDResolveException;
 import org.elastos.did.exception.DIDStoreException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
@@ -47,17 +58,16 @@ import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-
-import org.elastos.did.*;
 
 /**
  * This class echoes a string called from JavaScript.
@@ -343,12 +353,12 @@ public class DIDPlugin extends TrinityPlugin {
         return jsonArray.isNull(index) ? "" : jsonArray.getString(index);
     }
 
-    private String getDefaultResolverUrl() {
+    private static String getDefaultResolverUrl() {
         return PreferenceManager.getShareInstance().getDIDResolver();
     }
 
-    private String getDefaultCacheDir() {
-        return cordova.getActivity().getFilesDir() + "/data/did/.cache.did.elastos";
+    private static String getDefaultCacheDir(Context context) {
+        return context.getFilesDir() + "/data/did/.cache.did.elastos";
     }
 
     private void getVersion(JSONArray args, CallbackContext callbackContext) {
@@ -410,9 +420,7 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
         try {
-            String cacheDir = getDefaultCacheDir();
-            String resolver = getDefaultResolverUrl();
-            DIDBackend.initialize(resolver, cacheDir);
+            initializeDIDBackend(cordova.getActivity());
 
             globalDidAdapter = new DIDPluginAdapter(callbackId);
 
@@ -479,6 +487,12 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    public static void initializeDIDBackend(Context context) throws DIDResolveException {
+        String cacheDir = getDefaultCacheDir(context);
+        String resolver = getDefaultResolverUrl();
+        DIDBackend.initialize(resolver, cacheDir);
+    }
+
     @SuppressLint("StaticFieldLeak")
     private void DIDManager_resolveDIDDocument(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -491,17 +505,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
-            // This is "ok" as long as the DID App is the only one to call publish().
-            //
-            // If no initDidStore() has been called yet, we need to initialize the DID backend
-            // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
-            // DIDBackend.initialize() with a real adapter that will overwrite our init.
-            if (globalDidAdapter == null) {
-                String cacheDir = getDefaultCacheDir();
-                String resolver = getDefaultResolverUrl();
-                DIDBackend.initialize(resolver, cacheDir);
-            }
+            initializeDIDBackend(cordova.getActivity());
 
             new AsyncTask<Void, Void, DIDDocument>() {
                 @Override
@@ -628,8 +632,7 @@ public class DIDPlugin extends TrinityPlugin {
         }
 
         try {
-            String cacheDir = getDefaultCacheDir();
-            DIDBackend.initialize(resolver, cacheDir);
+            initializeDIDBackend(cordova.getActivity());
             callbackContext.success();
         }
         catch(DIDException e) {
