@@ -26,6 +26,9 @@ import ElastosDIDSDK
 @objc(DIDPlugin)
 class DIDPlugin : TrinityPlugin {
     internal static let TAG = "DIDPlugin"
+    
+    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
+    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
 
     internal let keyCode        = "code"
     internal let keyMessage     = "message"
@@ -179,6 +182,15 @@ class DIDPlugin : TrinityPlugin {
         result?.setKeepCallbackAs(true);
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
+    
+    private func getStoreDataDir(didStoreId: String) -> String {
+        if appId == DIDPlugin.DID_APPLICATION_APP_ID || appId == DIDPlugin.DID_SESSION_APPLICATION_APP_ID {
+            return NSHomeDirectory() + "/Documents/data/did/useridentities/" + didStoreId
+        }
+        else {
+            return getDataPath() + "did/" + didStoreId
+        }
+    }
 
     @objc func initDidStore(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
@@ -192,7 +204,7 @@ class DIDPlugin : TrinityPlugin {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let dataDir = getDIDDataDir() + didStoreId;
+        let dataDir = getStoreDataDir(didStoreId: didStoreId)
         let callbackId = command.arguments[1] as! Int
 
         do {
