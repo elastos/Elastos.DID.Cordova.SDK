@@ -306,21 +306,26 @@ class DIDPlugin : TrinityPlugin {
 
             let ret = NSMutableDictionary()
 
-            if let didDocument: DIDDocument = try DID(didString).resolve(forceRemote) {
-                ret.setValue(didDocument.description, forKey: "diddoc")
+            // Resolve in a background thread as this runs a blocking netwok call.
+            DispatchQueue(label: "DIDresolve").async {
+                do {
+                    let didDocument: DIDDocument = try DID(didString).resolve(forceRemote)
+                    ret.setValue(didDocument.description, forKey: "diddoc")
 
-                if let updated: Date? = try didDocument.updatedDate {
-                    let isoDate = ISO8601DateFormatter.string(from: updated!, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
-                    ret.setValue(isoDate, forKey: "updated")
+                    if let updated = didDocument.updatedDate {
+                        let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                        ret.setValue(isoDate, forKey: "updated")
+                    }
+                    else {
+                        ret.setValue(nil, forKey: "updated")
+                    }
+                   
+                    self.success(command, retAsDict: ret)
                 }
-                else {
-                    ret.setValue(nil, forKey: "updated")
+                catch (let error) {
+                    self.exception(error, command)
                 }
             }
-            else {
-                ret.setValue(nil, forKey: "diddoc")
-            }
-            self.success(command, retAsDict: ret)
         }
         catch  {
             self.exception(error, command)
