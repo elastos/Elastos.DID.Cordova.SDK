@@ -1239,6 +1239,76 @@ class DIDPlugin : TrinityPlugin {
             self.exception(error, command)
         }
     }
+    
+    @objc func DIDManager_parseJWT(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+        
+        let verifySignature = command.arguments[0] as? Bool ?? false
+        
+        guard let jwtToken = command.arguments[0] as? String else {
+            self.error(command, retAsString: "Invalid JWT token")
+            return
+        }
+
+        do {
+            if verifySignature {
+                let r = Dictionary<String, Any>()
+
+                // The DID SDK JWT parser already does the whole verification itself. Run this in a
+                // background thread because there is potentially a network call involved.
+                DispatchQueue(label: "parseJWT").async {
+                    do {
+                        /* TODO AFTER DID SDK UPGRADE FOR JWT
+                         
+                         do {
+                            Jwt parsedAndVerifiedJwt = new JwtParserBuilder().build().parse(jwtToken);
+                            Claims claims = (Claims) parsedAndVerifiedJwt.getBody();
+                            JSONObject jsonPayload = new JSONObject(claims);
+
+                            r.put("signatureIsValid", true);
+                            r.put("payload", jsonPayload);
+                        } catch (JwsSignatureException e) {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                            r.put("signatureIsValid", false);
+                            r.put("payload", jsonPayload);
+                            r.put("errorReason", "DID not found on chain, or invalid signature");
+                        } catch (ExpiredJwtException e) {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                            r.put("signatureIsValid", false);
+                            r.put("payload", jsonPayload);
+                            r.put("errorReason", "JWT token is expired");
+                        }
+                        callbackContext.success(r);*/
+                    }
+                    catch (let error) {
+                        self.exception(error, command)
+                    }
+                }
+            }
+            else {
+                // No need to verify the JWT signature - just extract the payload manually without verification
+                // We can't use the DID parser as it will foce signature verification.
+                let jsonPayload = try IntentManager.parseJWT(jwtToken)
+
+                var r = Dictionary<String, Any>()
+                r["signatureIsValid"] = false
+                r["payload"] = jsonPayload
+                self.success(command, retAsDict: r as NSDictionary)
+            }
+        }
+        catch (let error) {
+            self.exception(error, command)
+        }
+    }
 
     // PublicKey
     @objc func getMethod(_ command: CDVInvokedUrlCommand) {
