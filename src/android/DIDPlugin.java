@@ -806,8 +806,7 @@ public class DIDPlugin extends TrinityPlugin {
         new Thread(() -> {
             try {
                 DIDStore didStore = mDIDStoreMap.get(didStoreId);
-                String txID = didStore.publishDid(didString, storepass);
-                globalDidAdapter.setTransactionID(txID);
+                didStore.publishDid(didString, storepass);
                 callbackContext.success();
             }
             catch (DIDException e) {

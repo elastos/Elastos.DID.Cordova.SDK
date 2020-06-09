@@ -606,19 +606,35 @@ class DIDPlugin : TrinityPlugin {
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
 
-        do {
-            if let didStore = mDIDStoreMap[didStoreId] {
-                let txId = try didStore.publishDid(for: didString, using: storepass)
-                self.success(command, retAsString: txId)
+        DispatchQueue(label: "DIDPublish").async {
+            do {
+                if let didStore = self.mDIDStoreMap[didStoreId] {
+                    _ = try didStore.publishDid(for: didString, using: storepass)
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                    return
+                }
             }
-            else {
-                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-                return
+            catch {
+                self.exception(error, command)
             }
         }
-        catch {
-            self.exception(error, command)
+    }
+    
+    @objc func setTransactionResult(_ command: CDVInvokedUrlCommand) {
+        if command.arguments.count != 2 {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
         }
+
+        let didStoreId = command.arguments[0] as? String
+        let txID = command.arguments[1] as? String
+
+        globalDidAdapter?.setTransactionID(txID)
+
+        self.success(command)
     }
 
     @objc func resolveDid(_ command: CDVInvokedUrlCommand) {
@@ -928,34 +944,29 @@ class DIDPlugin : TrinityPlugin {
 
         let didUrl = command.arguments[0] as! String
 
-        do {
-            if let didDocument = mDocumentMap[didUrl] {
-                let publicKeyId = didDocument.defaultPublicKey
+        if let didDocument = mDocumentMap[didUrl] {
+            let publicKeyId = didDocument.defaultPublicKey
 
-                let r = NSMutableDictionary()
+            let r = NSMutableDictionary()
 
-                if let pk = try didDocument.publicKey(ofId: publicKeyId) {
-                    let publicKeyJson = NSMutableDictionary()
-                    publicKeyJson.setValue(pk.controller.description, forKey: "controller")
-                    publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
+            if let pk = didDocument.publicKey(ofId: publicKeyId) {
+                let publicKeyJson = NSMutableDictionary()
+                publicKeyJson.setValue(pk.controller.description, forKey: "controller")
+                publicKeyJson.setValue(pk.publicKeyBase58, forKey: "keyBase58")
 
-                    let publicKeyAsString = String(data: try!JSONSerialization.data(withJSONObject: publicKeyJson, options: []), encoding: .utf8)!
+                let publicKeyAsString = String(data: try!JSONSerialization.data(withJSONObject: publicKeyJson, options: []), encoding: .utf8)!
 
-                    r.setValue(publicKeyAsString, forKey: "publickey")
-                }
-                else {
-                    r.setValue(nil, forKey: "publickey")
-                }
-
-                self.success(command, retAsDict: r)
+                r.setValue(publicKeyAsString, forKey: "publickey")
             }
             else {
-                self.error(command, retAsString: "No DID document found matching url \(didUrl)")
-                return
+                r.setValue(nil, forKey: "publickey")
             }
+
+            self.success(command, retAsDict: r)
         }
-        catch {
-            self.exception(error, command)
+        else {
+            self.error(command, retAsString: "No DID document found matching url \(didUrl)")
+            return
         }
     }
 
