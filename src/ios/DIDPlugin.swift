@@ -1272,34 +1272,39 @@ class DIDPlugin : TrinityPlugin {
                     do {
                         do {
                             let jwt = try JwtParserBuilder().build().parseClaimsJwt(jwtToken)
-                            let claims = jwt.claims
+                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                            
+                            // Check if expired or not - 30 seconds tolerance
+                            let validationResult = jwt.validateClaims(leeway: 30)
+                            if validationResult != .success {
+                                r["signatureIsValid"] = false
+                                r["payload"] = jsonPayload
+                                r["errorReason"] = "JWT token is expired"
+                            }
+                            else {
+                                let claims = jwt.claims
 
-                            r["signatureIsValid"] = true
-                            r["payload"] = claims
-                        } catch {
-                            let jsonPayload = try IntentManager.getShareInstance().parseJWT(jwtToken);
+                                r["signatureIsValid"] = true
+                                r["payload"] = claims
+                            }
+                        }
+                        catch JWTError.failedVerification {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                            
+                            r["signatureIsValid"] = false
+                            r["payload"] = jsonPayload
+                            r["errorReason"] = "DID not found on chain, or invalid signature"
+                        }
+                        catch {
+                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
 
                             r["signatureIsValid"] = false
                             r["payload"] = jsonPayload
                             r["errorReason"] = "DID not found on chain, or invalid signature"
                         }
-//                        } catch (JwsSignatureException e) {
-//                            // In case of signature verification error, we still want to return the payload to the caller.
-//                            // It can decide whether to use it or not.
-//                            let jsonPayload = try IntentManager.getShareInstance().parseJWT(jwtToken);
-//
-//                            r["signatureIsValid"] = false
-//                            r["payload"] = jsonPayload
-//                            r["errorReason"] = "DID not found on chain, or invalid signature"
-//                        } catch (ExpiredJwtException e) {
-//                            // In case of signature verification error, we still want to return the payload to the caller.
-//                            // It can decide whether to use it or not.
-//                            let jsonPayload = try IntentManager.getShareInstance().parseJWT(jwtToken);
-//
-//                            r["signatureIsValid"] = false
-//                            r["payload"] = jsonPayload
-//                            r["errorReason"] = "JWT token is expired"
-//                        }
+
                         self.success(command, retAsDict: r as NSDictionary)
                     }
                     catch (let error) {
@@ -1310,11 +1315,12 @@ class DIDPlugin : TrinityPlugin {
             else {
                 // No need to verify the JWT signature - just extract the payload manually without verification
                 // We can't use the DID parser as it will foce signature verification.
-                let jsonPayload = try IntentManager.getShareInstance().parseJWT(jwtToken)
+                let jsonPayload = try IntentManager.parseJWT(jwtToken)
 
                 var r = Dictionary<String, Any>()
                 r["signatureIsValid"] = false
                 r["payload"] = jsonPayload
+                
                 self.success(command, retAsDict: r as NSDictionary)
             }
         }
