@@ -1214,15 +1214,15 @@ class DIDPlugin : TrinityPlugin {
     }
 
     @objc func createJWT(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 5 else {
-            self.sendWrongParametersCount(command, expected: 5)
+        guard command.arguments.count == 4 else {
+            self.sendWrongParametersCount(command, expected: 4)
             return
         }
 
-        let didString = command.arguments[1] as! String
-        let properties = command.arguments[2] as! Dictionary<String, Any>
-        let days = command.arguments[3] as! Int
-        let storepass = command.arguments[4] as! String
+        let didString = command.arguments[0] as! String
+        let properties = command.arguments[1] as! Dictionary<String, Any>
+        let days = command.arguments[2] as! Int
+        let storepass = command.arguments[3] as! String
 
         do {
             if let didDocument = mDocumentMap[didString] {
@@ -1257,7 +1257,7 @@ class DIDPlugin : TrinityPlugin {
 
         let verifySignature = command.arguments[0] as? Bool ?? false
 
-        guard let jwtToken = command.arguments[0] as? String else {
+        guard let jwtToken = command.arguments[1] as? String else {
             self.error(command, retAsString: "Invalid JWT token")
             return
         }
@@ -1273,7 +1273,7 @@ class DIDPlugin : TrinityPlugin {
                         do {
                             let jwt = try JwtParserBuilder().build().parseClaimsJwt(jwtToken)
                             let jsonPayload = try IntentManager.parseJWT(jwtToken)
-                            
+
                             // Check if expired or not - 30 seconds tolerance
                             let validationResult = jwt.validateClaims(leeway: 30)
                             if validationResult != .success {
@@ -1292,7 +1292,7 @@ class DIDPlugin : TrinityPlugin {
                             // In case of signature verification error, we still want to return the payload to the caller.
                             // It can decide whether to use it or not.
                             let jsonPayload = try IntentManager.parseJWT(jwtToken)
-                            
+
                             r["signatureIsValid"] = false
                             r["payload"] = jsonPayload
                             r["errorReason"] = "DID not found on chain, or invalid signature"
@@ -1320,7 +1320,7 @@ class DIDPlugin : TrinityPlugin {
                 var r = Dictionary<String, Any>()
                 r["signatureIsValid"] = false
                 r["payload"] = jsonPayload
-                
+
                 self.success(command, retAsDict: r as NSDictionary)
             }
         }
