@@ -1228,12 +1228,20 @@ class DIDPlugin : TrinityPlugin {
             if let didDocument = mDocumentMap[didString] {
                 let expire = Calendar.current.date(byAdding: .day, value: days, to: Date())!
 
-                let token = try didDocument.jwtBuilder()
-                    .appendHeader(key: Header.TYPE, value: Header.JWT_TYPE)
-                    .appendHeader(key: Header.CONTENT_TYPE, value: "json")
-                    .claim(claim: properties)
+                let header = JwtBuilder.createHeader()
+                _ = header.setType(Header.JWT_TYPE)
+                    .setContentType("json")
+
+                let claims = JwtBuilder.createClaims()
+                claims.setIssuer(issuer: didString)
                     .setIssuedAt(issuedAt: Date())
                     .setExpiration(expiration: expire)
+                    .putAll(dic: properties)
+                    // .putAllWithJson(json: properties.toString() ?? "")
+
+                let token = try didDocument.jwtBuilder()
+                    .setHeader(header)
+                    .setClaims(claims)
                     .sign(using: storepass)
                     .compact()
 
