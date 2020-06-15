@@ -309,15 +309,20 @@ class DIDPlugin : TrinityPlugin {
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
                 do {
-                    let didDocument: DIDDocument = try DID(didString).resolve(forceRemote)
-                    ret.setValue(didDocument.description, forKey: "diddoc")
-
-                    if let updated = didDocument.updatedDate {
-                        let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
-                        ret.setValue(isoDate, forKey: "updated")
+                    let didDocument: DIDDocument? = try DID(didString).resolve(forceRemote)
+                    if didDocument == nil {
+                        ret.setValue(nil, forKey: "diddoc")
                     }
                     else {
-                        ret.setValue(nil, forKey: "updated")
+                        ret.setValue(didDocument?.description, forKey: "diddoc")
+
+                        if let updated = didDocument?.updatedDate {
+                            let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                            ret.setValue(isoDate, forKey: "updated")
+                        }
+                        else {
+                            ret.setValue(nil, forKey: "updated")
+                        }
                     }
 
                     self.success(command, retAsDict: ret)
@@ -647,15 +652,18 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             let did = try DID(didString)
+            let r = NSMutableDictionary()
+
             // Resolve and force to NOT use a locally cached copy.
             let didDocument = try did.resolve(true)
-
-            mDocumentMap[didDocument.subject.description] = didDocument
-
-            let r = NSMutableDictionary()
-            r.setValue(didDocument.description, forKey: "diddoc")
-            r.setValue(didDocument.updatedDate, forKey: "updated")
-
+            if didDocument == nil {
+                r.setValue(nil, forKey: "diddoc")
+            }
+            else {
+                mDocumentMap[(didDocument?.subject.description)!] = didDocument
+                r.setValue(didDocument?.description, forKey: "diddoc")
+                r.setValue(didDocument?.updatedDate, forKey: "updated")
+            }
             self.success(command, retAsDict: r)
         }
         catch {
