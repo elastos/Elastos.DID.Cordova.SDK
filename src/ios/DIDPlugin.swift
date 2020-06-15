@@ -767,7 +767,7 @@ class DIDPlugin : TrinityPlugin {
                     .sealed(using: passphrase)
 
                 let ret = NSMutableDictionary()
-                ret.setValue(vc.description, forKey: "credential")
+                ret.setValue(vc.toString(true), forKey: "credential")
                 self.success(command, retAsDict: ret)
             }
             else {
