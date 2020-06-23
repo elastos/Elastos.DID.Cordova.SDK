@@ -309,14 +309,21 @@ class DIDPlugin : TrinityPlugin {
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
                 do {
-                    let didDocument: DIDDocument? = try DID(didString).resolve(forceRemote)
+                    var didDocument: DIDDocument? = nil;
+                    do {
+                        didDocument = try DID(didString).resolve(forceRemote)
+                    }
+                    catch (_) {
+                        // did is invalid or can't resolve did
+                    }
+
                     if didDocument == nil {
                         ret.setValue(nil, forKey: "diddoc")
                     }
                     else {
                         ret.setValue(didDocument?.description, forKey: "diddoc")
 
-                        if let updated = didDocument?.updatedDate {
+                        if let updated = didDocument?.getMetadata().getPublished() {
                             let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                             ret.setValue(isoDate, forKey: "updated")
                         }
@@ -554,7 +561,7 @@ class DIDPlugin : TrinityPlugin {
                     let r = NSMutableDictionary()
                     r.setValue(didDocument.description, forKey: "diddoc")
 
-                    if let updated = didDocument.updatedDate {
+                    if let updated = didDocument.getMetadata().getPublished() {
                         let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
                         r.setValue(isoDate, forKey: "updated")
                     }
@@ -628,16 +635,17 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    // To remove
     @objc func setTransactionResult(_ command: CDVInvokedUrlCommand) {
         if command.arguments.count != 2 {
             self.sendWrongParametersCount(command, expected: 2)
             return
         }
 
-        let didStoreId = command.arguments[0] as? String
-        let txID = command.arguments[1] as? String
-
-        globalDidAdapter?.setTransactionID(txID)
+//        let didStoreId = command.arguments[0] as? String
+//        let txID = command.arguments[1] as? String
+//
+//        globalDidAdapter?.setTransactionID(txID)
 
         self.success(command)
     }
@@ -662,7 +670,7 @@ class DIDPlugin : TrinityPlugin {
             else {
                 mDocumentMap[(didDocument?.subject.description)!] = didDocument
                 r.setValue(didDocument?.description, forKey: "diddoc")
-                r.setValue(didDocument?.updatedDate, forKey: "updated")
+                r.setValue(didDocument?.getMetadata().getPublished(), forKey: "updated")
             }
             self.success(command, retAsDict: r)
         }

@@ -29,7 +29,6 @@ class DIDPluginAdapter : DIDAdapter {
     private let callbackId: Int
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate
-    private var createIdTransactionCallback: TransactionCallback? = nil
     
     // Privnet
     // private let resolver = "https://coreservices-didsidechain-privnet.elastos.org"
@@ -57,23 +56,11 @@ class DIDPluginAdapter : DIDAdapter {
         self.commandDelegate = commandDelegate
     }
 
-    func createIdTransaction(_ payload: String, _ memo: String?, _ confirms: Int, _ callback: @escaping (String, Int, String?) -> Void) {
-        
-        self.createIdTransactionCallback = callback
+    func createIdTransaction(_ payload: String, _ memo: String?) {
         
         let ret = NSMutableDictionary()
         ret.setValue(payload, forKey: "payload")
         ret.setValue(memo, forKey: "memo")
         self.sendEvent(info: ret)
-    }
-    
-    func setTransactionID(_ txID: String?) {
-        Log.d(TAG, "Sending DID transaction ID to the DID SDK");
-        if txID != nil {
-            self.createIdTransactionCallback!(txID!, 0, nil)
-        }
-        else {
-            self.createIdTransactionCallback!("", -1, nil)
-        }
     }
 }
