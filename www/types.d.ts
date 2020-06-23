@@ -244,14 +244,9 @@ declare module DIDPlugin {
 
         /**
          * Initiate a DID document publication process from the local device to the DID sidechain.
-         * 
-         * During this process, the DID SDK generates a "publish DID" request, and this request is passed 
-         * to the createIdTransactionCallback() previously setup when calling initDIDStore. 
-         * 
-         * Application code in this callback is responsible for calling the wallet app, or any blockchain 
-         * publication service, that will return the transaction ID DIDStore.setTransactionResult(). The
-         * chain transaction ID is necessary for the DID SDK to deal with DID document updates and 
-         * synchronization.
+         *
+         * During this process, the DID SDK generates a "publish DID" request, and this request is passed
+         * to the createIdTransactionCallback() previously setup when calling initDIDStore.
          */
         publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
 
@@ -315,14 +310,6 @@ declare module DIDPlugin {
          */
         synchronize(storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void);
         exportMnemonic(storePass: string, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
-
-        /**
-         * Used to let the DID SDK know what is the DID sidechain trannsaction ID associated to a publish()
-         * request. See DIDDocument.publish() for more details.
-         * 
-         * @param txID The chain transaction ID returned by a wallet application or a DID sidechain node.
-         */
-        setTransactionResult(txID: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
     }
 
     /**
@@ -357,18 +344,18 @@ declare module DIDPlugin {
          * Parses a JWT token and does several things:
          * - Extract the JWT payload and return it
          * - Optionally, verifies the signing DID using the DID sidechain.
-         * 
+         *
          * If verifySignature is true, the issuing DID (iss)'s public key is retrieved from the DID
          * sidechain, so that the JWT signature can be verified.
-         * 
+         *
          * In case the DID cannot be found on chain, or if the signature is wrong, the app is informed of it and
          * it (or the user) can decide to use the JWT or not.
-         * 
+         *
          * In case the DID cannot be resolved on chain, signatureIsValid is considered as false, as it's impossible
          * to verify the signature.
-         * 
+         *
          * @param verifySignature True to resolve the DID on chain to verify the signatrue, false to not verify.
-         * 
+         *
          * @returns Various informations about the parse result. See ParseJWTResult.
          */
         parseJWT(verifySignature: boolean, jwtToken: String): Promise<ParseJWTResult>;

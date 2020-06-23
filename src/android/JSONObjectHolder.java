@@ -35,7 +35,7 @@ class JSONObjectHolder {
     public static JSONObject getDIDInfoJson(DID entry) throws JSONException, DIDException {
         JSONObject r = new JSONObject();
         r.put("did", entry.toString());
-        r.put("alias", entry.getAlias());
+        r.put("alias", entry.getMetadata().getAlias());
         return r;
     }
 
@@ -53,7 +53,7 @@ class JSONObjectHolder {
     public static JSONObject getCredentialInfoJson(DIDURL entry) throws JSONException, DIDException {
         JSONObject r = new JSONObject();
         r.put("didurl", entry.toString());
-        r.put("alias", entry.getAlias());
+        r.put("alias", entry.getMetadata().getAlias());
         return r;
     }
 

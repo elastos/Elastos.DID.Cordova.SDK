@@ -23,7 +23,6 @@
 package org.elastos.trinity.plugins.did;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -228,9 +227,6 @@ public class DIDPlugin extends TrinityPlugin {
                 case "publishDid":
                     this.publishDid(args, callbackContext);
                     break;
-                case "setTransactionResult":
-                    this.setTransactionResult(args, callbackContext);
-                    break;
                 case "resolveDid":
                     this.resolveDid(args, callbackContext);
                     break;
@@ -392,7 +388,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject ret= new JSONObject();
             ret.put("diddoc", didDocument.toString(true));
-            ret.put("updated", didDocument.getUpdated());
+            ret.put("updated", didDocument.getMetadata().getPublished());
             callbackContext.success(ret);
         }
         catch(MalformedDocumentException e) {
@@ -527,7 +523,7 @@ public class DIDPlugin extends TrinityPlugin {
                     try {
                         if (didDocument != null) {
                             ret.put("diddoc", didDocument.toString(true));
-                            ret.put("updated", didDocument.getUpdated());
+                            ret.put("updated", didDocument.getMetadata().getPublished());
                         } else {
                             ret.put("diddoc", null);
                         }
@@ -731,7 +727,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             JSONObject r = new JSONObject();
             r.put("diddoc", didDocument.toString(true));
-            r.put("updated", didDocument.getUpdated());
+            r.put("updated", didDocument.getMetadata().getPublished());
             callbackContext.success(r);
         }
         catch (DIDException e) {
@@ -786,11 +782,6 @@ public class DIDPlugin extends TrinityPlugin {
      *
      * During this process, the DID SDK generates a "publish DID" request, and this request is passed
      * to the createIdTransactionCallback() previously setup when calling initDIDStore.
-     *
-     * Application code in this callback is responsible for calling the wallet app, or any blockchain
-     * publication service, that will return the transaction ID DIDStore.setTransactionResult(). The
-     * chain transaction ID is necessary for the DID SDK to deal with DID document updates and
-     * synchronization.
      */
     private void publishDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -815,20 +806,6 @@ public class DIDPlugin extends TrinityPlugin {
         }).start();
     }
 
-    private void setTransactionResult(JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if (args.length() != 2) {
-            errorProcess(callbackContext, errCodeInvalidArg, "2 parameters are expected");
-            return;
-        }
-
-        String didStoreId = args.getString(0);
-        String txID = args.isNull(1) ? null : args.getString(1);
-
-        globalDidAdapter.setTransactionID(txID);
-
-        callbackContext.success();
-    }
-
     private void resolveDid(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didString = args.getString(idx++);
@@ -846,7 +823,7 @@ public class DIDPlugin extends TrinityPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
             r.put("diddoc", didDocument.toString(true));
-            r.put("updated", didDocument.getUpdated());
+            r.put("updated", didDocument.getMetadata().getPublished());
             callbackContext.success(r);
         }
         catch (Exception e) {
@@ -868,7 +845,8 @@ public class DIDPlugin extends TrinityPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            didStore.storeDid(didDocument, alias);
+            didDocument.getMetadata().setAlias(alias);
+            didStore.storeDid(didDocument);
             callbackContext.success("true");
         }
         catch (DIDException e) {

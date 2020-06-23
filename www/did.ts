@@ -648,10 +648,6 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     exportMnemonic(storepass: string, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'exportMnemonic', [this.objId, storepass]);
     }
-
-    setTransactionResult(txID: string, onSuccess?: () => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'setTransactionResult', [this.objId, txID]);
-    }
 }
 
 const LISTENER_IDTRANSACTION = 1;

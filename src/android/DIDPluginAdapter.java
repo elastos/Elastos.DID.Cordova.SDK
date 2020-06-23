@@ -34,7 +34,6 @@ public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private CallbackContext callbackContext;
-    private TransactionCallback createIdTransactionCallback = null;
 
     // private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
     // TestNet
@@ -59,11 +58,9 @@ public class DIDPluginAdapter implements DIDAdapter {
     }
 
     @Override
-    public void createIdTransaction(String payload, String memo, int confirms, TransactionCallback callback) {
+    public void createIdTransaction(String payload, String memo) {
         JSONObject ret = new JSONObject();
         try {
-            this.createIdTransactionCallback = callback;
-
             Log.d(TAG, "createIdTransaction() callback is called, now asking the app to create the DID transaction asynchronously");
 
             ret.put("payload", payload);
@@ -72,13 +69,5 @@ public class DIDPluginAdapter implements DIDAdapter {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-
-    void setTransactionID(String txID) {
-        Log.d(TAG, "Sending DID transaction ID to the DID SDK");
-        if (txID != null)
-            createIdTransactionCallback.accept(txID, 0, null);
-        else
-            createIdTransactionCallback.accept(null, -1, null);
     }
 }

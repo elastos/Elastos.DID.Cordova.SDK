@@ -635,21 +635,6 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
-    // To remove
-    @objc func setTransactionResult(_ command: CDVInvokedUrlCommand) {
-        if command.arguments.count != 2 {
-            self.sendWrongParametersCount(command, expected: 2)
-            return
-        }
-
-//        let didStoreId = command.arguments[0] as? String
-//        let txID = command.arguments[1] as? String
-//
-//        globalDidAdapter?.setTransactionID(txID)
-
-        self.success(command)
-    }
-
     @objc func resolveDid(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
