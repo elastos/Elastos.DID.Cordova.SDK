@@ -435,12 +435,29 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void deleteDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        String dataDir = cordova.getActivity().getFilesDir() + "/data/did/" + args.getString(idx++);
+        String didStoreId = args.getString(idx++);
+        String dataDir = getStoreDataDir(didStoreId);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;
         }
+
+        DIDStore didStore = mDIDStoreMap.get(didStoreId);
+        try {
+            List<DID> dids = didStore.listDids(DIDStore.DID_ALL);
+            for (DID entry : dids) {
+                String didString = entry.toString();
+                mIssuerMap.remove(didString);
+                mDIDMap.remove(didString);
+                // TODO others
+            }
+        }
+        catch (Exception e) {
+            Log.d(TAG, "deleteDidStore listDids error:" + e.getLocalizedMessage());
+        }
+
+        mDIDStoreMap.remove(didStoreId);
 
         java.io.File dirFile = new java.io.File(dataDir);
         deleteFile(dirFile);
