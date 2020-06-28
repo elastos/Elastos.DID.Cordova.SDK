@@ -237,6 +237,18 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
 
         do {
+            if let didStore = mDIDStoreMap[didStoreId] {
+                let dids: [DID]? = try didStore.listDids(using: DIDStore.DID_ALL)
+                if let dids = dids {
+                    for entry in dids {
+                        mIssuerMap[entry.description] = nil
+                        mDIDMap[entry.description] = nil
+                    }
+                }
+            }
+
+            mDIDStoreMap[didStoreId] = nil
+
             let dataDir = getDIDDataDir() + didStoreId
             try FileManager.default.removeItem(at: URL(fileURLWithPath: dataDir))
         }
