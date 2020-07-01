@@ -571,7 +571,7 @@ class DIDPlugin : TrinityPlugin {
                     mDocumentMap[didDocument.subject.description] = didDocument
 
                     let r = NSMutableDictionary()
-                    r.setValue(didDocument.description, forKey: "diddoc")
+                    r.setValue(didDocument.toString(true), forKey: "diddoc")
 
                     if let updated = didDocument.getMetadata().getPublished() {
                         let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
