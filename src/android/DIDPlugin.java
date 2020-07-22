@@ -273,6 +273,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "verify":
                     this.verify(args, callbackContext);
                     break;
+                case "signDigest":
+                    this.signDigest(args, callbackContext);
+                    break;
                 case "createJWT":
                     this.createJWT(args, callbackContext);
                     break;
@@ -1313,6 +1316,24 @@ public class DIDPlugin extends TrinityPlugin {
         else {
             errorProcess(callbackContext, errCodeVerify, "verify return false!");
         }
+    }
+
+    private void signDigest(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
+        int idx = 0;
+        String didString = args.getString(idx++);
+
+        DIDDocument didDocument = mDocumentMap.get(didString);
+
+        String storepass = args.getString(idx++);
+        String originString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        String signString = didDocument.signDigest(storepass, originString.getBytes());
+        callbackContext.success(signString);
     }
 
     private void createJWT(JSONArray args, CallbackContext callbackContext) throws JSONException {

@@ -473,6 +473,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         exec(onSuccess, onError, 'DIDPlugin', 'verify', [this.id.getDIDString(), signString, originString]);
     }
 
+    signDigest(storePass: string, digest: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
+      exec(onSuccess, onError, 'DIDPlugin', 'signDigest', [this.id.getDIDString(), storePass, digest]);
+  }
+
     publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.storeId, this.id.getDIDString(), storepass]);
     }

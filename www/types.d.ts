@@ -241,6 +241,7 @@ declare module DIDPlugin {
 
         sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
         verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        signDigest(storePass: string, digest: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
 
         /**
          * Initiate a DID document publication process from the local device to the DID sidechain.

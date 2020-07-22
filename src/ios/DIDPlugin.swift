@@ -1226,6 +1226,33 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    @objc func signDigest(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 3 else {
+            self.sendWrongParametersCount(command, expected: 3)
+            return
+        }
+
+        let didString = command.arguments[0] as! String
+        let storepass = command.arguments[1] as! String
+        let stringToSign = command.arguments[2] as! String
+
+        do {
+            if let didDocument = mDocumentMap[didString] {
+                // TODO , there is no signDigest in the did swift sdk.
+                // let signString = try didDocument.signDigest(using: storepass, for: stringToSign.data(using: .utf8)!)
+                // self.success(command, retAsString: signString)
+                self.error(command, retAsString: "signDigest is not implemented in did swift sdk")
+            }
+            else {
+                self.error(command, retAsString: "No DID document found matching string \(didString)")
+                return
+            }
+        }
+        catch {
+            self.exception(error, command)
+        }
+    }
+
     @objc func createJWT(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 4 else {
             self.sendWrongParametersCount(command, expected: 4)
