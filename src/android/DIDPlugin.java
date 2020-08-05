@@ -669,14 +669,16 @@ public class DIDPlugin extends TrinityPlugin {
             return;
         }
 
-        try {
-            DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            didStore.synchronize(storepass);
-            callbackContext.success();
-        }
-        catch(DIDException e) {
-            exceptionProcess(e, callbackContext, "synchronize");
-        }
+        new Thread(() -> {
+            try {
+                DIDStore didStore = mDIDStoreMap.get(didStoreId);
+                didStore.synchronize(storepass);
+                callbackContext.success();
+            }
+            catch(DIDException e) {
+                exceptionProcess(e, callbackContext, "synchronize");
+            }
+        }).start();
     }
 
     private void deleteDid(JSONArray args, CallbackContext callbackContext) throws JSONException {

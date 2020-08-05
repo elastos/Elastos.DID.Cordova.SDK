@@ -484,18 +484,20 @@ class DIDPlugin : TrinityPlugin {
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
 
-        do {
-            if let didStore = mDIDStoreMap[didStoreId] {
-                try didStore.synchronize(using: storepass)
-                self.success(command)
+        DispatchQueue(label: "DIDSynchronize").async {
+            do {
+                if let didStore = mDIDStoreMap[didStoreId] {
+                    try didStore.synchronize(using: storepass)
+                    self.success(command)
+                }
+                else {
+                    self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+                    return
+                }
             }
-            else {
-                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-                return
+            catch {
+                self.exception(error, command)
             }
-        }
-        catch {
-            self.exception(error, command)
         }
     }
 
