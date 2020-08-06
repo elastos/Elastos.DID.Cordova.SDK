@@ -486,7 +486,7 @@ class DIDPlugin : TrinityPlugin {
 
         DispatchQueue(label: "DIDSynchronize").async {
             do {
-                if let didStore = mDIDStoreMap[didStoreId] {
+                if let didStore = self.mDIDStoreMap[didStoreId] {
                     try didStore.synchronize(using: storepass)
                     self.success(command)
                 }
