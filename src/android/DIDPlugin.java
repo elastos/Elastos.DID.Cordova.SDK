@@ -675,7 +675,7 @@ public class DIDPlugin extends TrinityPlugin {
                 didStore.synchronize(storepass);
                 callbackContext.success();
             }
-            catch(DIDException e) {
+            catch (Exception e) {
                 exceptionProcess(e, callbackContext, "synchronize");
             }
         }).start();
@@ -822,7 +822,7 @@ public class DIDPlugin extends TrinityPlugin {
                 didStore.publishDid(didString, storepass);
                 callbackContext.success();
             }
-            catch (DIDException e) {
+            catch (Exception e) {
                 exceptionProcess(e, callbackContext, "publishDid ");
             }
         }).start();
