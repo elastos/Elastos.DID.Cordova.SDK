@@ -36,7 +36,6 @@ class DIDURL {
 }
 
 class DIDImpl implements DIDPlugin.DID {
-    clazz = 3;
     private loadedCredentials: DIDPlugin.VerifiableCredential[] = null;
 
     constructor(private storeId: string, private didString: string, private alias: string) {
@@ -304,7 +303,6 @@ class NativeDIDDocument {
 }
 
 class DIDDocumentImpl implements DIDPlugin.DIDDocument {
-    clazz  = 2;
     storeId: string;
 
     id: DIDPlugin.DID;
@@ -553,7 +551,6 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
 
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
-    clazz  = 1;
 
     getId(): string {
         return this.objId;
@@ -791,7 +788,6 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     id: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
-    clazz = 5;
     type: string[] = null;
     issuer: string = null;
     issuanceDate: Date = null;
