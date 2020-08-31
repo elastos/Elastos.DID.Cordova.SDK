@@ -1133,7 +1133,7 @@ public class DIDPlugin extends TrinityPlugin {
 
             String serviceId = serviceJsonObj.getString("id");
             String serviceType = serviceJsonObj.getString("type");
-            String serviceEndpoint = serviceJsonObj.getString("endpoint");
+            String serviceEndpoint = serviceJsonObj.getString("serviceEndpoint");
 
             db.addService(serviceId, serviceType, serviceEndpoint);
             DIDDocument document = db.seal(storepass);

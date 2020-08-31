@@ -1003,7 +1003,7 @@ class DIDPlugin : TrinityPlugin {
 
                     let serviceId = service["id"] as! String
                     let serviceType = service["type"] as! String
-                    let serviceEndpoint = service["endpoint"] as! String
+                    let serviceEndpoint = service["serviceEndpoint"] as! String
 
                     _ = try db.appendService(with: serviceId, type: serviceType, endpoint: serviceEndpoint)
                     let issuer = try db.sealed(using: storepass)

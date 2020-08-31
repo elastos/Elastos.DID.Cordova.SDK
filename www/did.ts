@@ -660,7 +660,7 @@ type DIDManagerEvent = {
 class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiableCredentialBuilder: DIDPlugin.VerifiableCredentialBuilder = new VerifiableCredentialBuilderImpl();
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
-    ServiceBuilder: DIDPlugin.ServiceBuilder;
+    ServiceBuilder: DIDPlugin.ServiceBuilder = new ServiceBuilderImpl();
 
     private createIdTransactionEvent:DIDManagerEvent;
 
@@ -829,6 +829,21 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
 
     toString() : Promise<string> {
         return Promise.resolve(JSON.stringify(this));
+    }
+}
+
+class ServiceBuilderImpl implements DIDPlugin.ServiceBuilder {
+    createService(id: string, type: string, serviceEndPoint: string): DIDPlugin.Service {
+        try {
+            let service = new ServiceImpl();
+            service.id = id;
+            service.type = type;
+            service.serviceEndpoint = serviceEndPoint;
+            return service;
+        }
+        catch (e) {
+            throw e;
+        }
     }
 }
 
