@@ -258,6 +258,11 @@ declare module DIDPlugin {
          * @param validityDays Number of Days at which the JWT will become invalid.
          */
         createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
+
+        /**
+         * JSON string representation of this DID document.
+         */
+        toJson(): Promise<string>;
     }
 
     interface VerifiablePresentationBuilder {

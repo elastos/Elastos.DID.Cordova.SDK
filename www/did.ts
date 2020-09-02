@@ -67,7 +67,7 @@ class DIDImpl implements DIDPlugin.DID {
             onSuccess(diddoc.toDIDDocument(storeId));
         }
 
-        exec(_onSuccess, onError, 'DIDPlugin', 'resolve', [this.didString]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'resolveDid', [this.didString]);
     }
 
     prepareIssuer(onSuccess?: () => void) {
@@ -481,6 +481,16 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'createJWT', [this.id.getDIDString(), properties, validityDays, storepass]);
+    }
+
+    toJson(): Promise<string> {
+        return new Promise((resolve, reject)=>{
+            exec((jsonString)=>{
+                resolve(jsonString);
+            }, (err)=>{
+                reject(err);
+            }, 'DIDPlugin', 'DIDDocument_toJson', [this.id.getDIDString()]);
+        });
     }
 }
 
