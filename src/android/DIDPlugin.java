@@ -258,6 +258,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "DIDDocument_removeService":
                     this.DIDDocument_removeService(args, callbackContext);
                     break;
+                case "DIDDocument_toJson":
+                    this.DIDDocument_toJson(args, callbackContext);
+                    break;
                 case "addCredential":
                     this.addCredential(args, callbackContext);
                     break;
@@ -305,6 +308,9 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "verifiablePresentationIsGenuine":
                     this.verifiablePresentationIsGenuine(args, callbackContext);
+                    break;
+                case "verifiablePresentationToJson":
+                    this.verifiablePresentationToJson(args, callbackContext);
                     break;
                 case "DIDManager_parseJWT":
                     this.DIDManager_parseJWT(args, callbackContext);
@@ -743,14 +749,17 @@ public class DIDPlugin extends TrinityPlugin {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
             DIDDocument didDocument = didStore.loadDid(didString);
 
-            if (didDocument != null) { // Should normally not happen but... happened (sdk bug).
+            if (didDocument != null) {
                 mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
-            }
 
-            JSONObject r = new JSONObject();
-            r.put("diddoc", didDocument.toString(true));
-            r.put("updated", didDocument.getMetadata().getPublished());
-            callbackContext.success(r);
+                JSONObject r = new JSONObject();
+                r.put("diddoc", didDocument.toString(true));
+                r.put("updated", didDocument.getMetadata().getPublished());
+                callbackContext.success(r);
+            }
+            else {
+                errorProcess(callbackContext, errCodeInvalidArg, "DID "+didString+" cannot be found in store ID "+didStoreId);
+            }
         }
         catch (DIDException e) {
             exceptionProcess(e, callbackContext, "loadDid ");
@@ -1382,6 +1391,21 @@ public class DIDPlugin extends TrinityPlugin {
         }
     }
 
+    private void DIDDocument_toJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+        String didString = args.getString(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        DIDDocument didDocument = mDocumentMap.get(didString);
+        String jsonString = didDocument.toString();
+
+        callbackContext.success(jsonString);
+    }
+
     private void DIDManager_parseJWT(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         boolean verifySignature = args.getBoolean(idx++);
@@ -1423,6 +1447,14 @@ public class DIDPlugin extends TrinityPlugin {
                             r.put("signatureIsValid", false);
                             r.put("payload", jsonPayload);
                             r.put("errorReason", "JWT token is expired");
+                        } catch (IllegalArgumentException e) {
+                            // In case of signature verification error, we still want to return the payload to the caller.
+                            // It can decide whether to use it or not.
+                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+
+                            r.put("signatureIsValid", false);
+                            r.put("payload", jsonPayload);
+                            r.put("errorReason", "Illegal argument. It's possible that the JWT signature information is incorrect (no signing key information)");
                         }
                         callbackContext.success(r);
                     }
@@ -1560,6 +1592,24 @@ public class DIDPlugin extends TrinityPlugin {
             callbackContext.success(r);
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "verifiablePresentationIsGenuine ");
+        }
+    }
+
+    private void verifiablePresentationToJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        int idx = 0;
+
+        JSONObject pres = args.getJSONObject(idx++);
+
+        if (args.length() != idx) {
+            errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
+            return;
+        }
+
+        try {
+            VerifiablePresentation presentation = VerifiablePresentation.fromJson(pres.toString());
+            callbackContext.success(presentation.toString());
+        } catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "verifiablePresentationToJson ");
         }
     }
 

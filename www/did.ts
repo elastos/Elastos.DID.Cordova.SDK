@@ -520,6 +520,8 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
 
         presentation.type = jsonPresentation.type;
         presentation.proof = jsonPresentation.proof;
+        presentation.created = (jsonPresentation.created?new Date(jsonPresentation.created):null);
+        presentation.updated = (jsonPresentation.updated?new Date(jsonPresentation.updated):null);
 
         // Re-create real credential objects based on json data
         presentation.verifiableCredential = [];
@@ -537,6 +539,8 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     public type: string;
     public verifiableCredential: DIDPlugin.VerifiableCredential[] // As named by W3C
     public proof: any;
+    created: Date;
+    updated: Date;
 
     getCredentials(): DIDPlugin.VerifiableCredential[] {
         return this.verifiableCredential;
@@ -556,6 +560,16 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
                 onSuccess(ret.isgenuine);
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'verifiablePresentationIsGenuine', [this]);
+    }
+
+    toJson(): Promise<string> {
+        return new Promise((resolve, reject)=>{
+            exec((presentationString)=>{
+                resolve(presentationString);
+            }, (err)=>{
+                reject(err);
+            }, 'DIDPlugin', 'verifiablePresentationToJson', [this]);
+        })
     }
 }
 

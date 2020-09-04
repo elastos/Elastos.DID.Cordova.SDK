@@ -278,6 +278,11 @@ declare module DIDPlugin {
         getCredentials(): VerifiableCredential[];
         isValid(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
         isGenuine(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+
+        /**
+         * JSON string representation of this presentation.
+         */
+        toJson(): Promise<string>;
     }
 
     interface DIDStore {
@@ -325,7 +330,9 @@ declare module DIDPlugin {
         /** Whether the JWT signature was signed by a DID and verified successfully or not. False if shouldVerifySignature is false. */
         signatureIsValid: boolean;
         /** Raw JSON data extracted from the JWT */
-        payload: Object
+        payload: Object;
+        /** Possibly more details about the reason why the JWT is invalid. */
+        errorReason?: string;
     }
 
     interface DIDManager {
