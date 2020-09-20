@@ -419,7 +419,7 @@ class DIDPlugin : TrinityPlugin {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                try didStore.initializePrivateIdentity(language, mnemonic, passphrase, storepass, force);
+                try didStore.initializePrivateIdentity(using: language, mnemonic: mnemonic, passphrase: passphrase, storePassword: storepass, force)
                 self.success(command)
             }
             else {
@@ -691,7 +691,8 @@ class DIDPlugin : TrinityPlugin {
         if let didDocument = mDocumentMap[didString] {
             do {
                 if let didStore = mDIDStoreMap[didStoreId] {
-                    try didStore.storeDid(using: didDocument, with: alias)
+                    didDocument.getMetadata().setAlias(alias);
+                    try didStore.storeDid(using: didDocument)
                     self.success(command)
                 }
                 else {
