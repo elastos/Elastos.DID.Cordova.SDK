@@ -1300,6 +1300,24 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    @objc func DIDDocument_toJson(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+
+        let didString = command.arguments[0] as! String
+
+
+        if let didDocument = mDocumentMap[didString] {
+            let jsonString = didDocument.toString()
+            self.success(command, retAsString: jsonString)
+        }
+        else {
+            self.error(command, retAsString: "No DID found in map for string \(didString)")
+        }
+    }
+
     @objc func DIDManager_parseJWT(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
