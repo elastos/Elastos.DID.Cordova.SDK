@@ -161,6 +161,20 @@ class DIDPlugin : TrinityPlugin {
         return cacheDir
     }
 
+    private static func getDefaultResolverUrl() -> String {
+        return PreferenceManager.getShareInstance().getDIDResolver();
+    }
+
+    private static func getDefaultCacheDir() -> String {
+        return NSHomeDirectory() + "/Documents/data/did/.cache.did.elastos"
+    }
+
+    public static func initializeDIDBackend() throws {
+        let cacheDir = DIDPlugin.getDefaultCacheDir()
+        let resolver = DIDPlugin.getDefaultResolverUrl()
+        try DIDBackend.initializeInstance(resolver, cacheDir)
+    }
+
     @objc func setListener(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
@@ -208,10 +222,7 @@ class DIDPlugin : TrinityPlugin {
         let callbackId = command.arguments[1] as! Int
 
         do {
-            let cacheDir = getBackendCacheDir();
-            let resolver = getDIDResolverUrl();
-
-            try DIDBackend.initializeInstance(resolver, cacheDir);
+            try DIDPlugin.initializeDIDBackend()
 
             globalDidAdapter = DIDPluginAdapter(id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
             mDidAdapterMap[didStoreId] = globalDidAdapter
@@ -304,17 +315,7 @@ class DIDPlugin : TrinityPlugin {
         let forceRemote = command.arguments[1] as! Bool
 
         do {
-            // DIRTY: BECAUSE DIDBACKEND SINGLETON NEEDS AN ADAPTER...
-            // This is "ok" as long as the DID App is the only one to call publish().
-            //
-            // If no initDidStore() has been called yet, we need to initialize the DID backend
-            // to resolve DIDs. If later on the DID app needs to initDidStore(), it will call
-            // DIDBackend.initializeInstance() with a real adapter that will overwrite our init.
-            if (globalDidAdapter == nil) {
-                let cacheDir = getBackendCacheDir();
-                let resolver = getDIDResolverUrl();
-                try DIDBackend.initializeInstance(resolver, cacheDir);
-            }
+            try DIDPlugin.initializeDIDBackend()
 
             let ret = NSMutableDictionary()
 
