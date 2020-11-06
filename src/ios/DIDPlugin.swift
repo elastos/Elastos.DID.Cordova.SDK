@@ -1510,6 +1510,17 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    @objc func verifiablePresentationToJson(_ command: CDVInvokedUrlCommand) {
+        let pres = command.arguments[0] as! Dictionary<String, Any>
+
+        do {
+            let presentation = try VerifiablePresentation.fromJson(pres.toString()!)
+            self.success(command, retAsString: presentation.description)
+        } catch {
+            self.exception(error, command)
+        }
+    }
+
     // Acceptable formats:
     // #cred
     // did:xxxxxx#cred
