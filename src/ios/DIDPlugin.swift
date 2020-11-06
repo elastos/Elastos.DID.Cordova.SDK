@@ -1352,7 +1352,7 @@ class DIDPlugin : TrinityPlugin {
                                 r["errorReason"] = "JWT token is expired"
                             }
                             else {
-                                let claims = jwt.claims
+                                let claims = jwt.claims.asDictionary()
 
                                 r["signatureIsValid"] = true
                                 r["payload"] = claims
