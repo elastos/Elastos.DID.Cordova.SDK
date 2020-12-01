@@ -29,7 +29,7 @@ class DIDPluginAdapter : DIDAdapter {
     private let callbackId: Int
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate
-    
+
     // Privnet
     // private let resolver = "https://coreservices-didsidechain-privnet.elastos.org"
     // TestNet
@@ -56,8 +56,8 @@ class DIDPluginAdapter : DIDAdapter {
         self.commandDelegate = commandDelegate
     }
 
-    func createIdTransaction(_ payload: String, _ memo: String?) {
-        
+    func createIdTransaction(_ payload: String, _ memo: String?) throws {
+
         let ret = NSMutableDictionary()
         ret.setValue(payload, forKey: "payload")
         ret.setValue(memo, forKey: "memo")
