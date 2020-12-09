@@ -70,28 +70,36 @@ class DIDPlugin : TrinityPlugin {
     private func success(_ command: CDVInvokedUrlCommand) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK);
 
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     private func success(_ command: CDVInvokedUrlCommand, retAsString: String) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK,
                                      messageAs: retAsString);
 
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     private func success(_ command: CDVInvokedUrlCommand, retAsDict: NSDictionary) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK,
                                      messageAs: (retAsDict as! [AnyHashable : Any]));
 
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     /** Dirty way to convert booleans to strings but we are following the original implementation mechanism for now. */
     private func success(_ command: CDVInvokedUrlCommand, retAsFakeBool: Bool) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (retAsFakeBool ? "true" : "false"));
 
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     private func error(_ command: CDVInvokedUrlCommand, retAsString: String) {
@@ -106,7 +114,10 @@ class DIDPlugin : TrinityPlugin {
         self.log(message: "(" + command.methodName + ") - " + errJson.description)
 
         let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: (errJson as! [AnyHashable : Any]))
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     /**
@@ -194,7 +205,10 @@ class DIDPlugin : TrinityPlugin {
         // Don't return any result now
         let result = CDVPluginResult(status: CDVCommandStatus_NO_RESULT);
         result?.setKeepCallbackAs(true);
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+
+        // Command delegate can become nil in case the pluign is deinitialized while
+        // doing an asynchronous call.
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     private func getStoreDataDir(didStoreId: String) -> String {
@@ -318,6 +332,7 @@ class DIDPlugin : TrinityPlugin {
             try DIDPlugin.initializeDIDBackend()
 
             let ret = NSMutableDictionary()
+
 
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {

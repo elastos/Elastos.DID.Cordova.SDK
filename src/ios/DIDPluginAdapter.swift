@@ -28,7 +28,7 @@ class DIDPluginAdapter : DIDAdapter {
     private let TAG = "DIDPluginAdapter"
     private let callbackId: Int
     private var command: CDVInvokedUrlCommand
-    private var commandDelegate: CDVCommandDelegate
+    private var commandDelegate: CDVCommandDelegate?
 
     // Privnet
     // private let resolver = "https://coreservices-didsidechain-privnet.elastos.org"
@@ -48,7 +48,7 @@ class DIDPluginAdapter : DIDAdapter {
 
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (info as! [AnyHashable : Any]))
         result?.setKeepCallbackAs(true)
-        self.commandDelegate.send(result, callbackId: command.callbackId)
+        self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
     public func setCallbackContext(command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
