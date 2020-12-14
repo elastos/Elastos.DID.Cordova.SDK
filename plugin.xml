@@ -27,7 +27,7 @@
                 <source url="https://cdn.cocoapods.org/"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="ElastosDIDSDK" spec='~> 1.5'/>
+                <pod name="ElastosDIDSDK" spec='~> 1.6'/>
                 <!-- <pod name="Alamofire" spec='4.8.2'/>
                 <pod name="PromiseKit" spec='5.9'/> -->
             </pods>
