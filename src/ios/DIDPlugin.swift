@@ -124,18 +124,25 @@ class DIDPlugin : TrinityPlugin {
      * Tries to rework a DID SDK exceprtion into something more user friendly. Otherwise, simply throw the original exception.
      */
     private func exception(_ e: Error, _ command: CDVInvokedUrlCommand) {
-        let msg = "(" + command.methodName + ") - " + e.localizedDescription
-
-        NSLog(msg)
+        var msg: String = "(" + command.methodName + ") - " + e.localizedDescription
 
         if let err = e as? DIDError {
             switch err {
             case .didStoreError(let desc):
-                if desc != nil && desc!.contains("decryptFromBase64 error") {
-                    // Wrong password exception
-                    self.error(command, code: errCodeWrongPassword, msg: msg)
-                    return
+                if desc != nil {
+                    msg = "(" + command.methodName + ") - \(e.localizedDescription) - \(String(describing: desc))"
+                    if desc!.contains("decryptFromBase64 error") {
+                        // Wrong password exception
+                        self.error(command, code: errCodeWrongPassword, msg: msg)
+                    }
+                    else {
+                        self.error(command, code: errCodeDidException, msg: msg)
+                    }
                 }
+                else {
+                    self.error(command, code: errCodeDidException, msg: msg)
+                }
+                return
             default:
                 self.error(command, code: errCodeDidException, msg: msg)
                 break
@@ -349,7 +356,7 @@ class DIDPlugin : TrinityPlugin {
                         ret.setValue(nil, forKey: "diddoc")
                     }
                     else {
-                        ret.setValue(didDocument?.toString(true), forKey: "diddoc")
+                        ret.setValue(didDocument?.description, forKey: "diddoc")
 
                         if let updated = didDocument?.getMetadata().getPublished() {
                             let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
