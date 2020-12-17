@@ -37,7 +37,7 @@
         <source-file src="src/ios/DIDPluginAdapter.swift" />
         <source-file src="src/ios/JSONObjectHolder.swift" />
         <!-- <framework src="src/ios/libs/ElastosDIDSDK.framework" custom="true" embed="true" /> -->
-        <framework src="src/ios/libs/Antlr4.framework" custom="true" embed="true" />
+        <!-- <framework src="src/ios/libs/Antlr4.framework" custom="true" embed="true" /> -->
         <!-- <framework src="src/ios/libs/PromiseKit.framework" custom="true" embed="true" /> -->
     </platform>
 </plugin>

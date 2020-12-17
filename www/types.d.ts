@@ -244,7 +244,7 @@ declare module DIDPlugin {
         signDigest(storePass: string, digest: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
 
         /**
-         * Initiate a DID document publication process from the local device to the DID sidechain.
+         * Initiates a DID document publication process from the local device to the DID sidechain.
          *
          * During this process, the DID SDK generates a "publish DID" request, and this request is passed
          * to the createIdTransactionCallback() previously setup when calling initDIDStore.
@@ -252,7 +252,7 @@ declare module DIDPlugin {
         publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
 
         /**
-         * create JWT, signed by DID document.
+         * Create a JWT, signed by the DID document.
          *
          * @param properties JSON object that contains the actual information.
          * @param validityDays Number of Days at which the JWT will become invalid.
