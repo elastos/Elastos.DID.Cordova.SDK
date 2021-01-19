@@ -216,7 +216,6 @@ class NativeDIDDocument {
 
     toDIDDocument(storeId = ""): DIDPlugin.DIDDocument {
         let didDocument = new DIDDocumentImpl();
-        console.log("toDIDDocument this:", this);
         let didImpl = new DIDImpl(storeId, this.id, "");
         didDocument.id = didImpl;
 
@@ -344,9 +343,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
 
     getDefaultPublicKey(onSuccess: (publicKey: DIDPlugin.PublicKey) => void, onError?: (err: any) => void) {
         var _onSuccess = function(ret: {publickey: string}) {
-            console.log("(plugin) getDefaultPublicKey json:", ret.publickey)
             var nativePublicKey = NativePublicKey.createFromJson(ret.publickey);
-            console.log("(plugin) getDefaultPublicKey nativePublicKey:", nativePublicKey);
             onSuccess(nativePublicKey.toPublicKey());
         }
 
@@ -630,9 +627,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
          var storeId = this.objId;
          var _onSuccess = function(ret: {diddoc: string, updated: string}) {
-             console.log("(plugin) loadDidDocument json:", ret.diddoc)
              var nativeDidDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
-             console.log("(plugin) loadDidDocument nativeDidDocument:", nativeDidDocument);
              onSuccess(nativeDidDocument.toDIDDocument(storeId));
          }
 
