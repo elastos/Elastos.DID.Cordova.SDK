@@ -416,8 +416,14 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        String didStoreId = args.getString(idx++);
+        String didStoreId = (args.isNull(0) ? null : args.getString(idx++));
+        if (didStoreId == null) {
+            errorProcess(callbackContext, errCodeNullPointer, "initDidStore(): DID Store ID cannot be null");
+            return;
+        }
+
         String dataDir = getStoreDataDir(didStoreId);
+
         int callbackId = args.getInt(idx++);
 
         if (args.length() != idx) {

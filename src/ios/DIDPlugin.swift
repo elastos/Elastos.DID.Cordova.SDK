@@ -238,7 +238,11 @@ class DIDPlugin : TrinityPlugin {
             return
         }
 
-        let didStoreId = command.arguments[0] as! String
+        guard let didStoreId = command.arguments[0] as? String else {
+            self.error(command, retAsString: "initDidStore(): DID Store ID cannot be nil")
+            return
+        }
+
         let dataDir = getStoreDataDir(didStoreId: didStoreId)
         let callbackId = command.arguments[1] as! Int
 
