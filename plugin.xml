@@ -28,6 +28,8 @@
             </config>
             <pods use-frameworks="true">
                 <pod name="ElastosDIDSDK" spec='~> 1.8'/>
+                <pod name="SwiftJWT" spec="~> 3.5.3" swift-version="4"/>
+                <pod name="AnyCodable-FlightSchool" spec='~> 0.2.3'/>
                 <!-- <pod name="Alamofire" spec='4.8.2'/>
                 <pod name="PromiseKit" spec='5.9'/> -->
             </pods>

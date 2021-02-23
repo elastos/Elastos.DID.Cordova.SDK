@@ -22,7 +22,6 @@
 
 import Foundation
 import ElastosDIDSDK
-import Alamofire
 
 class DIDPluginAdapter : DIDAdapter {
     private let TAG = "DIDPluginAdapter"

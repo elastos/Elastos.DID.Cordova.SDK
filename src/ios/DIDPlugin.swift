@@ -21,14 +21,36 @@
  */
 
 import Foundation
+import SwiftJWT
+import AnyCodable
 import ElastosDIDSDK
 
+extension AnyCodable : SwiftJWT.Claims {}
+
+extension Dictionary {
+   func toString() -> String? {
+       let data = try? JSONSerialization.data(withJSONObject: self, options: [])
+       if let str = String(data: data!, encoding: String.Encoding.utf8) {
+           // JSONSerialization espaces slashes... (bug since many years). ios13 has a fix, but only ios13.
+           let fixedString = str.replacingOccurrences(of: "\\/", with: "/")
+
+           return fixedString
+       }
+       return nil
+   }
+}
+
+enum AppError: Error {
+   case error(String)
+}
+
 @objc(DIDPlugin)
-class DIDPlugin : TrinityPlugin {
+class DIDPlugin : CDVPlugin {
     internal static let TAG = "DIDPlugin"
 
-    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
-    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
+//    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
+//    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
+    private static var s_didResolverUrl = "http://api.elastos.io:20606";
 
     internal let keyCode        = "code"
     internal let keyMessage     = "message"
@@ -161,26 +183,18 @@ class DIDPlugin : TrinityPlugin {
             return
     }
 
-    private func getDIDResolverUrl() -> String {
-        return PreferenceManager.getShareInstance().getDIDResolver();
-    }
-
     private func getDIDDataDir() -> String {
-        return self.getDataPath()+"/did"
+        return NSHomeDirectory() + "/did"
     }
 
     private func getBackendCacheDir() -> String {
         // TODO: this is NOT a auto-cleanable folder! We need to let our cache folder be cleanable by system/user
-        let cacheDir = self.getDataPath() + "/did/.cache.did.elastos"
+        let cacheDir = NSHomeDirectory() + "/did/.cache.did.elastos"
 
         // Create folder in case it's missing
         try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true, attributes: nil)
 
         return cacheDir
-    }
-
-    private static func getDefaultResolverUrl() -> String {
-        return PreferenceManager.getShareInstance().getDIDResolver();
     }
 
     private static func getDefaultCacheDir() -> String {
@@ -189,8 +203,7 @@ class DIDPlugin : TrinityPlugin {
 
     public static func initializeDIDBackend() throws {
         let cacheDir = DIDPlugin.getDefaultCacheDir()
-        let resolver = DIDPlugin.getDefaultResolverUrl()
-        try DIDBackend.initializeInstance(resolver, cacheDir)
+        try DIDBackend.initializeInstance(DIDPlugin.s_didResolverUrl, cacheDir)
     }
 
     @objc func setListener(_ command: CDVInvokedUrlCommand) {
@@ -219,12 +232,13 @@ class DIDPlugin : TrinityPlugin {
     }
 
     private func getStoreDataDir(didStoreId: String) -> String {
-        if appId == DIDPlugin.DID_APPLICATION_APP_ID || appId == DIDPlugin.DID_SESSION_APPLICATION_APP_ID {
-            return NSHomeDirectory() + "/Documents/data/did/useridentities/" + didStoreId
-        }
-        else {
-            return getDataPath() + "did/" + didStoreId
-        }
+//        if appId == DIDPlugin.DID_APPLICATION_APP_ID || appId == DIDPlugin.DID_SESSION_APPLICATION_APP_ID {
+//            return NSHomeDirectory() + "/Documents/data/did/useridentities/" + didStoreId
+//        }
+//        else {
+//            return getDataPath() + "did/" + didStoreId
+//        }
+        return NSHomeDirectory() + "did/" + didStoreId
     }
 
     @objc func initDidStore(_ command: CDVInvokedUrlCommand) {
@@ -484,17 +498,16 @@ class DIDPlugin : TrinityPlugin {
     }
 
     @objc func setResolverUrl(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 2 else {
-            self.sendWrongParametersCount(command, expected: 2)
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
             return
         }
 
-        let didStoreId = command.arguments[0] as! String
         let resolver = command.arguments[1] as! String
 
-        let cacheDir = getBackendCacheDir();
         do {
-            try DIDBackend.initializeInstance(resolver, cacheDir);
+            try DIDPlugin.initializeDIDBackend()
+            DIDPlugin.s_didResolverUrl = resolver;
         }
         catch {
             self.exception(error, command)
@@ -1345,6 +1358,19 @@ class DIDPlugin : TrinityPlugin {
         }
     }
 
+    public static func parseJWT(_ jwt: String) throws -> [String: Any]? {
+        let jwtDecoder = SwiftJWT.JWTDecoder.init(jwtVerifier: .none)
+        let data = jwt.data(using: .utf8) ?? nil
+        if data == nil {
+            throw AppError.error("parseJWT error!")
+        }
+        let decoded = try? jwtDecoder.decode(SwiftJWT.JWT<AnyCodable>.self, from: data!)
+        if decoded == nil {
+            throw AppError.error("parseJWT error!")
+        }
+        return decoded?.claims.value as? [String: Any]
+    }
+
     @objc func DIDManager_parseJWT(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
@@ -1368,7 +1394,7 @@ class DIDPlugin : TrinityPlugin {
                     do {
                         do {
                             let jwt = try JwtParserBuilder().build().parseClaimsJwt(jwtToken)
-                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                            let jsonPayload = try DIDPlugin.parseJWT(jwtToken)
 
                             // Check if expired or not - 30 seconds tolerance
                             let validationResult = jwt.validateClaims(leeway: 30)
@@ -1384,17 +1410,17 @@ class DIDPlugin : TrinityPlugin {
                                 r["payload"] = claims
                             }
                         }
-                        catch JWTError.failedVerification {
+                        catch SwiftJWT.JWTError.failedVerification {
                             // In case of signature verification error, we still want to return the payload to the caller.
                             // It can decide whether to use it or not.
-                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                            let jsonPayload = try DIDPlugin.parseJWT(jwtToken)
 
                             r["signatureIsValid"] = false
                             r["payload"] = jsonPayload
                             r["errorReason"] = "DID not found on chain, or invalid signature"
                         }
                         catch {
-                            let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                            let jsonPayload = try DIDPlugin.parseJWT(jwtToken)
 
                             r["signatureIsValid"] = false
                             r["payload"] = jsonPayload
@@ -1411,7 +1437,7 @@ class DIDPlugin : TrinityPlugin {
             else {
                 // No need to verify the JWT signature - just extract the payload manually without verification
                 // We can't use the DID parser as it will foce signature verification.
-                let jsonPayload = try IntentManager.parseJWT(jwtToken)
+                let jsonPayload = try DIDPlugin.parseJWT(jwtToken)
 
                 var r = Dictionary<String, Any>()
                 r["signatureIsValid"] = false
