@@ -303,7 +303,6 @@ declare module DIDPlugin {
         loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
         storeDidDocument(didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void);
         // updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
 
         /**
          * This method synchronizes a whole DID store content, from the DID sidechain, to the local device.
@@ -342,6 +341,7 @@ declare module DIDPlugin {
         createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void); // TODO: "json" type
         generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
         isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+        setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
 
         /**
          * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to

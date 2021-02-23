@@ -25,9 +25,11 @@ package org.elastos.trinity.plugins.did;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Base64;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DID;
 import org.elastos.did.DIDBackend;
@@ -51,9 +53,6 @@ import org.elastos.did.jwt.JwsSignatureException;
 import org.elastos.did.jwt.Jwt;
 import org.elastos.did.jwt.JwtBuilder;
 import org.elastos.did.jwt.JwtParserBuilder;
-import org.elastos.trinity.runtime.IntentManager;
-import org.elastos.trinity.runtime.PreferenceManager;
-import org.elastos.trinity.runtime.TrinityPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -71,12 +70,14 @@ import java.util.Map;
 /**
  * This class echoes a string called from JavaScript.
  */
-public class DIDPlugin extends TrinityPlugin {
+public class DIDPlugin extends CordovaPlugin {
     private static String TAG = "DIDPlugin";
 
     private static final int IDTRANSACTION  = 1;
-    private static final String DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did";
-    private static final String DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession";
+//    private static final String DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did";
+//    private static final String DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession";
+
+    private static String s_didResolverUrl = "http://api.elastos.io:20606";
 
     private CallbackContext idTransactionCC  = null;
 
@@ -190,6 +191,9 @@ public class DIDPlugin extends TrinityPlugin {
                 case "isMnemonicValid":
                     this.isMnemonicValid(args, callbackContext);
                     break;
+                case "setResolverUrl":
+                    this.setResolverUrl(args, callbackContext);
+                    break;
                 case "DIDManager_resolveDIDDocument":
                     this.DIDManager_resolveDIDDocument(args, callbackContext);
                     break;
@@ -205,9 +209,6 @@ public class DIDPlugin extends TrinityPlugin {
                     break;
                 case "exportMnemonic":
                     this.exportMnemonic(args, callbackContext);
-                    break;
-                case "setResolverUrl":
-                    this.setResolverUrl(args, callbackContext);
                     break;
                 case "synchronize":
                     this.synchronize(args, callbackContext);
@@ -358,10 +359,6 @@ public class DIDPlugin extends TrinityPlugin {
         return jsonArray.isNull(index) ? "" : jsonArray.getString(index);
     }
 
-    private static String getDefaultResolverUrl() {
-        return PreferenceManager.getShareInstance().getDIDResolver();
-    }
-
     private static String getDefaultCacheDir(Context context) {
         return context.getFilesDir() + "/data/did/.cache.did.elastos";
     }
@@ -406,12 +403,13 @@ public class DIDPlugin extends TrinityPlugin {
     }
 
     private String getStoreDataDir(String didStoreId) {
-        if (appId.equals(DID_APPLICATION_APP_ID) || appId.equals(DID_SESSION_APPLICATION_APP_ID)) {
-            return cordova.getActivity().getFilesDir() + "/data/did/useridentities/" + didStoreId;
-        }
-        else {
-            return getDataPath() + "did/" + didStoreId;
-        }
+//        if (appId.equals(DID_APPLICATION_APP_ID) || appId.equals(DID_SESSION_APPLICATION_APP_ID)) {
+//            return cordova.getActivity().getFilesDir() + "/data/did/useridentities/" + didStoreId;
+//        }
+//        else {
+//            return getDataPath() + "did/" + didStoreId;
+//        }
+      return cordova.getActivity().getFilesDir() + "/data/did/" + didStoreId;
     }
 
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -517,8 +515,7 @@ public class DIDPlugin extends TrinityPlugin {
 
     public static void initializeDIDBackend(Context context) throws DIDResolveException {
         String cacheDir = getDefaultCacheDir(context);
-        String resolver = getDefaultResolverUrl();
-        DIDBackend.initialize(resolver, cacheDir);
+        DIDBackend.initialize(s_didResolverUrl, cacheDir);
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -651,13 +648,14 @@ public class DIDPlugin extends TrinityPlugin {
 
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
-        String didStoreId = args.getString(idx++);
         String resolver = args.getString(idx++);
 
         if (args.length() != idx) {
             errorProcess(callbackContext, errCodeInvalidArg, idx + " parameters are expected");
             return;
         }
+
+      s_didResolverUrl = resolver;
 
         try {
             initializeDIDBackend(cordova.getActivity());
@@ -1412,6 +1410,24 @@ public class DIDPlugin extends TrinityPlugin {
         callbackContext.success(jsonString);
     }
 
+    private static JSONObject parseJWT(String jwt) throws Exception {
+        // Remove the Signature from the received JWT for now, we don't handle this.
+        // TODO: extract the JWT issuer field from the JWT, resolve its DID from the DID sidechain, and
+        // verify the JWT using the public key. JWT will have to be signed by the app developer's DID's private key.
+        String[] splitToken = jwt.split("\\.");
+
+        if (splitToken.length == 0)
+        throw new Exception("Invalid JWT Token in parseJWT(): it contains only a header but no payload or signature");
+
+        String jwtPayload = splitToken[1];
+        byte[] b64PayloadBytes = Base64.decode(jwtPayload, Base64.URL_SAFE);
+        String b64Payload = new String(b64PayloadBytes, "UTF-8");
+
+        JSONObject jwtPayloadJson = new JSONObject(b64Payload);
+
+        return jwtPayloadJson;
+    }
+
     private void DIDManager_parseJWT(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         boolean verifySignature = args.getBoolean(idx++);
@@ -1440,7 +1456,7 @@ public class DIDPlugin extends TrinityPlugin {
                         } catch (JwsSignatureException e) {
                             // In case of signature verification error, we still want to return the payload to the caller.
                             // It can decide whether to use it or not.
-                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+                            JSONObject jsonPayload = parseJWT(jwtToken);
 
                             r.put("signatureIsValid", false);
                             r.put("payload", jsonPayload);
@@ -1448,7 +1464,7 @@ public class DIDPlugin extends TrinityPlugin {
                         } catch (ExpiredJwtException e) {
                             // In case of signature verification error, we still want to return the payload to the caller.
                             // It can decide whether to use it or not.
-                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+                            JSONObject jsonPayload = parseJWT(jwtToken);
 
                             r.put("signatureIsValid", false);
                             r.put("payload", jsonPayload);
@@ -1456,7 +1472,7 @@ public class DIDPlugin extends TrinityPlugin {
                         } catch (IllegalArgumentException e) {
                             // In case of signature verification error, we still want to return the payload to the caller.
                             // It can decide whether to use it or not.
-                            JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+                            JSONObject jsonPayload = parseJWT(jwtToken);
 
                             r.put("signatureIsValid", false);
                             r.put("payload", jsonPayload);
@@ -1472,7 +1488,7 @@ public class DIDPlugin extends TrinityPlugin {
             else {
                 // No need to verify the JWT signature - just extract the payload manually without verification
                 // We can't use the DID parser as it will foce signature verification.
-                JSONObject jsonPayload = IntentManager.parseJWT(jwtToken);
+                JSONObject jsonPayload = parseJWT(jwtToken);
 
                 JSONObject r = new JSONObject();
                 r.put("signatureIsValid", false);

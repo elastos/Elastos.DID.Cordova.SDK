@@ -657,10 +657,6 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     //     exec(onSuccess, onError, 'DIDPlugin', 'updateDid', [this.objId, didDocument.getSubject().getDIDString(), nativeDidDocument, storepass]);
     // }
 
-    setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [this.objId, resolver]);
-    }
-
     synchronize(storepass: string, onSuccess: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'synchronize', [this.objId, storepass]);
     }
@@ -757,6 +753,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
             onSuccess(ret == "true");
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+    }
+
+    setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [resolver]);
     }
 
     resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
