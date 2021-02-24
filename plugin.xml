@@ -47,5 +47,7 @@
             <runs />
         </js-module>
     </platform>
+
+    <hook src="hooks/before_plugin_install/build_ts.js" type="before_plugin_install" />
 </plugin>
 
