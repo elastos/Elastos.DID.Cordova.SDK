@@ -3,7 +3,8 @@
 module.exports = function(ctx) {
     // console.log(JSON.stringify(ctx, null, 2));
 
-    var exec = require('child_process').exec;
+    const fs = require('fs'),
+        exec = require('child_process').exec;
 
     let promise = new Promise(function(resolve, reject) {
         (() => {
