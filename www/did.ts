@@ -1036,4 +1036,4 @@ class Helper {
 }
 
 let didManager = new DIDManagerImpl();
-export = didManager;
+export default didManager;

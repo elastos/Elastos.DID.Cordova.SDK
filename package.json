@@ -1,9 +1,9 @@
 {
-  "name": "elastos-trinity-plugins-did",
+  "name": "elastos-cordova-plugin-did",
   "version": "0.0.1",
   "description": "Elastos DID Plugin",
   "cordova": {
-    "id": "elastos-trinity-plugins-did",
+    "id": "elastos-cordova-plugin-did",
     "platforms": [
       "android",
       "ios"
