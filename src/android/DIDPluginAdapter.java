@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.elastos.trinity.plugins.did;
+package org.elastos.essentials.plugins.did;
 
 import android.util.Log;
 
