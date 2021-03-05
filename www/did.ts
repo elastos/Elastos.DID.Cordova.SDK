@@ -337,7 +337,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         return this.expires;
     }
 
-    getPublicKeyCount(): Number {
+    getPublicKeyCount(): number {
         return this.getPublicKeys().length;
     }
 
@@ -358,7 +358,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         return this.publicKey;
     }
 
-    getServicesCount(): Number {
+    getServicesCount(): number {
         return this.services.length;
     }
 
@@ -476,7 +476,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.storeId, this.id.getDIDString(), storepass]);
     }
 
-    createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string) => void, onError?: (err: any) => void) {
+    createJWT(properties: any, validityDays: number, storepass: string, onSuccess: (token: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'createJWT', [this.id.getDIDString(), properties, validityDays, storepass]);
     }
 

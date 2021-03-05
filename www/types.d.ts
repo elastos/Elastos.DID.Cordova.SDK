@@ -142,13 +142,13 @@ declare module DIDPlugin {
          * @param subjectDID DIDString of the target subject that will own this credential.
          * @param credentialId Unique identifier for the generated credential. Usually a random string used as a DIDURLFragment.
          * @param types List of credential type names that help categorizing this credential.
-         * @param validityDays Number of Days at which the credential will become invalid, the max validity days is 5 years.
+         * @param validityDays number of Days at which the credential will become invalid, the max validity days is 5 years.
          * @param properties Any multi-level object that contains the actual information about this credential.
          * @param passphrase Password of the issuer's DIDStore, used to sign the created credential with the issuer's DID.
          * @param onSuccess Callback returning the created VerifiableCredential object in case of success.
          * @param onError Callback returning an error object in case of error.
          */
-        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], validityDays: Number, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
+        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], validityDays: number, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
 
         addCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
         deleteCredential(credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void);
@@ -183,7 +183,7 @@ declare module DIDPlugin {
         setSubject(subject: DID);
         getSubject(): DID;
 
-        getPublicKeyCount(): Number;
+        getPublicKeyCount(): number;
         getDefaultPublicKey(onSuccess: (publicKey: PublicKey) => void, onError?: (err: any) => void);
         getPublicKey(didUrl: DIDURL): PublicKey;
         getPublicKeys(): PublicKey[];
@@ -193,7 +193,7 @@ declare module DIDPlugin {
          *
          * @returns The number of services.
          */
-        getServicesCount(): Number;
+        getServicesCount(): number;
 
         /**
          * Returns a service, if existing, from its DID string.
@@ -255,9 +255,9 @@ declare module DIDPlugin {
          * Create a JWT, signed by the DID document.
          *
          * @param properties JSON object that contains the actual information.
-         * @param validityDays Number of Days at which the JWT will become invalid.
+         * @param validityDays number of Days at which the JWT will become invalid.
          */
-        createJWT(properties: any, validityDays: Number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
+        createJWT(properties: any, validityDays: number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
 
         /**
          * JSON string representation of this DID document.
