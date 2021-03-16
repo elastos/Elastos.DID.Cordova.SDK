@@ -570,6 +570,61 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     }
 }
 
+enum NativeMnemonicLanguage {
+    ENGLISH = "english",
+    FRENCH = "french",
+    SPANISH = "spanish",
+    CHINESE_SIMPLIFIED = "chinese_simplified",
+    CHINESE_TRADITIONAL = "chinese_traditional",
+    JAPANESE = "japanese"
+};
+
+class MnemonicLanguageHelper {
+    public static nativeToTS(nativeLanguage: NativeMnemonicLanguage): DIDPlugin.MnemonicLanguage {
+        switch (nativeLanguage) {
+            case NativeMnemonicLanguage.FRENCH: return "FRENCH";
+            case NativeMnemonicLanguage.SPANISH: return "SPANISH";
+            case NativeMnemonicLanguage.CHINESE_SIMPLIFIED: return "CHINESE_SIMPLIFIED";
+            case NativeMnemonicLanguage.CHINESE_TRADITIONAL: return "CHINESE_TRADITIONAL";
+            case NativeMnemonicLanguage.JAPANESE: return "JAPANESE";
+            case NativeMnemonicLanguage.ENGLISH:
+            default:
+                return "ENGLISH";
+        }
+    }
+
+    public static tsToNative(tsLanguage: DIDPlugin.MnemonicLanguage): NativeMnemonicLanguage {
+        switch (tsLanguage) {
+            case "FRENCH": return NativeMnemonicLanguage.FRENCH;
+            case "SPANISH": return NativeMnemonicLanguage.SPANISH;
+            case "CHINESE_SIMPLIFIED": return NativeMnemonicLanguage.CHINESE_SIMPLIFIED;
+            case "CHINESE_TRADITIONAL": return NativeMnemonicLanguage.CHINESE_TRADITIONAL;
+            case "JAPANESE": return NativeMnemonicLanguage.JAPANESE;
+            case "ENGLISH":
+            default:
+                return NativeMnemonicLanguage.ENGLISH;
+        }
+    }
+}
+
+class DIDStoreFilterHelper {
+    public static tsToNative(tsFilter: DIDPlugin.DIDStoreFilter): NativeDIDStoreFilter {
+        switch (tsFilter) {
+            case "DID_NO_PRIVATEKEY": return NativeDIDStoreFilter.DID_NO_PRIVATEKEY;
+            case "DID_HAS_PRIVATEKEY": return NativeDIDStoreFilter.DID_HAS_PRIVATEKEY;
+            case "DID_ALL":
+            default:
+                return NativeDIDStoreFilter.DID_ALL;
+        }
+    }
+}
+
+enum NativeDIDStoreFilter {
+    DID_HAS_PRIVATEKEY = 0,
+    DID_NO_PRIVATEKEY = 1,
+    DID_ALL = 2
+}
+
 class DIDStoreImpl implements DIDPlugin.DIDStore {
     objId  = null;
 
@@ -578,7 +633,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     initPrivateIdentity(language: DIDPlugin.MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, language, mnemonic, passphrase, storepass, force]);
+        exec(onSuccess, onError, 'DIDPlugin', 'initPrivateIdentity', [this.objId, MnemonicLanguageHelper.tsToNative(language), mnemonic, passphrase, storepass, force]);
     }
 
     changePassword(oldPassword: string, newPassword: string, onSuccess: () => void, onError?: (err: any) => void) {
@@ -621,7 +676,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
             onSuccess(dids);
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [this.objId, filter]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'listDids', [this.objId, DIDStoreFilterHelper.tsToNative(filter)]);
     }
 
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {

@@ -34,20 +34,10 @@
 */
 
 declare module DIDPlugin {
-    const enum DIDStoreFilter {
-        DID_HAS_PRIVATEKEY = 0,
-        DID_NO_PRIVATEKEY = 1,
-        DID_ALL = 2
-    }
+    type DIDStoreFilter = "DID_HAS_PRIVATEKEY" | "DID_NO_PRIVATEKEY" | "DID_ALL";
 
-    const enum MnemonicLanguage {
-        ENGLISH = "english",
-        FRENCH = "french",
-        SPANISH = "spanish",
-        CHINESE_SIMPLIFIED = "chinese_simplified",
-        CHINESE_TRADITIONAL = "chinese_traditional",
-        JAPANESE = "japanese"
-    }
+    type MnemonicLanguage =
+        "ENGLISH" | "FRENCH" | "SPANISH" | "CHINESE_SIMPLIFIED" | "CHINESE_TRADITIONAL" | "JAPANESE";
 
     /**
      * This is the most usual format when talking about DIDs.
