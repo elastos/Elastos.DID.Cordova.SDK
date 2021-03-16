@@ -10,9 +10,9 @@
                 <param name="android-package" value="org.elastos.essentials.plugins.did.DIDPlugin" />
             </feature>
         </config-file>
-        <source-file src="src/android/DIDPlugin.java" target-dir="src/org/elastos/essentials/plugins/did" />
-        <source-file src="src/android/DIDPluginAdapter.java" target-dir="src/org/elastos/essentials/plugins/did" />
-        <source-file src="src/android/JSONObjectHolder.java" target-dir="src/org/elastos/essentials/plugins/did" />
+        <source-file src="src/android/DIDPlugin.java" target-dir="src/org/elastos/plugins/did" />
+        <source-file src="src/android/DIDPluginAdapter.java" target-dir="src/org/elastos/plugins/did" />
+        <source-file src="src/android/JSONObjectHolder.java" target-dir="src/org/elastos/plugins/did" />
         <framework src="src/android/did.gradle" custom="true" type="gradleReference"/>
     </platform>
     <platform name="ios">
