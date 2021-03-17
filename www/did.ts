@@ -800,14 +800,14 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     generateMnemonic(language: any, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void) {
-        exec(onSuccess, onError, 'DIDPlugin', 'generateMnemonic', [language]);
+        exec(onSuccess, onError, 'DIDPlugin', 'generateMnemonic', [MnemonicLanguageHelper.tsToNative(language)]);
     }
 
     isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void) {
         var _onSuccess = function(ret : string) {
             onSuccess(ret == "true");
         }
-        exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [language, mnemonic]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [MnemonicLanguageHelper.tsToNative(language), mnemonic]);
     }
 
     setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
