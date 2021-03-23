@@ -10,7 +10,8 @@ module.exports = function(ctx) {
         (() => {
             const tsconfig = ctx.opts.plugin.pluginInfo.dir + '/www/tsconfig.json';
             if (fs.existsSync(tsconfig) == true) {
-                var cmdStr = 'tsc --build ' + tsconfig;
+                // The path should be quoted if there is space in path.
+                var cmdStr = 'tsc --build "' + tsconfig + '"';
                 exec(cmdStr, function(err, stdout, stderr){
                     if(err) {
                         reject(new Error('tsc error:' + err + ' ' + stderr));
