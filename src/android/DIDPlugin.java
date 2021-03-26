@@ -77,7 +77,7 @@ public class DIDPlugin extends CordovaPlugin {
 //    private static final String DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did";
 //    private static final String DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession";
 
-    private static String s_didResolverUrl = "http://api.elastos.io:20606";
+    private static String s_didResolverUrl = "https://api.elastos.io/did";
 
     private CallbackContext idTransactionCC  = null;
 

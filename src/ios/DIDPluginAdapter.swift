@@ -32,9 +32,9 @@ class DIDPluginAdapter : DIDAdapter {
     // Privnet
     // private let resolver = "https://coreservices-didsidechain-privnet.elastos.org"
     // TestNet
-    // private let resolver = "http://api.elastos.io:21606"
+    // private let resolver = "https://api-testnet.elastos.io/did"
     // MainNet
-    // private var resolver = "http://api.elastos.io:20606"
+    // private var resolver = "https://api.elastos.io/did"
 
     init(id: Int, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
         self.callbackId = id

@@ -50,7 +50,7 @@ class DIDPlugin : CDVPlugin {
 
 //    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
 //    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
-    private static var s_didResolverUrl = "http://api.elastos.io:20606";
+    private static var s_didResolverUrl = "https://api.elastos.io/did";
 
     internal let keyCode        = "code"
     internal let keyMessage     = "message"
