@@ -1,9 +1,9 @@
 {
   "name": "@elastosfoundation/elastos-cordova-plugin-did",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Elastos DID Plugin",
   "cordova": {
-    "id": "elastos-cordova-plugin-did",
+    "id": "@elastosfoundation/elastos-cordova-plugin-did",
     "platforms": [
       "android",
       "ios"
