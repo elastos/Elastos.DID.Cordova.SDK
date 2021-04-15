@@ -732,7 +732,9 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     VerifiablePresentationBuilder: DIDPlugin.VerifiablePresentationBuilder = new VerifiablePresentationBuilderImpl();
     ServiceBuilder: DIDPlugin.ServiceBuilder = new ServiceBuilderImpl();
 
-    private createIdTransactionEvent:DIDManagerEvent;
+    private createIdTransactionEventList: {
+      [index: string]: DIDManagerEvent
+    } = {};
 
     hasSetListener = false;
 
@@ -746,13 +748,13 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         Object.freeze(VerifiableCredentialImpl.prototype);
     }
 
-    addCreateIdTransactionCB(callback) {
+    addCreateIdTransactionCB(didStoreId, callback) {
         var eventcb: DIDManagerEvent = {
             callback: callback,
             object: null
         };
 
-        this.createIdTransactionEvent = eventcb;
+        this.createIdTransactionEventList[didStoreId] = eventcb;
         return 0;
     }
 
@@ -767,14 +769,16 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
         if (!this.hasSetListener) {
             this.setListener(LISTENER_IDTRANSACTION, (event) => {
-                this.createIdTransactionEvent.callback(event.payload, event.memo);
+                if (this.createIdTransactionEventList[didStoreId]) {
+                  this.createIdTransactionEventList[didStoreId].callback(event.payload, event.memo);
+                }
             });
             this.hasSetListener = true;
         }
 
         var callbackId = 0;
         if (typeof createIdTransactionCallback === "function") {
-            callbackId = this.addCreateIdTransactionCB(createIdTransactionCallback);
+            callbackId = this.addCreateIdTransactionCB(didStoreId, createIdTransactionCallback);
         }
 
         var _onSuccess = function() {
