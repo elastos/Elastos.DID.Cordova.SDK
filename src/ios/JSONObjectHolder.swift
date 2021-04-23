@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Elastos Foundation
+ * Copyright (c) 2021 Elastos Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,24 +30,24 @@ class JSONObjectHolder {
         r.setValue(entry.getMetadata().aliasName, forKey: "alias")
         return r
     }
-    
+
     public static func getDIDsInfoJson(dids: [DID]?) throws -> NSDictionary {
         let array = NSMutableArray()
-        
+
         if let dids = dids {
             for entry in dids {
                 array.add(try getDIDInfoJson(entry: entry))
             }
         }
-        
+
         let r = NSMutableDictionary()
         r.setValue(array, forKey: "items")
-        
+
         return r
     }
 
     /* TODO
-    
+
 
     public static JSONObject getCredentialInfoJson(DIDURL entry) throws JSONException, DIDException {
         JSONObject r = new JSONObject();

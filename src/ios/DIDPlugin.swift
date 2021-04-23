@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Elastos Foundation
+ * Copyright (c) 2021 Elastos Foundation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,39 +44,38 @@ enum AppError: Error {
    case error(String)
 }
 
-@objc(DIDPlugin)
-class DIDPlugin : CDVPlugin {
+@objc(DIDPlugin) class DIDPlugin : CDVPlugin {
     internal static let TAG = "DIDPlugin"
 
 //    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
 //    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
     private static var s_didResolverUrl = "https://api.elastos.io/did";
 
-    internal let keyCode        = "code"
-    internal let keyMessage     = "message"
-    internal let keyException   = "exception"
+    static let keyCode        = "code"
+    static let keyMessage     = "message"
+    static let keyException   = "exception"
 
-    internal let errCodeParseJsonInAction          = 10000
-    internal let errCodeInvalidArg                 = 10001
-    internal let errCodeNullPointer                = 10002
-    internal let errCodeDidStoreUninitialized      = 10003
-    internal let errCodeInvalidDidDocment          = 10004
-    internal let errCodeInvalidDid                 = 10005
-    internal let errCodeInvalidPublicKey           = 10006
-    internal let errCodeInvalidCredential          = 10007
-    internal let errCodeLoadDid                    = 10008
-    internal let errCodePublishDid                 = 10009
-    internal let errCodeUpdateDid                  = 10010
-    internal let errCodeLoadCredential             = 10011
-    internal let errCodeDeleteCredential           = 10012
-    internal let errCodeVerify                     = 10013
-    internal let errCodeActionNotFound             = 10014
-    internal let errCodeUnspecified                = 10015
-    internal let errCodeWrongPassword              = 10016
-    internal let errCodeDidException               = 20000
-    internal let errCodeException                  = 20001
+    static let errCodeParseJsonInAction          = 10000
+    static let errCodeInvalidArg                 = 10001
+    static let errCodeNullPointer                = 10002
+    static let errCodeDidStoreUninitialized      = 10003
+    static let errCodeInvalidDidDocment          = 10004
+    static let errCodeInvalidDid                 = 10005
+    static let errCodeInvalidPublicKey           = 10006
+    static let errCodeInvalidCredential          = 10007
+    static let errCodeLoadDid                    = 10008
+    static let errCodePublishDid                 = 10009
+    static let errCodeUpdateDid                  = 10010
+    static let errCodeLoadCredential             = 10011
+    static let errCodeDeleteCredential           = 10012
+    static let errCodeVerify                     = 10013
+    static let errCodeActionNotFound             = 10014
+    static let errCodeUnspecified                = 10015
+    static let errCodeWrongPassword              = 10016
+    static let errCodeDidException               = 20000
+    static let errCodeException                  = 20001
 
-    internal static let IDTRANSACTION  = 1
+    static let IDTRANSACTION  = 1
 
     // Model
     internal var globalDidAdapter: DIDPluginAdapter? = nil
@@ -88,6 +87,15 @@ class DIDPlugin : CDVPlugin {
     internal var mIssuerMap : [String: VerifiableCredentialIssuer] = [:]
     internal var mDidAdapterMap : [String: DIDPluginAdapter] = [:]
     internal var mCredentialMap : [String: VerifiableCredential] = [:]
+
+    override func pluginInitialize() {
+        mDIDStoreMap = [:]
+        mDIDMap = [:]
+        mDocumentMap = [:]
+        mIssuerMap = [:]
+        mDidAdapterMap = [:]
+        mCredentialMap = [:]
+    }
 
     private func success(_ command: CDVInvokedUrlCommand) {
         let result = CDVPluginResult(status: CDVCommandStatus_OK);
@@ -125,13 +133,13 @@ class DIDPlugin : CDVPlugin {
     }
 
     private func error(_ command: CDVInvokedUrlCommand, retAsString: String) {
-        self.error(command, code: errCodeUnspecified, msg: retAsString)
+        self.error(command, code: DIDPlugin.errCodeUnspecified, msg: retAsString)
     }
 
     private func error(_ command: CDVInvokedUrlCommand, code: Int, msg: String) {
         let errJson : NSMutableDictionary = [:]
-        errJson.setValue(code, forKey: keyCode)
-        errJson.setValue(msg, forKey: keyMessage)
+        errJson.setValue(code, forKey: DIDPlugin.keyCode)
+        errJson.setValue(msg, forKey: DIDPlugin.keyMessage)
 
         self.log(message: "(" + command.methodName + ") - " + errJson.description)
 
@@ -155,23 +163,23 @@ class DIDPlugin : CDVPlugin {
                     msg = "(" + command.methodName + ") - \(e.localizedDescription) - \(String(describing: desc))"
                     if desc!.contains("decryptFromBase64 error") {
                         // Wrong password exception
-                        self.error(command, code: errCodeWrongPassword, msg: msg)
+                        self.error(command, code: DIDPlugin.errCodeWrongPassword, msg: msg)
                     }
                     else {
-                        self.error(command, code: errCodeDidException, msg: msg)
+                        self.error(command, code: DIDPlugin.errCodeDidException, msg: msg)
                     }
                 }
                 else {
-                    self.error(command, code: errCodeDidException, msg: msg)
+                    self.error(command, code: DIDPlugin.errCodeDidException, msg: msg)
                 }
                 return
             default:
-                self.error(command, code: errCodeDidException, msg: msg)
+                self.error(command, code: DIDPlugin.errCodeDidException, msg: msg)
                 break
             }
         }
 
-        self.error(command, code: errCodeException, msg: msg)
+        self.error(command, code: DIDPlugin.errCodeException, msg: msg)
     }
 
     private func log(message: String) {
@@ -179,7 +187,7 @@ class DIDPlugin : CDVPlugin {
     }
 
     private func sendWrongParametersCount(_ command: CDVInvokedUrlCommand, expected: Int) {
-        self.error(command, code: errCodeInvalidArg, msg: "Wrong number of parameters passed. Expected \(expected).")
+        self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: "Wrong number of parameters passed. Expected \(expected).")
             return
     }
 
@@ -238,7 +246,7 @@ class DIDPlugin : CDVPlugin {
 //        else {
 //            return getDataPath() + "did/" + didStoreId
 //        }
-        return NSHomeDirectory() + "did/" + didStoreId
+        return NSHomeDirectory() + "/Documents/data/did/" + didStoreId
     }
 
     @objc func initDidStore(_ command: CDVInvokedUrlCommand) {
@@ -361,35 +369,30 @@ class DIDPlugin : CDVPlugin {
 
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
+                var didDocument: DIDDocument? = nil;
                 do {
-                    var didDocument: DIDDocument? = nil;
-                    do {
-                        didDocument = try DID(didString).resolve(forceRemote)
-                    }
-                    catch (_) {
-                        // did is invalid or can't resolve did
-                    }
+                    didDocument = try DID(didString).resolve(forceRemote)
+                }
+                catch (_) {
+                    // did is invalid or can't resolve did
+                }
 
-                    if didDocument == nil {
-                        ret.setValue(nil, forKey: "diddoc")
+                if didDocument == nil {
+                    ret.setValue(nil, forKey: "diddoc")
+                }
+                else {
+                    ret.setValue(didDocument?.toString(true), forKey: "diddoc")
+
+                    if let updated = didDocument?.getMetadata().getPublished() {
+                        let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
+                        ret.setValue(isoDate, forKey: "updated")
                     }
                     else {
-                        ret.setValue(didDocument?.toString(true), forKey: "diddoc")
-
-                        if let updated = didDocument?.getMetadata().getPublished() {
-                            let isoDate = ISO8601DateFormatter.string(from: updated, timeZone: TimeZone.init(secondsFromGMT: 0)!, formatOptions: [.withInternetDateTime, .withFractionalSeconds])
-                            ret.setValue(isoDate, forKey: "updated")
-                        }
-                        else {
-                            ret.setValue(nil, forKey: "updated")
-                        }
+                        ret.setValue(nil, forKey: "updated")
                     }
+                }
 
-                    self.success(command, retAsDict: ret)
-                }
-                catch (let error) {
-                    self.exception(error, command)
-                }
+                self.success(command, retAsDict: ret)
             }
         }
         catch  {
@@ -430,18 +433,13 @@ class DIDPlugin : CDVPlugin {
 
         let didStoreId = command.arguments[0] as! String
 
-        do {
-            if let didStore = mDIDStoreMap[didStoreId]  {
-                let ret = try didStore.containsPrivateIdentity()
-                self.success(command, retAsString: (ret ? "true" : "false"))
-            }
-            else {
-                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-                return
-            }
+        if let didStore = mDIDStoreMap[didStoreId]  {
+            let ret = didStore.containsPrivateIdentity()
+            self.success(command, retAsString: (ret ? "true" : "false"))
         }
-        catch {
-            self.exception(error, command)
+        else {
+            self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+            return
         }
     }
 
@@ -792,7 +790,7 @@ class DIDPlugin : CDVPlugin {
         let passphrase = command.arguments[7] as! String
 
         if (!self.ensureCredentialIDFormat(didUrl: credentialId)) {
-            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(credentialId)")
+            self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: "Wrong DIDURL format: \(credentialId)")
             return
         }
 
@@ -846,7 +844,7 @@ class DIDPlugin : CDVPlugin {
         let didUrlString = command.arguments[2] as! String
 
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
-            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
+            self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
             return
         }
 
@@ -862,7 +860,7 @@ class DIDPlugin : CDVPlugin {
                 }
 
                 if (vc == nil) {
-                    self.error(command, code: errCodeInvalidArg, msg: " Null credential returned for didString \(didString) and didUrlString \(didUrlString)")
+                    self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: " Null credential returned for didString \(didString) and didUrlString \(didUrlString)")
                     return
                 }
 
@@ -918,7 +916,7 @@ class DIDPlugin : CDVPlugin {
         let didUrlString = command.arguments[2] as! String
 
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
-            self.error(command, code: errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
+            self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: "Wrong DIDURL format: \(didUrlString)")
             return
         }
 
@@ -936,7 +934,7 @@ class DIDPlugin : CDVPlugin {
                     self.success(command)
                 }
                 else {
-                    self.error(command, code: errCodeDeleteCredential, msg: "deleteCredential returned false!")
+                    self.error(command, code: DIDPlugin.errCodeDeleteCredential, msg: "deleteCredential returned false!")
                 }
             }
             else {
@@ -1256,7 +1254,7 @@ class DIDPlugin : CDVPlugin {
                     self.success(command)
                 }
                 else {
-                    self.error(command, code: errCodeVerify, msg: "verify return false!")
+                    self.error(command, code: DIDPlugin.errCodeVerify, msg: "verify return false!")
                 }
             }
             else {
@@ -1536,7 +1534,7 @@ class DIDPlugin : CDVPlugin {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(try presentation.isValid, forKey: "isvalid");
+            r.setValue(presentation.isValid, forKey: "isvalid");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)
@@ -1555,7 +1553,7 @@ class DIDPlugin : CDVPlugin {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(try presentation.isGenuine, forKey: "isgenuine");
+            r.setValue(presentation.isGenuine, forKey: "isgenuine");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)
@@ -1598,7 +1596,7 @@ class DIDPlugin : CDVPlugin {
             return String(didUrl.suffix(from: (didUrl.index(didUrl.startIndex, offsetBy: 1))))
         }
         else if (didUrl.contains("#")) {
-            return String(didUrl.suffix(from: didUrl.index(didUrl.index(of: "#")!, offsetBy: 1)))
+            return String(didUrl.suffix(from: didUrl.index(didUrl.firstIndex(of: "#")!, offsetBy: 1)))
         }
         else {
             return didUrl
