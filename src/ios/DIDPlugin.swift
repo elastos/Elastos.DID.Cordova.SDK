@@ -89,6 +89,10 @@ enum AppError: Error {
     internal var mCredentialMap : [String: VerifiableCredential] = [:]
 
     override func pluginInitialize() {
+        // Why can not be initialized in up code?
+        globalDidAdapter = nil;
+        idTransactionCC = nil;
+
         mDIDStoreMap = [:]
         mDIDMap = [:]
         mDocumentMap = [:]
