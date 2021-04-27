@@ -196,21 +196,15 @@ enum AppError: Error {
     }
 
     private func getDIDDataDir() -> String {
-        return NSHomeDirectory() + "/did"
-    }
-
-    private func getBackendCacheDir() -> String {
-        // TODO: this is NOT a auto-cleanable folder! We need to let our cache folder be cleanable by system/user
-        let cacheDir = NSHomeDirectory() + "/did/.cache.did.elastos"
-
-        // Create folder in case it's missing
-        try? FileManager.default.createDirectory(atPath: cacheDir, withIntermediateDirectories: true, attributes: nil)
-
-        return cacheDir
+        return NSHomeDirectory() + "/Documents/data/did/"
     }
 
     private static func getDefaultCacheDir() -> String {
         return NSHomeDirectory() + "/Documents/data/did/.cache.did.elastos"
+    }
+
+    private func getStoreDataDir(didStoreId: String) -> String {
+        return getDIDDataDir() + didStoreId
     }
 
     public static func initializeDIDBackend() throws {
@@ -241,16 +235,6 @@ enum AppError: Error {
         // Command delegate can become nil in case the pluign is deinitialized while
         // doing an asynchronous call.
         self.commandDelegate?.send(result, callbackId: command.callbackId)
-    }
-
-    private func getStoreDataDir(didStoreId: String) -> String {
-//        if appId == DIDPlugin.DID_APPLICATION_APP_ID || appId == DIDPlugin.DID_SESSION_APPLICATION_APP_ID {
-//            return NSHomeDirectory() + "/Documents/data/did/useridentities/" + didStoreId
-//        }
-//        else {
-//            return getDataPath() + "did/" + didStoreId
-//        }
-        return NSHomeDirectory() + "/Documents/data/did/" + didStoreId
     }
 
     @objc func initDidStore(_ command: CDVInvokedUrlCommand) {
