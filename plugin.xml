@@ -7,7 +7,7 @@
     <platform name="android">
         <config-file target="config.xml" parent="/*">
            <feature name="DIDPlugin">
-                <param name="android-package" value="org.elastos.essentials.plugins.did.DIDPlugin" />
+                <param name="android-package" value="org.elastos.plugins.did.DIDPlugin" />
             </feature>
         </config-file>
         <source-file src="src/android/DIDPlugin.java" target-dir="src/org/elastos/plugins/did" />

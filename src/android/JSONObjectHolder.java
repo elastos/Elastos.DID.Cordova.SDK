@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.elastos.essentials.plugins.did;
+package org.elastos.plugins.did;
 
 import org.elastos.did.exception.DIDException;
 import org.json.JSONArray;
