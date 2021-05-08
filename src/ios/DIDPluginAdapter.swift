@@ -26,24 +26,20 @@ import ElastosDIDSDK
 class DIDPluginAdapter : DIDAdapter {
     private let TAG = "DIDPluginAdapter"
     private let callbackId: Int
+    private var didStoreId: String
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate?
 
-    // Privnet
-    // private let resolver = "https://coreservices-didsidechain-privnet.elastos.org"
-    // TestNet
-    // private let resolver = "https://api-testnet.elastos.io/did"
-    // MainNet
-    // private var resolver = "https://api.elastos.io/did"
-
-    init(id: Int, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
+    init(id: Int, didStoreId: String, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
         self.callbackId = id
+        self.didStoreId = didStoreId
         self.command = command
         self.commandDelegate = commandDelegate
     }
 
     private func sendEvent(info: NSMutableDictionary) {
         info.setValue(callbackId, forKey: "id")
+        info.setValue(didStoreId, forKey: "didStoreId")
 
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (info as! [AnyHashable : Any]))
         result?.setKeepCallbackAs(true)

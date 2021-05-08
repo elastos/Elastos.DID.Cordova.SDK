@@ -259,7 +259,7 @@ enum AppError: Error {
         do {
             try DIDPlugin.initializeDIDBackend()
 
-            globalDidAdapter = DIDPluginAdapter(id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
+            globalDidAdapter = DIDPluginAdapter(id: callbackId, didStoreId: didStoreId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
             mDidAdapterMap[didStoreId] = globalDidAdapter
 
             // NOTE: this overwrite any previously initialized adapter if any.

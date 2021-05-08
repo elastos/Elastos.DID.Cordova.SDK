@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
-package org.elastos.plugins.did;
+package org.elastos.essentials.plugins.did;
 
 import android.util.Log;
 
@@ -33,20 +33,17 @@ import org.json.JSONObject;
 public class DIDPluginAdapter implements DIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
+    private String didStoreId = "";
     private CallbackContext callbackContext;
 
-    // private String resolver = "https://coreservices-didsidechain-privnet.elastos.org";
-    // TestNet
-    // private String resolver = "https://api-testnet.elastos.io/did";
-    // MainNet
-    // private String resolver = "https://api.elastos.io/did";
-
-    DIDPluginAdapter(int id) {
+    DIDPluginAdapter(int id, String didStoreId) {
         this.callbackId = id;
+        this.didStoreId = didStoreId;
     }
 
     private void sendEvent(JSONObject info) throws JSONException {
         info.put("id", callbackId);
+        info.put("didStoreId", didStoreId);
 
         PluginResult res = new PluginResult(PluginResult.Status.OK, info);
         res.setKeepCallback(true);

@@ -769,8 +769,8 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
         if (!this.hasSetListener) {
             this.setListener(LISTENER_IDTRANSACTION, (event) => {
-                if (this.createIdTransactionEventList[didStoreId]) {
-                  this.createIdTransactionEventList[didStoreId].callback(event.payload, event.memo);
+                if (this.createIdTransactionEventList[event.didStoreId]) {
+                  this.createIdTransactionEventList[event.didStoreId].callback(event.payload, event.memo);
                 }
             });
             this.hasSetListener = true;

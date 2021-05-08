@@ -74,8 +74,6 @@ public class DIDPlugin extends CordovaPlugin {
     private static String TAG = "DIDPlugin";
 
     private static final int IDTRANSACTION  = 1;
-//    private static final String DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did";
-//    private static final String DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession";
 
     private static String s_didResolverUrl = "https://api.elastos.io/did";
 
@@ -431,7 +429,7 @@ public class DIDPlugin extends CordovaPlugin {
         try {
             initializeDIDBackend(cordova.getActivity());
 
-            globalDidAdapter = new DIDPluginAdapter(callbackId);
+            globalDidAdapter = new DIDPluginAdapter(callbackId, didStoreId);
 
             mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
