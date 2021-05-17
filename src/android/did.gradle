@@ -25,7 +25,6 @@ repositories {
     flatDir{
         dirs 'src/main/libs'
     }
-    maven{ url 'https://dl.bintray.com/elastos/Elastos.DID.Java.SDK'}
 }
 
 dependencies {
