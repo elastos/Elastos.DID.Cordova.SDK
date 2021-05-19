@@ -24,6 +24,7 @@ repositories {
     flatDir{
         dirs 'src/main/libs'
     }
+    mavenCentral()
 }
 
 dependencies {
