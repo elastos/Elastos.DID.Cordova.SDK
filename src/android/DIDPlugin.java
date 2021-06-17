@@ -1331,6 +1331,20 @@ public class DIDPlugin extends CordovaPlugin {
         }
     }
 
+    public byte[] hex2byte(String inputString) {
+        if (inputString == null || inputString.length() < 2) {
+            return new byte[0];
+        }
+        inputString = inputString.toLowerCase();
+        int l = inputString.length() / 2;
+        byte[] result = new byte[l];
+        for (int i = 0; i < l; ++i) {
+            String tmp = inputString.substring(2 * i, 2 * i + 2);
+            result[i] = (byte) (Integer.parseInt(tmp, 16) & 0xFF);
+        }
+        return result;
+    }
+
     private void signDigest(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         String didString = args.getString(idx++);
@@ -1345,7 +1359,7 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
 
-        String signString = didDocument.signDigest(storepass, originString.getBytes());
+        String signString = didDocument.signDigest(storepass, hex2byte(originString));
         callbackContext.success(signString);
     }
 
