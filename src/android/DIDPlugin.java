@@ -76,7 +76,7 @@ public class DIDPlugin extends CordovaPlugin {
 
     private static final int IDTRANSACTION  = 1;
 
-    private static String s_didResolverUrl = "https://api.elastos.io/did";
+    private static String s_didResolverUrl = "https://api.elastos.io/eid";
 
     private CallbackContext idTransactionCC  = null;
 
@@ -430,9 +430,9 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
         try {
-            initializeDIDBackend(cordova.getActivity());
+            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId, didStoreId);
 
-            globalDidAdapter = new DIDPluginAdapter(callbackId, didStoreId);
+            initializeDIDBackend(cordova.getActivity());
 
             mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
@@ -771,7 +771,12 @@ public class DIDPlugin extends CordovaPlugin {
 
                 JSONObject r = new JSONObject();
                 r.put("diddoc", didDocument.toString(true));
-                r.put("updated", didDocument.getMetadata().getPublishTime());
+
+                // TMP DIRTY WORKAROUND METADATA UPDATED CRASH
+                if (didDocument.getMetadata().toString().contains("published"))
+                    r.put("updated", didDocument.getMetadata().getPublishTime());
+                else
+                    r.put("updated", null);
                 callbackContext.success(r);
             }
             else {
@@ -847,7 +852,7 @@ public class DIDPlugin extends CordovaPlugin {
 //                DIDStore didStore = mDIDStoreMap.get(didStoreId);
 //                didStore.publishDid(didString, storepass);
                 DIDDocument didDocument = mDocumentMap.get(didString);
-                didDocument.publish(didString, storepass);
+                didDocument.publish(storepass);
                 callbackContext.success();
             }
             catch (Exception e) {

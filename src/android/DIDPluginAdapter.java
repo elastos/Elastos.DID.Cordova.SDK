@@ -27,20 +27,21 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
+import org.elastos.did.DefaultDIDAdapter;
 import org.elastos.did.exception.DIDResolveException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.InputStream;
 
-public class DIDPluginAdapter implements DIDAdapter {
+public class DIDPluginAdapter extends DefaultDIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private String didStoreId = "";
     private CallbackContext callbackContext;
-    private String endpoint = "http://52.80.107.251:1111";
 
-    DIDPluginAdapter(int id, String didStoreId) {
+    DIDPluginAdapter(String endpoint, int id, String didStoreId) {
+        super(endpoint);
         this.callbackId = id;
         this.didStoreId = didStoreId;
     }
@@ -56,12 +57,6 @@ public class DIDPluginAdapter implements DIDAdapter {
 
     public void setCallbackContext(CallbackContext callbackContext) {
         this.callbackContext = callbackContext;
-    }
-
-    @Override
-    public InputStream resolve(String s) throws DIDResolveException {
-        //TODO:
-        return null;
     }
 
     @Override
