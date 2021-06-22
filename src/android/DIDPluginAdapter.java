@@ -27,16 +27,21 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
 import org.elastos.did.DIDAdapter;
+import org.elastos.did.DefaultDIDAdapter;
+import org.elastos.did.exception.DIDResolveException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class DIDPluginAdapter implements DIDAdapter {
+import java.io.InputStream;
+
+public class DIDPluginAdapter extends DefaultDIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
     private String didStoreId = "";
     private CallbackContext callbackContext;
 
-    DIDPluginAdapter(int id, String didStoreId) {
+    DIDPluginAdapter(String endpoint, int id, String didStoreId) {
+        super(endpoint);
         this.callbackId = id;
         this.didStoreId = didStoreId;
     }

@@ -21,20 +21,29 @@
  */
 
 import Foundation
-import ElastosDIDSDK
+import PreDID
 
-class DIDPluginAdapter : DIDAdapter {
-    private let TAG = "DIDPluginAdapter"
+class DIDPluginAdapter: DefaultDIDAdapter {
+
+    private let TAG = NSStringFromClass(DIDPluginAdapter.self)
     private let callbackId: Int
     private var didStoreId: String
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate?
+    private var endpoint: String = "http://localhost:9123"
+//    private var endpoint: String = "https://api.elastos.io/did/v2"
+//    private var endpoint: String = "http://52.80.107.251:1111"
+//    private var endpoint: String = "https://api-tesetnet.elastos.io/newid"
+
+    private var idtxEndpoint: String = ""
 
     init(id: Int, didStoreId: String, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
         self.callbackId = id
         self.didStoreId = didStoreId
         self.command = command
         self.commandDelegate = commandDelegate
+        super.init(endpoint + "/resolve")
+//        super.init(endpoint)
     }
 
     private func sendEvent(info: NSMutableDictionary) {
@@ -51,7 +60,7 @@ class DIDPluginAdapter : DIDAdapter {
         self.commandDelegate = commandDelegate
     }
 
-    func createIdTransaction(_ payload: String, _ memo: String?) throws {
+    override func createIdTransaction(_ payload: String, _ memo: String?) throws {
 
         let ret = NSMutableDictionary()
         ret.setValue(payload, forKey: "payload")

@@ -21,13 +21,13 @@
  */
 
 import Foundation
-import ElastosDIDSDK
+import PreDID
 
 class JSONObjectHolder {
     public static func getDIDInfoJson(entry: DID) throws -> NSDictionary {
         let r = NSMutableDictionary()
         r.setValue(entry.description, forKey: "did") // TODO: initially "toString()" in java, does "description" work for ios ?
-        r.setValue(entry.getMetadata().aliasName, forKey: "alias")
+        r.setValue(entry.getMetadata().getAlias(), forKey: "alias")
         return r
     }
 

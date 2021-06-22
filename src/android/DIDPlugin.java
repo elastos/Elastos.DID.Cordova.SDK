@@ -38,6 +38,7 @@ import org.elastos.did.DIDStore;
 import org.elastos.did.DIDURL;
 import org.elastos.did.Issuer;
 import org.elastos.did.Mnemonic;
+import org.elastos.did.RootIdentity;
 import org.elastos.did.VerifiableCredential;
 import org.elastos.did.VerifiablePresentation;
 import org.elastos.did.exception.DIDException;
@@ -75,11 +76,11 @@ public class DIDPlugin extends CordovaPlugin {
 
     private static final int IDTRANSACTION  = 1;
 
-    private static String s_didResolverUrl = "https://api.elastos.io/did";
+    private static String s_didResolverUrl = "https://api.elastos.io/eid";
 
     private CallbackContext idTransactionCC  = null;
 
-    private DIDPluginAdapter globalDidAdapter = null;
+    public static DIDPluginAdapter globalDidAdapter = null;
 
     private HashMap<String, DIDDocument> mDocumentMap;
     private HashMap<String, DID> mDIDMap;
@@ -112,6 +113,8 @@ public class DIDPlugin extends CordovaPlugin {
     private int errCodeWrongPassword              = 10016;
 
     private int errCodeDidException               = 20000;
+
+    RootIdentity rootIdentity = null;
 
     public DIDPlugin() {
         mDocumentMap = new HashMap<>();
@@ -392,7 +395,7 @@ public class DIDPlugin extends CordovaPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject ret= new JSONObject();
             ret.put("diddoc", didDocument.toString(true));
-            ret.put("updated", didDocument.getMetadata().getPublished());
+            ret.put("updated", didDocument.getMetadata().getPublishTime());
             callbackContext.success(ret);
         }
         catch(MalformedDocumentException e) {
@@ -427,14 +430,15 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
         try {
-            initializeDIDBackend(cordova.getActivity());
+            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId, didStoreId);
 
-            globalDidAdapter = new DIDPluginAdapter(callbackId, didStoreId);
+            initializeDIDBackend(cordova.getActivity());
 
             mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
 
-            DIDStore didStore = DIDStore.open("filesystem", dataDir, globalDidAdapter);
+//            DIDStore didStore = DIDStore.open("filesystem", dataDir, globalDidAdapter);
+            DIDStore didStore = DIDStore.open(dataDir);
             mDIDStoreMap.put(didStoreId, didStore);
 
             callbackContext.success();
@@ -456,7 +460,8 @@ public class DIDPlugin extends CordovaPlugin {
 
         DIDStore didStore = mDIDStoreMap.get(didStoreId);
         try {
-            List<DID> dids = didStore.listDids(DIDStore.DID_ALL);
+//            List<DID> dids = didStore.listDids(DIDStore.DID_ALL);
+            List<DID> dids = didStore.listDids();
             for (DID entry : dids) {
                 String didString = entry.toString();
                 mIssuerMap.remove(didString);
@@ -513,7 +518,8 @@ public class DIDPlugin extends CordovaPlugin {
 
     public static void initializeDIDBackend(Context context) throws DIDResolveException {
         String cacheDir = getDefaultCacheDir(context);
-        DIDBackend.initialize(s_didResolverUrl, cacheDir);
+//        DIDBackend.initialize(s_didResolverUrl, cacheDir);
+        DIDBackend.initialize(globalDidAdapter);
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -550,7 +556,7 @@ public class DIDPlugin extends CordovaPlugin {
                     try {
                         if (didDocument != null) {
                             ret.put("diddoc", didDocument.toString(true));
-                            ret.put("updated", didDocument.getMetadata().getPublished());
+                            ret.put("updated", didDocument.getMetadata().getPublishTime());
                         } else {
                             ret.put("diddoc", null);
                         }
@@ -591,9 +597,12 @@ public class DIDPlugin extends CordovaPlugin {
     private void containsPrivateIdentity(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
+        String did = args.getString(1);
+
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            Boolean ret = didStore.containsPrivateIdentity();
+//            Boolean ret = didStore.containsPrivateIdentity();
+            Boolean ret = didStore.containsPrivateKey(did);
             callbackContext.success(ret.toString());
         }
         catch (DIDException e) {
@@ -617,14 +626,18 @@ public class DIDPlugin extends CordovaPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
+//            didStore.initPrivateIdentity(language, mnemonic, passphrase, storepass, force);
+            rootIdentity = RootIdentity.create(mnemonic, passphrase, force, didStore, storepass);
             callbackContext.success();
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "initPrivateIdentity");
         }
     }
-
+    private void exportMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
+    // TODO:
+    }
+    /*
     private void exportMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
@@ -638,11 +651,13 @@ public class DIDPlugin extends CordovaPlugin {
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
             callbackContext.success(didStore.exportMnemonic(storepass));
+
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "exportMnemonic");
         }
     }
+    */
 
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -680,7 +695,7 @@ public class DIDPlugin extends CordovaPlugin {
         new Thread(() -> {
             try {
                 DIDStore didStore = mDIDStoreMap.get(didStoreId);
-                didStore.synchronize(storepass);
+                didStore.synchronize();
                 callbackContext.success();
             }
             catch (Exception e) {
@@ -722,8 +737,8 @@ public class DIDPlugin extends CordovaPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            DIDDocument didDocument = didStore.newDid(alias, passphrase);
-
+//            DIDDocument didDocument = didStore.newDid(alias, passphrase);
+            DIDDocument didDocument = rootIdentity.newDid(passphrase);
             DID did = didDocument.getSubject();
             String didString = did.toString();
 
@@ -756,7 +771,12 @@ public class DIDPlugin extends CordovaPlugin {
 
                 JSONObject r = new JSONObject();
                 r.put("diddoc", didDocument.toString(true));
-                r.put("updated", didDocument.getMetadata().getPublished());
+
+                // TMP DIRTY WORKAROUND METADATA UPDATED CRASH
+                if (didDocument.getMetadata().toString().contains("published"))
+                    r.put("updated", didDocument.getMetadata().getPublishTime());
+                else
+                    r.put("updated", null);
                 callbackContext.success(r);
             }
             else {
@@ -780,7 +800,7 @@ public class DIDPlugin extends CordovaPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            List<DID> dids = didStore.listDids(filter);
+            List<DID> dids = didStore.listDids();
             JSONObject r = JSONObjectHolder.getDIDsInfoJson(dids);
             callbackContext.success(r);
         }
@@ -829,8 +849,10 @@ public class DIDPlugin extends CordovaPlugin {
 
         new Thread(() -> {
             try {
-                DIDStore didStore = mDIDStoreMap.get(didStoreId);
-                didStore.publishDid(didString, storepass);
+//                DIDStore didStore = mDIDStoreMap.get(didStoreId);
+//                didStore.publishDid(didString, storepass);
+                DIDDocument didDocument = mDocumentMap.get(didString);
+                didDocument.publish(storepass);
                 callbackContext.success();
             }
             catch (Exception e) {
@@ -856,7 +878,7 @@ public class DIDPlugin extends CordovaPlugin {
             mDocumentMap.put(didDocument.getSubject().toString(), didDocument);
             JSONObject r = new JSONObject();
             r.put("diddoc", didDocument.toString(true));
-            r.put("updated", didDocument.getMetadata().getPublished());
+            r.put("updated", didDocument.getMetadata().getPublishTime());
             callbackContext.success(r);
         }
         catch (Exception e) {
@@ -983,10 +1005,12 @@ public class DIDPlugin extends CordovaPlugin {
             VerifiableCredential vc = null;
 
             if (didUrlString.startsWith("did:elastos:")) {
-                vc = didStore.loadCredential(new DID(didString), new DIDURL(didUrlString));
+//                vc = didStore.loadCredential(new DID(didString), new DIDURL(didUrlString));
+                vc = didStore.loadCredential(didUrlString);
             }
             else {
-                vc = didStore.loadCredential(didString, didUrlString);
+//                vc = didStore.loadCredential(didString, didUrlString);
+                vc = didStore.loadCredential(didUrlString);
             }
 
             if (vc == null) {
@@ -1048,10 +1072,12 @@ public class DIDPlugin extends CordovaPlugin {
 
             boolean ret = false;
             if (didUrlString.startsWith("did:elastos:")) {
-                ret = didStore.deleteCredential(new DID(didString), new DIDURL(didUrlString));
+//                ret = didStore.deleteCredential(new DID(didString), new DIDURL(didUrlString));
+                ret = didStore.deleteCredential(didUrlString);
             }
             else {
-                ret = didStore.deleteCredential(didString, didUrlString);
+//                ret = didStore.deleteCredential(didString, didUrlString);
+                ret = didStore.deleteCredential(didUrlString);
             }
 
             if (ret) {
@@ -1084,7 +1110,8 @@ public class DIDPlugin extends CordovaPlugin {
 
             ArrayList<VerifiableCredential> credentials = new ArrayList<>();
             for (DIDURL url : unloadedCredentials) {
-                VerifiableCredential credential = didStore.loadCredential(did, url);
+//                VerifiableCredential credential = didStore.loadCredential(did, url);
+                VerifiableCredential credential = didStore.loadCredential(url);
                 credentials.add(credential);
             }
 
@@ -1101,9 +1128,8 @@ public class DIDPlugin extends CordovaPlugin {
     private void getDefaultPublicKey(JSONArray args, CallbackContext callbackContext) throws JSONException {
         String didUrl = args.getString(0);
         DIDDocument didDocument = mDocumentMap.get(didUrl);
+        /*
         DIDURL publicKeyId = didDocument.getDefaultPublicKey();
-
-        JSONObject r = new JSONObject();
         if (publicKeyId != null) {
             DIDDocument.PublicKey pk = didDocument.getPublicKey(publicKeyId);
             if (pk == null)
@@ -1117,6 +1143,17 @@ public class DIDPlugin extends CordovaPlugin {
         }
         else {
             r.put("publickey", null);
+        }
+        */
+        JSONObject r = new JSONObject();
+        DIDDocument.PublicKey pk = didDocument.getDefaultPublicKey();
+        if (pk == null)
+            r.put("publickey", null);
+        else {
+            JSONObject publicKeyJson = new JSONObject();
+            publicKeyJson.put("controller", pk.getController().toString());
+            publicKeyJson.put("keyBase58", pk.getPublicKeyBase58());
+            r.put("publickey", publicKeyJson.toString());
         }
 
         callbackContext.success(r);
@@ -1331,20 +1368,6 @@ public class DIDPlugin extends CordovaPlugin {
         }
     }
 
-    public byte[] hex2byte(String inputString) {
-        if (inputString == null || inputString.length() < 2) {
-            return new byte[0];
-        }
-        inputString = inputString.toLowerCase();
-        int l = inputString.length() / 2;
-        byte[] result = new byte[l];
-        for (int i = 0; i < l; ++i) {
-            String tmp = inputString.substring(2 * i, 2 * i + 2);
-            result[i] = (byte) (Integer.parseInt(tmp, 16) & 0xFF);
-        }
-        return result;
-    }
-
     private void signDigest(JSONArray args, CallbackContext callbackContext) throws JSONException, DIDStoreException {
         int idx = 0;
         String didString = args.getString(idx++);
@@ -1359,7 +1382,7 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
 
-        String signString = didDocument.signDigest(storepass, hex2byte(originString));
+        String signString = didDocument.signDigest(storepass, originString.getBytes());
         callbackContext.success(signString);
     }
 
