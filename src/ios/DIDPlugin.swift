@@ -448,34 +448,19 @@ enum AppError: Error {
 
     @objc func exportMnemonic(_ command: CDVInvokedUrlCommand) {
         print("exportMnemonic")
-    }
-    
-   /* @objc func exportMnemonic(_ command: CDVInvokedUrlCommand) {
-        guard command.arguments.count == 2 else {
-            self.sendWrongParametersCount(command, expected: 2)
-            return
-        }
-
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
-
         do {
-            if let didStore = mDIDStoreMap[didStoreId] {
-                let mnemonic = try didStore.exportMnemonic(using: storepass)
-//                exportRootIdentityMnemonic
-                self.success(command, retAsString: mnemonic)
-            }
-            else {
-                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-                return
-            }
+            let didStore = mDIDStoreMap[didStoreId]
+            let rootidentity = try didStore?.loadRootIdentity()
+            let mnemonic = try rootidentity?.exportMnemonic(storepass)
+            self.success(command, retAsString: mnemonic!)
         }
         catch {
             self.exception(error, command)
         }
     }
 
-    */
     @objc func setResolverUrl(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {
             self.sendWrongParametersCount(command, expected: 1)
@@ -668,8 +653,8 @@ enum AppError: Error {
 //                    return
 //                }
                 if  let didDocument = self.mDocumentMap[didString] {
-                    let didStore = self.mDIDStoreMap[didStoreId]
-                    _ = try didDocument.publish(with: didString, using: storepass)
+//                    let didStore = self.mDIDStoreMap[didStoreId]
+                    _ = try didDocument.publish(using: storepass)
                     self.success(command)
                 }
                 else {
