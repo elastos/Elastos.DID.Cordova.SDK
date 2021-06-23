@@ -771,12 +771,7 @@ public class DIDPlugin extends CordovaPlugin {
 
                 JSONObject r = new JSONObject();
                 r.put("diddoc", didDocument.toString(true));
-
-                // TMP DIRTY WORKAROUND METADATA UPDATED CRASH
-                if (didDocument.getMetadata().toString().contains("published"))
-                    r.put("updated", didDocument.getMetadata().getPublishTime());
-                else
-                    r.put("updated", null);
+                r.put("updated", didDocument.getMetadata().getPublishTime());
                 callbackContext.success(r);
             }
             else {
