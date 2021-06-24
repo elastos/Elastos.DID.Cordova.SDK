@@ -432,7 +432,7 @@ public class DIDPlugin extends CordovaPlugin {
         try {
             globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId, didStoreId);
 
-            initializeDIDBackend(cordova.getActivity());
+            initializeDIDBackend();
 
             mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
@@ -516,9 +516,7 @@ public class DIDPlugin extends CordovaPlugin {
         }
     }
 
-    public static void initializeDIDBackend(Context context) throws DIDResolveException {
-        String cacheDir = getDefaultCacheDir(context);
-//        DIDBackend.initialize(s_didResolverUrl, cacheDir);
+    public static void initializeDIDBackend() throws DIDResolveException {
         DIDBackend.initialize(globalDidAdapter);
     }
 
@@ -534,7 +532,7 @@ public class DIDPlugin extends CordovaPlugin {
         }
 
         try {
-            initializeDIDBackend(cordova.getActivity());
+            initializeDIDBackend();
 
             new AsyncTask<Void, Void, DIDDocument>() {
                 @Override
@@ -655,6 +653,9 @@ public class DIDPlugin extends CordovaPlugin {
         }
     }
 
+    /**
+     * Call this before initDidStore
+     */
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String resolver = args.getString(idx++);
@@ -664,18 +665,8 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
 
-      s_didResolverUrl = resolver;
-
-        try {
-            initializeDIDBackend(cordova.getActivity());
-            callbackContext.success();
-        }
-        catch(DIDException e) {
-            exceptionProcess(e, callbackContext, "setResolverUrl");
-        }
-        catch(Exception e) {
-            exceptionProcess(e, callbackContext, "setResolverUrl");
-        }
+        s_didResolverUrl = resolver;
+        callbackContext.success();
     }
 
     private void synchronize(JSONArray args, CallbackContext callbackContext) throws JSONException {

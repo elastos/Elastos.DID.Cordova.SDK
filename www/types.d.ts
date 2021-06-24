@@ -331,6 +331,9 @@ declare module DIDPlugin {
         createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void); // TODO: "json" type
         generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
         isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+        /**
+         * Call setResolverUrl before initDidStore.
+         */
         setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
 
         /**

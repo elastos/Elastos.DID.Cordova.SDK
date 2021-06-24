@@ -185,8 +185,6 @@ enum AppError: Error {
     }
 
     public static func initializeDIDBackend() throws {
-//        let cacheDir = DIDPlugin.getDefaultCacheDir()
-//        try DIDBackend.initializeInstance(DIDPlugin.s_didResolverUrl, cacheDir)
         try DIDBackend.initialize(globalDidAdapter!)
     }
 
@@ -235,6 +233,7 @@ enum AppError: Error {
         let callbackId = command.arguments[1] as! Int
 
         do {
+            // TODO: create DIDPluginAdapter with s_didResolverUrl in new did sdk.
             DIDPlugin.globalDidAdapter = DIDPluginAdapter(id: callbackId, didStoreId: didStoreId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
             try DIDPlugin.initializeDIDBackend()
 
@@ -331,7 +330,6 @@ enum AppError: Error {
             try DIDPlugin.initializeDIDBackend()
 
             let ret = NSMutableDictionary()
-
 
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
@@ -467,15 +465,8 @@ enum AppError: Error {
             return
         }
 
-        let resolver = command.arguments[1] as! String
+        DIDPlugin.s_didResolverUrl = command.arguments[1] as! String
 
-        do {
-            try DIDPlugin.initializeDIDBackend()
-            DIDPlugin.s_didResolverUrl = resolver;
-        }
-        catch {
-            self.exception(error, command)
-        }
         self.success(command)
     }
 
@@ -1007,7 +998,7 @@ enum AppError: Error {
 
             let publicKeyAsString = String(data: try!JSONSerialization.data(withJSONObject: publicKeyJson, options: []), encoding: .utf8)!
             r.setValue(publicKeyAsString, forKey: "publickey")
-            
+
             self.success(command, retAsDict: r)
         }
         else {
