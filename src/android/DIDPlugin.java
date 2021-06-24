@@ -634,10 +634,7 @@ public class DIDPlugin extends CordovaPlugin {
             exceptionProcess(e, callbackContext, "initPrivateIdentity");
         }
     }
-    private void exportMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
-    // TODO:
-    }
-    /*
+
     private void exportMnemonic(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
         String didStoreId = args.getString(idx++);
@@ -650,14 +647,13 @@ public class DIDPlugin extends CordovaPlugin {
 
         try {
             DIDStore didStore = mDIDStoreMap.get(didStoreId);
-            callbackContext.success(didStore.exportMnemonic(storepass));
+            callbackContext.success(didStore.loadRootIdentity().exportMnemonic(storepass));
 
         }
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "exportMnemonic");
         }
     }
-    */
 
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
