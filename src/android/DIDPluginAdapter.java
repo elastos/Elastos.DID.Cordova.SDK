@@ -66,7 +66,7 @@ public class DIDPluginAdapter extends DefaultDIDAdapter {
             Log.d(TAG, "createIdTransaction() callback is called, now asking the app to create the DID transaction asynchronously");
 
             ret.put("payload", payload);
-            ret.put("memo", memo);
+            // TMP REMOVED BECAUSE OF DID SDK 2.0.4-pre BUG - PASSES PAYLOAD AS MEMO - ret.put("memo", memo);
             sendEvent(ret);
         } catch (JSONException e) {
             e.printStackTrace();
