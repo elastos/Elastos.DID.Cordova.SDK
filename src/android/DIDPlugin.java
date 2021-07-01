@@ -410,7 +410,7 @@ public class DIDPlugin extends CordovaPlugin {
 //        else {
 //            return getDataPath() + "did/" + didStoreId;
 //        }
-      return cordova.getActivity().getFilesDir() + "/data/did/" + didStoreId;
+        return cordova.getActivity().getFilesDir() + "/data/did/" + didStoreId;
     }
 
     private void initDidStore(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -430,7 +430,7 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
         try {
-            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId, didStoreId);
+            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId);
 
             initializeDIDBackend();
 
@@ -834,6 +834,7 @@ public class DIDPlugin extends CordovaPlugin {
 //                DIDStore didStore = mDIDStoreMap.get(didStoreId);
 //                didStore.publishDid(didString, storepass);
                 DIDDocument didDocument = mDocumentMap.get(didString);
+                globalDidAdapter.setPublicationStoreId(didStoreId);
                 didDocument.publish(storepass);
                 callbackContext.success();
             }
@@ -1399,7 +1400,7 @@ public class DIDPlugin extends CordovaPlugin {
 
             JwsHeader header = JwtBuilder.createJwsHeader();
             header.setType(Header.JWT_TYPE)
-                  .setContentType("json");
+                    .setContentType("json");
 
             Calendar cal = Calendar.getInstance();
             cal.set(Calendar.MILLISECOND, 0);
@@ -1409,15 +1410,15 @@ public class DIDPlugin extends CordovaPlugin {
 
             Claims body = JwtBuilder.createClaims();
             body.setIssuer(didString)
-                .setIssuedAt(iat)
-                .setExpiration(exp)
-                .putAllWithJson(properties.toString());
+                    .setIssuedAt(iat)
+                    .setExpiration(exp)
+                    .putAllWithJson(properties.toString());
 
             String token = didDocument.jwtBuilder()
-                .setHeader(header)
-                .setClaims(body)
-                .sign(storepass)
-                .compact();
+                    .setHeader(header)
+                    .setClaims(body)
+                    .sign(storepass)
+                    .compact();
 
             callbackContext.success(token);
         }
@@ -1448,7 +1449,7 @@ public class DIDPlugin extends CordovaPlugin {
         String[] splitToken = jwt.split("\\.");
 
         if (splitToken.length == 0)
-        throw new Exception("Invalid JWT Token in parseJWT(): it contains only a header but no payload or signature");
+            throw new Exception("Invalid JWT Token in parseJWT(): it contains only a header but no payload or signature");
 
         String jwtPayload = splitToken[1];
         byte[] b64PayloadBytes = Base64.decode(jwtPayload, Base64.URL_SAFE);

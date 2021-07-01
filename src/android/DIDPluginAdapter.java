@@ -37,18 +37,21 @@ import java.io.InputStream;
 public class DIDPluginAdapter extends DefaultDIDAdapter {
     private final String TAG = "DIDPluginAdapter";
     private final int callbackId;
-    private String didStoreId = "";
     private CallbackContext callbackContext;
+    private String publicationStoreId = null;
 
-    DIDPluginAdapter(String endpoint, int id, String didStoreId) {
+    DIDPluginAdapter(String endpoint, int id) {
         super(endpoint);
         this.callbackId = id;
-        this.didStoreId = didStoreId;
     }
 
-    private void sendEvent(JSONObject info) throws JSONException {
+    private void sendEvent(JSONObject info) throws Exception {
+        if (publicationStoreId == null) {
+            throw new Exception("publicationStoreId must be set first (by publish())");
+        }
+
         info.put("id", callbackId);
-        info.put("didStoreId", didStoreId);
+        info.put("didStoreId", publicationStoreId);
 
         PluginResult res = new PluginResult(PluginResult.Status.OK, info);
         res.setKeepCallback(true);
@@ -57,6 +60,10 @@ public class DIDPluginAdapter extends DefaultDIDAdapter {
 
     public void setCallbackContext(CallbackContext callbackContext) {
         this.callbackContext = callbackContext;
+    }
+
+    public void setPublicationStoreId(String storeId) {
+        this.publicationStoreId = storeId;
     }
 
     @Override
@@ -68,7 +75,9 @@ public class DIDPluginAdapter extends DefaultDIDAdapter {
             ret.put("payload", payload);
             // TMP REMOVED BECAUSE OF DID SDK 2.0.4-pre BUG - PASSES PAYLOAD AS MEMO - ret.put("memo", memo);
             sendEvent(ret);
-        } catch (JSONException e) {
+            // Reset the store id to avoid mistakes
+            this.setPublicationStoreId(null);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
