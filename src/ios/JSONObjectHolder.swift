@@ -21,7 +21,7 @@
  */
 
 import Foundation
-import PreDID
+import ElastosDIDSDK
 
 class JSONObjectHolder {
     public static func getDIDInfoJson(entry: DID) throws -> NSDictionary {

@@ -23,7 +23,7 @@
 import Foundation
 import SwiftJWT
 import AnyCodable
-import PreDID
+import ElastosDIDSDK
 
 extension AnyCodable : SwiftJWT.Claims {}
 
@@ -46,10 +46,7 @@ enum AppError: Error {
 
 @objc(DIDPlugin) class DIDPlugin : CDVPlugin {
     internal static let TAG = "DIDPlugin"
-
-//    private static let DID_APPLICATION_APP_ID = "org.elastos.trinity.dapp.did"
-//    private static let DID_SESSION_APPLICATION_APP_ID = "org.elastos.trinity.dapp.didsession"
-    private static var s_didResolverUrl = "http://localhost:9123/";
+    private static var s_didResolverUrl = "https://api-testnet.elastos.io/newid"
 
     static let keyCode        = "code"
     static let keyMessage     = "message"
@@ -233,14 +230,12 @@ enum AppError: Error {
         let callbackId = command.arguments[1] as! Int
 
         do {
-            // TODO: create DIDPluginAdapter with s_didResolverUrl in new did sdk.
             DIDPlugin.globalDidAdapter = DIDPluginAdapter(id: callbackId, didStoreId: didStoreId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
             try DIDPlugin.initializeDIDBackend()
 
             mDidAdapterMap[didStoreId] = DIDPlugin.globalDidAdapter
 
             // NOTE: this overwrite any previously initialized adapter if any.
-//            let didStore0 = try DIDStore.open(atPath: dataDir, withType: "filesystem", adapter: DIDPlugin.globalDidAdapter!)
             let didStore = try DIDStore.open(atPath: dataDir)
             mDIDStoreMap[didStoreId] = didStore
 
@@ -262,7 +257,6 @@ enum AppError: Error {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-//                let dids: [DID]? = try didStore.listDids(using: DIDStore.DID_ALL)
                 let dids = try didStore.listDids()
                 for entry in dids {
                     mIssuerMap[entry.description] = nil
@@ -331,6 +325,7 @@ enum AppError: Error {
 
             let ret = NSMutableDictionary()
 
+
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
                 var didDocument: DIDDocument? = nil;
@@ -396,10 +391,8 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
-
         let did = command.arguments[1] as! String
         if let didStore = mDIDStoreMap[didStoreId]  {
-            //            let ret = didStore.containsPrivateIdentity()
             do {
                 let ret = try didStore.containsPrivateKey(for: did)
 
@@ -422,7 +415,6 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let language = command.arguments[1] as! String
         let mnemonic = command.arguments[2] as! String
         let passphrase = command.arguments[3] as? String ?? ""
         let storepass = command.arguments[4] as! String
@@ -430,7 +422,6 @@ enum AppError: Error {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-                //                try didStore.initializePrivateIdentity(using: language, mnemonic: mnemonic, passphrase: passphrase, storePassword: storepass, force)
                 rootIdentity = try RootIdentity.create(mnemonic, passphrase, force, didStore, storepass)
                 self.success(command)
             }
@@ -445,7 +436,6 @@ enum AppError: Error {
     }
 
     @objc func exportMnemonic(_ command: CDVInvokedUrlCommand) {
-        print("exportMnemonic")
         let didStoreId = command.arguments[0] as! String
         let storepass = command.arguments[1] as! String
         do {
@@ -465,8 +455,15 @@ enum AppError: Error {
             return
         }
 
-        DIDPlugin.s_didResolverUrl = command.arguments[1] as! String
+        let resolver = command.arguments[1] as! String
 
+        do {
+            try DIDPlugin.initializeDIDBackend()
+            DIDPlugin.s_didResolverUrl = resolver;
+        }
+        catch {
+            self.exception(error, command)
+        }
         self.success(command)
     }
 
@@ -477,12 +474,10 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
-//        let storepass = command.arguments[1] as! String
 
         DispatchQueue(label: "DIDSynchronize").async {
             do {
                 if let didStore = self.mDIDStoreMap[didStoreId] {
-//                    try didStore.synchronize(using: storepass)
                     try didStore.synchronize()
                     self.success(command)
                 }
@@ -530,25 +525,17 @@ enum AppError: Error {
 
         let didStoreId = command.arguments[0] as! String
         let passphrase = command.arguments[1] as! String
-        let alias = command.arguments[2] as? String ?? ""
 
         do {
-            if let didStore = mDIDStoreMap[didStoreId] {
-//                let didDocument = try didStore.newDid(withAlias: alias, using: passphrase)
-                let didDocument = try self.rootIdentity!.newDid(passphrase)
-                let did = didDocument.subject // assume a DIDDocument always has a non null DID.
-                let didString = did.description
+            let didDocument = try self.rootIdentity!.newDid(passphrase)
+            let did = didDocument.subject // assume a DIDDocument always has a non null DID.
+            let didString = did.description
 
-                mDocumentMap[didString] = didDocument
+            mDocumentMap[didString] = didDocument
 
-                let r = NSMutableDictionary()
-                r.setValue(didString, forKey: "did")
-                self.success(command, retAsDict: r)
-            }
-            else {
-                self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-                return
-            }
+            let r = NSMutableDictionary()
+            r.setValue(didString, forKey: "did")
+            self.success(command, retAsDict: r)
         }
         catch {
             print("error = \(error.localizedDescription)")
@@ -606,12 +593,10 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let filter = command.arguments[1] as! Int
 
         do {
             var dids: [DID]? = nil
             if let didStore = mDIDStoreMap[didStoreId] {
-//                dids = try didStore.listDids(using: filter)
                 dids = try didStore.listDids()
             }
             let r = try JSONObjectHolder.getDIDsInfoJson(dids: dids)
@@ -627,24 +612,12 @@ enum AppError: Error {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-
-        let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
 
         DispatchQueue(label: "DIDPublish").async {
             do {
-//                if let didStore = self.mDIDStoreMap[didStoreId] {
-//                    _ = try didStore.publishDid(for: didString, using: storepass)
-//
-//                    self.success(command)
-//                }
-//                else {
-//                    self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
-//                    return
-//                }
                 if  let didDocument = self.mDocumentMap[didString] {
-//                    let didStore = self.mDIDStoreMap[didStoreId]
                     _ = try didDocument.publish(using: storepass)
                     self.success(command)
                 }
@@ -679,7 +652,6 @@ enum AppError: Error {
             else {
                 mDocumentMap[(didDocument?.subject.description)!] = didDocument
                 r.setValue(didDocument?.description, forKey: "diddoc")
-//                r.setValue(didDocument?.getMetadata().getPublished(), forKey: "updated")
                 r.setValue(didDocument?.getMetadata().publishTime, forKey: "updated")
             }
             self.success(command, retAsDict: r)
@@ -827,11 +799,9 @@ enum AppError: Error {
                 var vc: VerifiableCredential? = nil
 
                 if (didUrlString.hasPrefix("did:elastos:")) {
-//                    vc = try didStore.loadCredential(for: DID(didString), byId: DIDURL(didUrlString))
                     vc = try didStore.loadCredential(byId: didUrlString)
                 }
                 else {
-//                    vc = try didStore.loadCredential(for: didString, byId: didUrlString)
                     vc = try didStore.loadCredential(byId: didUrlString)
                 }
 
@@ -866,7 +836,6 @@ enum AppError: Error {
 
         do {
             if let didStore = mDIDStoreMap[didStoreId] {
-//                let credential = try VerifiableCredential.fromJson(credentials)
                 let credential = try VerifiableCredential.fromJson(for: credentials)
                 try didStore.storeCredential(using: credential)
                 mCredentialMap[credential.getId()!.description] = credential
@@ -889,7 +858,6 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
-        let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
 
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
@@ -901,11 +869,9 @@ enum AppError: Error {
             if let didStore = mDIDStoreMap[didStoreId] {
                 var ret = false
                 if (didUrlString.hasPrefix("did:elastos:")) {
-//                    ret = try didStore.deleteCredential(for: DID(didString), id: DIDURL(didUrlString))
                     ret = try didStore.deleteCredential(didUrlString)
                 }
                 else {
-//                    ret = didStore.deleteCredential(for: didString, id: didUrlString)
                     ret = try didStore.deleteCredential(didUrlString)
                 }
 
@@ -942,13 +908,6 @@ enum AppError: Error {
 
                 var credentials: [Any] = []
                 for url in unloadedCredentials {
-                    //                    if let credential = try didStore.loadCredential(for: did, byId: url) {
-                    //                        let credAsJson = try JSONSerialization.jsonObject(with: credential.description.data(using: .utf8)!, options:[])
-                    //                        credentials.append(credAsJson)
-                    //                    }
-                    //                    else {
-                    //                        print("Failed to load credential \(url)")
-                    //                    }
                     if let credential = try didStore.loadCredential(byId: url) {
                         let credAsJson = try JSONSerialization.jsonObject(with: credential.description.data(using: .utf8)!, options:[])
                         credentials.append(credAsJson)
@@ -1262,10 +1221,8 @@ enum AppError: Error {
 
         do {
             if let didDocument = mDocumentMap[didString] {
-                // TODO , there is no signDigest in the did swift sdk.
-                // let signString = try didDocument.signDigest(using: storepass, for: stringToSign.data(using: .utf8)!)
-                // self.success(command, retAsString: signString)
-                self.error(command, retAsString: "signDigest is not implemented in did swift sdk")
+                let signString = try didDocument.signDigest(using: storepass, for: stringToSign.data(using: .utf8)!)
+                self.success(command, retAsString: signString)
             }
             else {
                 self.error(command, retAsString: "No DID document found matching string \(didString)")
@@ -1328,7 +1285,6 @@ enum AppError: Error {
         }
 
         let didString = command.arguments[0] as! String
-
 
         if let didDocument = mDocumentMap[didString] {
             let jsonString = didDocument.toString()

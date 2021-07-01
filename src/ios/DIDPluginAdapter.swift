@@ -21,7 +21,7 @@
  */
 
 import Foundation
-import PreDID
+import ElastosDIDSDK
 
 class DIDPluginAdapter: DefaultDIDAdapter {
 
