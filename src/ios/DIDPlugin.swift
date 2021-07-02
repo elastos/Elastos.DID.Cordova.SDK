@@ -618,7 +618,7 @@ enum AppError: Error {
         DispatchQueue(label: "DIDPublish").async {
             do {
                 if  let didDocument = self.mDocumentMap[didString] {
-                    _ = try didDocument.publish(using: storepass)
+                    _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
                     self.success(command)
                 }
                 else {
@@ -626,7 +626,6 @@ enum AppError: Error {
                 }
             }
             catch {
-                print("error == \(error)")
                 self.exception(error, command)
             }
         }

@@ -30,7 +30,7 @@ class DIDPluginAdapter: DefaultDIDAdapter {
     private var didStoreId: String
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate?
-    private var endpoint: String = "http://localhost:9123"
+    private var endpoint: String = "https://api-testnet.elastos.io/newid"
 //    private var endpoint: String = "https://api.elastos.io/did/v2"
 //    private var endpoint: String = "http://52.80.107.251:1111"
 //    private var endpoint: String = "https://api-tesetnet.elastos.io/newid"
