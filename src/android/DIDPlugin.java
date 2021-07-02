@@ -44,6 +44,7 @@ import org.elastos.did.VerifiablePresentation;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDResolveException;
 import org.elastos.did.exception.DIDStoreException;
+import org.elastos.did.exception.MalformedDIDException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.did.jwt.Claims;
@@ -540,7 +541,7 @@ public class DIDPlugin extends CordovaPlugin {
                     DIDDocument didDocument;
                     try {
                         didDocument = new DID(didString).resolve(forceRemote);
-                    } catch (DIDException e) {
+                    } catch (DIDException | MalformedDIDException e) {
                         e.printStackTrace();
                         return null;
                     }
