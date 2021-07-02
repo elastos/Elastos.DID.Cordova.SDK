@@ -836,7 +836,10 @@ public class DIDPlugin extends CordovaPlugin {
 //                didStore.publishDid(didString, storepass);
                 DIDDocument didDocument = mDocumentMap.get(didString);
                 globalDidAdapter.setPublicationStoreId(didStoreId);
-                didDocument.publish(storepass);
+                // Pass our adapter again here so that the DID SDK will use this one instead of the global
+                // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
+                // DIDBack end instance (Intent plugin, Hive SDK...)
+                didDocument.publish(storepass, globalDidAdapter);
                 callbackContext.success();
             }
             catch (Exception e) {
