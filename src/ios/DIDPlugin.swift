@@ -454,16 +454,13 @@ enum AppError: Error {
             self.sendWrongParametersCount(command, expected: 1)
             return
         }
-
-        let resolver = command.arguments[1] as! String
-
-        do {
-            try DIDPlugin.initializeDIDBackend()
-            DIDPlugin.s_didResolverUrl = resolver;
+        if command.arguments.count != 1 {
+            self.exception("parameters are expected", command)
         }
-        catch {
-            self.exception(error, command)
-        }
+        let resolver = command.arguments[0] as! String
+        
+        //            try DIDPlugin.initializeDIDBackend()
+        DIDPlugin.s_didResolverUrl = resolver
         self.success(command)
     }
 
