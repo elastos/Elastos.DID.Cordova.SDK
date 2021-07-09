@@ -497,6 +497,8 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
         let jsonPresentation = JSON.parse(json);
         let presentation = new VerifiablePresentationImpl();
 
+        presentation.id = jsonPresentation.id;
+        presentation.holder = jsonPresentation.holder;
         presentation.type = jsonPresentation.type;
         presentation.proof = jsonPresentation.proof;
 
@@ -515,6 +517,8 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
         let jsonPresentation = JSON.parse(json);
         let presentation = new VerifiablePresentationImpl();
 
+        presentation.id = jsonPresentation.id;
+        presentation.holder = jsonPresentation.holder;
         presentation.type = jsonPresentation.type;
         presentation.proof = jsonPresentation.proof;
         presentation.created = (jsonPresentation.created?new Date(jsonPresentation.created):null);
@@ -533,6 +537,8 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
 }
 
 class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
+    public id: string;
+    public holder: string;
     public type: string;
     public verifiableCredential: DIDPlugin.VerifiableCredential[] // As named by W3C
     public proof: any;
