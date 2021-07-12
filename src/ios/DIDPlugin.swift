@@ -230,7 +230,7 @@ enum AppError: Error {
         let callbackId = command.arguments[1] as! Int
 
         do {
-            DIDPlugin.globalDidAdapter = DIDPluginAdapter(id: callbackId, didStoreId: didStoreId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
+            DIDPlugin.globalDidAdapter = DIDPluginAdapter(endpoint: DIDPlugin.s_didResolverUrl, id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
             try DIDPlugin.initializeDIDBackend()
 
             mDidAdapterMap[didStoreId] = DIDPlugin.globalDidAdapter
@@ -609,12 +609,14 @@ enum AppError: Error {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
+        let didStoreId = command.arguments[1] as! String
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
 
         DispatchQueue(label: "DIDPublish").async {
             do {
                 if  let didDocument = self.mDocumentMap[didString] {
+                    DIDPlugin.globalDidAdapter?.setPublicationStoreId(storeId: didStoreId)
                     _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
                     self.success(command)
                 }

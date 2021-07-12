@@ -27,28 +27,23 @@ class DIDPluginAdapter: DefaultDIDAdapter {
 
     private let TAG = NSStringFromClass(DIDPluginAdapter.self)
     private let callbackId: Int
-    private var didStoreId: String
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate?
-    private var endpoint: String = "https://api-testnet.elastos.io/newid"
-//    private var endpoint: String = "https://api.elastos.io/did/v2"
-//    private var endpoint: String = "http://52.80.107.251:1111"
-//    private var endpoint: String = "https://api-tesetnet.elastos.io/newid"
+    private var publicationStoreId: String = "";
 
     private var idtxEndpoint: String = ""
 
-    init(id: Int, didStoreId: String, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
+    init(endpoint: String, id: Int, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
         self.callbackId = id
-        self.didStoreId = didStoreId
         self.command = command
         self.commandDelegate = commandDelegate
-        super.init(endpoint + "/resolve")
+        super.init(endpoint)
 //        super.init(endpoint)
     }
 
     private func sendEvent(info: NSMutableDictionary) {
         info.setValue(callbackId, forKey: "id")
-        info.setValue(didStoreId, forKey: "didStoreId")
+        info.setValue(publicationStoreId, forKey: "didStoreId")
 
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (info as! [AnyHashable : Any]))
         result?.setKeepCallbackAs(true)
@@ -60,11 +55,17 @@ class DIDPluginAdapter: DefaultDIDAdapter {
         self.commandDelegate = commandDelegate
     }
 
+    public func setPublicationStoreId(storeId: String) {
+        self.publicationStoreId = storeId
+    }
+
     override func createIdTransaction(_ payload: String, _ memo: String?) throws {
 
         let ret = NSMutableDictionary()
         ret.setValue(payload, forKey: "payload")
         ret.setValue(memo, forKey: "memo")
         self.sendEvent(info: ret)
+        // Reset the store id to avoid mistakes
+        self.setPublicationStoreId(null);
     }
 }
