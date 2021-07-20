@@ -299,11 +299,11 @@ enum AppError: Error {
            return
        }
 
-        let language = command.arguments[0] as! String
+        // Deprecated let language = command.arguments[0] as! String
         let mnemonic = command.arguments[1] as! String
 
         do {
-            let isValid = try Mnemonic.isValid(language, mnemonic)
+            let isValid = try Mnemonic.checkIsValid(mnemonic)
             self.success(command, retAsFakeBool: isValid)
         }
         catch {
@@ -458,7 +458,7 @@ enum AppError: Error {
             self.exception("parameters are expected", command)
         }
         let resolver = command.arguments[0] as! String
-        
+
         //            try DIDPlugin.initializeDIDBackend()
         DIDPlugin.s_didResolverUrl = resolver
         self.success(command)
@@ -616,7 +616,7 @@ enum AppError: Error {
         DispatchQueue(label: "DIDPublish").async {
             do {
                 if  let didDocument = self.mDocumentMap[didString] {
-                    DIDPlugin.globalDidAdapter?.setPublicationStoreId(storeId: didStoreId)
+                    DIDPlugin.globalDidAdapter?.setPublicationStoreId(didStoreId)
                     _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
                     self.success(command)
                 }
@@ -1471,7 +1471,7 @@ enum AppError: Error {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(presentation.isValid, forKey: "isvalid");
+            r.setValue(try presentation.isValid(), forKey: "isvalid");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)
@@ -1490,7 +1490,7 @@ enum AppError: Error {
             let presentation = try VerifiablePresentation.fromJson(pres.description);
 
             let r = NSMutableDictionary()
-            r.setValue(presentation.isGenuine, forKey: "isgenuine");
+            r.setValue(try presentation.isGenuine(), forKey: "isgenuine");
             self.success(command, retAsDict: r)
         } catch {
             self.exception(error, command)

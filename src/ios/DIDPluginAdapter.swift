@@ -29,7 +29,7 @@ class DIDPluginAdapter: DefaultDIDAdapter {
     private let callbackId: Int
     private var command: CDVInvokedUrlCommand
     private var commandDelegate: CDVCommandDelegate?
-    private var publicationStoreId: String = "";
+    private var publicationStoreId: String? = "";
 
     private var idtxEndpoint: String = ""
 
@@ -55,7 +55,7 @@ class DIDPluginAdapter: DefaultDIDAdapter {
         self.commandDelegate = commandDelegate
     }
 
-    public func setPublicationStoreId(storeId: String) {
+    public func setPublicationStoreId(_ storeId: String?) {
         self.publicationStoreId = storeId
     }
 
@@ -66,6 +66,6 @@ class DIDPluginAdapter: DefaultDIDAdapter {
         ret.setValue(memo, forKey: "memo")
         self.sendEvent(info: ret)
         // Reset the store id to avoid mistakes
-        self.setPublicationStoreId(null);
+        self.setPublicationStoreId(nil)
     }
 }
