@@ -609,7 +609,7 @@ enum AppError: Error {
             self.sendWrongParametersCount(command, expected: 3)
             return
         }
-        let didStoreId = command.arguments[1] as! String
+        let didStoreId = command.arguments[0] as! String
         let didString = command.arguments[1] as! String
         let storepass = command.arguments[2] as! String
 
@@ -617,6 +617,9 @@ enum AppError: Error {
             do {
                 if  let didDocument = self.mDocumentMap[didString] {
                     DIDPlugin.globalDidAdapter?.setPublicationStoreId(didStoreId)
+                    // Pass our adapter again here so that the DID SDK will use this one instead of the global
+                                   // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
+                                   // DIDBackend instance (Intent plugin, Hive SDK...)
                     _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
                     self.success(command)
                 }
