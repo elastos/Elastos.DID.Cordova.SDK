@@ -884,7 +884,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     }
 
     getFragment() : string {
-        //return new URL(this.id).hash.replace("#", "");
+        // return new URL(this.id).hash.replace("#", "");
         // NOTE: from xcode 12 / ios 14, probably because of the recently added anti cookies
         // changes by apple, new URL("#name") returns null in safari webview... So we do this manual
         // dirty fragment parsing
