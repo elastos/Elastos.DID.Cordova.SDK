@@ -618,8 +618,8 @@ enum AppError: Error {
                 if  let didDocument = self.mDocumentMap[didString] {
                     DIDPlugin.globalDidAdapter?.setPublicationStoreId(didStoreId)
                     // Pass our adapter again here so that the DID SDK will use this one instead of the global
-                                   // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
-                                   // DIDBackend instance (Intent plugin, Hive SDK...)
+                    // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
+                    // DIDBackend instance (Intent plugin, Hive SDK...)
                     _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
                     self.success(command)
                 }
