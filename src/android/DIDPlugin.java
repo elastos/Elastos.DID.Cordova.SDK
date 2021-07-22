@@ -1059,12 +1059,10 @@ public class DIDPlugin extends CordovaPlugin {
 
             boolean ret = false;
             if (didUrlString.startsWith("did:elastos:")) {
-//                ret = didStore.deleteCredential(new DID(didString), new DIDURL(didUrlString));
                 ret = didStore.deleteCredential(didUrlString);
             }
             else {
-//                ret = didStore.deleteCredential(didString, didUrlString);
-                ret = didStore.deleteCredential(didUrlString);
+                ret = didStore.deleteCredential(didString + didUrlString);
             }
 
             if (ret) {

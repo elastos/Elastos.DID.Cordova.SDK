@@ -859,6 +859,7 @@ enum AppError: Error {
         }
 
         let didStoreId = command.arguments[0] as! String
+        let didString = command.arguments[1] as! String
         let didUrlString = command.arguments[2] as! String
 
         if (!self.ensureCredentialIDFormat(didUrl: didUrlString)) {
@@ -873,7 +874,7 @@ enum AppError: Error {
                     ret = try didStore.deleteCredential(didUrlString)
                 }
                 else {
-                    ret = try didStore.deleteCredential(didUrlString)
+                    ret = try didStore.deleteCredential("\(didString)\(didUrlString)")
                 }
 
                 if (ret) {
