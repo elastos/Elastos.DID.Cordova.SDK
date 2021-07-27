@@ -518,6 +518,11 @@ public class DIDPlugin extends CordovaPlugin {
     }
 
     public static void initializeDIDBackend() throws DIDResolveException {
+        if (globalDidAdapter == null) {
+            System.err.println("DIDPlugin initializeDIDBackend() warning: globalDidAdapter has not yet been initialized. NOT initializing the DID backend");
+            return;
+        }
+
         DIDBackend.initialize(globalDidAdapter);
     }
 

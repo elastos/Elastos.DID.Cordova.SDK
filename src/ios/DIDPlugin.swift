@@ -182,6 +182,11 @@ enum AppError: Error {
     }
 
     public static func initializeDIDBackend() throws {
+        guard globalDidAdapter != nil else {
+            print("DIDPlugin initializeDIDBackend() warning: globalDidAdapter has not yet been initialized. NOT initializing the DID backend")
+            return
+        }
+
         try DIDBackend.initialize(globalDidAdapter!)
     }
 
