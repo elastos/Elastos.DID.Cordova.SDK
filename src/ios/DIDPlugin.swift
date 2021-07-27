@@ -1216,6 +1216,17 @@ enum AppError: Error {
         }
     }
 
+    func hex2byte(_ string: String) -> Data {
+        let len = string.count / 2;
+        var result = [UInt8](repeating: 0, count:len);
+        for i in 0..<len {
+            let temp = string.subString(start: 2 * i, end: 2 * i + 2);
+            result[i] = UInt8(temp, radix: 16)!;
+        }
+
+        return Data(result);
+    }
+
     @objc func signDigest(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 3 else {
             self.sendWrongParametersCount(command, expected: 3)
@@ -1228,7 +1239,8 @@ enum AppError: Error {
 
         do {
             if let didDocument = mDocumentMap[didString] {
-                let signString = try didDocument.signDigest(using: storepass, for: stringToSign.data(using: .utf8)!)
+                let signData = hex2byte(stringToSign)
+                let signString = try didDocument.signDigest(using: storepass, for: signData)
                 self.success(command, retAsString: signString)
             }
             else {

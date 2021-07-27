@@ -1363,9 +1363,9 @@ public class DIDPlugin extends CordovaPlugin {
             return new byte[0];
         }
         inputString = inputString.toLowerCase();
-        int l = inputString.length() / 2;
-        byte[] result = new byte[l];
-        for (int i = 0; i < l; ++i) {
+        int len = inputString.length() / 2;
+        byte[] result = new byte[len];
+        for (int i = 0; i < len; ++i) {
             String tmp = inputString.substring(2 * i, 2 * i + 2);
             result[i] = (byte) (Integer.parseInt(tmp, 16) & 0xFF);
         }
