@@ -546,7 +546,7 @@ public class DIDPlugin extends CordovaPlugin {
                     DIDDocument didDocument;
                     try {
                         didDocument = new DID(didString).resolve(forceRemote);
-                    } catch (DIDException | MalformedDIDException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         return null;
                     }

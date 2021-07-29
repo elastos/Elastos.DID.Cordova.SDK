@@ -330,7 +330,6 @@ enum AppError: Error {
 
             let ret = NSMutableDictionary()
 
-
             // Resolve in a background thread as this runs a blocking netwok call.
             DispatchQueue(label: "DIDresolve").async {
                 var didDocument: DIDDocument? = nil;
