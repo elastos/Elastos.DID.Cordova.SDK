@@ -27,18 +27,15 @@ class DIDPluginAdapter: DefaultDIDAdapter {
 
     private let TAG = NSStringFromClass(DIDPluginAdapter.self)
     private let callbackId: Int
-    private var command: CDVInvokedUrlCommand
+    private var command: CDVInvokedUrlCommand?
     private var commandDelegate: CDVCommandDelegate?
     private var publicationStoreId: String? = "";
 
     private var idtxEndpoint: String = ""
 
-    init(endpoint: String, id: Int, command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {
+    init(endpoint: String, id: Int) {
         self.callbackId = id
-        self.command = command
-        self.commandDelegate = commandDelegate
         super.init(endpoint)
-//        super.init(endpoint)
     }
 
     private func sendEvent(info: NSMutableDictionary) {
@@ -47,7 +44,7 @@ class DIDPluginAdapter: DefaultDIDAdapter {
 
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: (info as! [AnyHashable : Any]))
         result?.setKeepCallbackAs(true)
-        self.commandDelegate?.send(result, callbackId: command.callbackId)
+        self.commandDelegate?.send(result, callbackId: command?.callbackId)
     }
 
     public func setCallbackContext(command: CDVInvokedUrlCommand, commandDelegate: CDVCommandDelegate) {

@@ -97,6 +97,14 @@ enum AppError: Error {
         mIssuerMap = [:]
         mDidAdapterMap = [:]
         mCredentialMap = [:]
+
+        do {
+            setupDidAdapter()
+            try DIDPlugin.initializeDIDBackend()
+        }
+        catch {
+            self.log(message: "initializeDIDBackend error " + error.localizedDescription)
+        }
     }
 
     private func success(_ command: CDVInvokedUrlCommand) {
@@ -181,6 +189,10 @@ enum AppError: Error {
         return getDIDDataDir() + didStoreId
     }
 
+    private func setupDidAdapter() {
+        DIDPlugin.globalDidAdapter = DIDPluginAdapter(endpoint: DIDPlugin.s_didResolverUrl, id: 0)
+    }
+
     public static func initializeDIDBackend() throws {
         guard globalDidAdapter != nil else {
             print("DIDPlugin initializeDIDBackend() warning: globalDidAdapter has not yet been initialized. NOT initializing the DID backend")
@@ -232,13 +244,11 @@ enum AppError: Error {
         }
 
         let dataDir = getStoreDataDir(didStoreId: didStoreId)
-        let callbackId = command.arguments[1] as! Int
+        // TODO remove callbackId
+        // let callbackId = command.arguments[1] as! Int
 
         do {
-            DIDPlugin.globalDidAdapter = DIDPluginAdapter(endpoint: DIDPlugin.s_didResolverUrl, id: callbackId, command: idTransactionCC!, commandDelegate: self.commandDelegate)
-            try DIDPlugin.initializeDIDBackend()
-
-            mDidAdapterMap[didStoreId] = DIDPlugin.globalDidAdapter
+            DIDPlugin.globalDidAdapter?.setCallbackContext(command: idTransactionCC!, commandDelegate: self.commandDelegate)
 
             // NOTE: this overwrite any previously initialized adapter if any.
             let didStore = try DIDStore.open(atPath: dataDir)
@@ -326,8 +336,6 @@ enum AppError: Error {
         let forceRemote = command.arguments[1] as! Bool
 
         do {
-            try DIDPlugin.initializeDIDBackend()
-
             let ret = NSMutableDictionary()
 
             // Resolve in a background thread as this runs a blocking netwok call.
@@ -462,9 +470,16 @@ enum AppError: Error {
             self.exception("parameters are expected", command)
         }
         let resolver = command.arguments[0] as! String
-
-        //            try DIDPlugin.initializeDIDBackend()
         DIDPlugin.s_didResolverUrl = resolver
+
+        do {
+            setupDidAdapter()
+            try DIDPlugin.initializeDIDBackend()
+        }
+        catch  {
+            self.exception(error, command)
+        }
+
         self.success(command)
     }
 

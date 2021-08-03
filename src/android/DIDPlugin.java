@@ -87,7 +87,6 @@ public class DIDPlugin extends CordovaPlugin {
     private HashMap<String, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
     private HashMap<String, VerifiableCredential> mCredentialMap;
-    private HashMap<String, DIDPluginAdapter> mDidAdapterMap;
     private HashMap<String, DIDStore> mDIDStoreMap;
     private HashMap<String, Issuer> mIssuerMap;
 
@@ -122,9 +121,15 @@ public class DIDPlugin extends CordovaPlugin {
         mDIDMap = new HashMap<>();
         mPublicKeyMap = new HashMap<>();
         mCredentialMap = new HashMap<>();
-        mDidAdapterMap = new HashMap<>();
         mDIDStoreMap = new HashMap<>();
         mIssuerMap = new HashMap<>();
+
+        try {
+            setupDidAdapter();
+            initializeDIDBackend();
+        } catch (DIDResolveException e) {
+            Log.e(TAG, "new DIDPlugin error:" + e.toString());
+        }
     }
 
     private void exceptionProcess(Exception e, CallbackContext cc, String msg) {
@@ -431,11 +436,10 @@ public class DIDPlugin extends CordovaPlugin {
             return;
         }
         try {
-            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId);
+//            globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, callbackId);
+//
+//            initializeDIDBackend();
 
-            initializeDIDBackend();
-
-            mDidAdapterMap.put(didStoreId, globalDidAdapter);
             globalDidAdapter.setCallbackContext(idTransactionCC);
 
 //            DIDStore didStore = DIDStore.open("filesystem", dataDir, globalDidAdapter);
@@ -515,6 +519,10 @@ public class DIDPlugin extends CordovaPlugin {
         } catch (DIDException e) {
             exceptionProcess(e, callbackContext, "isMnemonicValid ");
         }
+    }
+
+    private void setupDidAdapter() {
+        globalDidAdapter = new DIDPluginAdapter(s_didResolverUrl, 0);
     }
 
     public static void initializeDIDBackend() throws DIDResolveException {
@@ -660,7 +668,7 @@ public class DIDPlugin extends CordovaPlugin {
     }
 
     /**
-     * Call this before initDidStore
+     * Call this before resolve did
      */
     private void setResolverUrl(JSONArray args, CallbackContext callbackContext) throws JSONException {
         int idx = 0;
@@ -672,7 +680,13 @@ public class DIDPlugin extends CordovaPlugin {
         }
 
         s_didResolverUrl = resolver;
-        callbackContext.success();
+        setupDidAdapter();
+        try {
+            initializeDIDBackend();
+            callbackContext.success();
+        } catch (DIDResolveException e) {
+            exceptionProcess(e, callbackContext, "setResolverUrl ");
+        }
     }
 
     private void synchronize(JSONArray args, CallbackContext callbackContext) throws JSONException {
