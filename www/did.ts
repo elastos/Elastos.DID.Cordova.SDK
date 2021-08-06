@@ -78,6 +78,12 @@ class DIDImpl implements DIDPlugin.DID {
         var _onSuccess = function(ret) {
             let nativeVc = NativeVerifiableCredential.createFromJson(ret.credential);
             let credential = nativeVc.toVerifiableCredential();
+
+            // NOTE: Temporary log to help investigate the JS crash met by "TT" on telegram while
+            // creating a new DID - issueCredential() returns null expirationDate and issuanceDate.
+            if (ret && nativeVc)
+                console.log("DIDPlugin", "issueCredential() success callback", ret.credential, nativeVc, nativeVc.expirationDate, credential);
+
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -101,6 +107,11 @@ class DIDImpl implements DIDPlugin.DID {
             };
 
             let passedCredential = NativeVerifiableCredential.createFromVerifiableCredential(credential);
+
+            // NOTE: Temporary log to help investigate the JS crash met by "TT" on telegram while
+            // creating a new DID - issueCredential() returns null expirationDate and issuanceDate.
+            if (passedCredential && credential)
+                console.log("DIDPlugin", "addCredential() success callback", passedCredential.expirationDate, passedCredential, credential, credential.expirationDate);
 
             exec(_onSuccess, onError, 'DIDPlugin', 'storeCredential', [this.storeId, passedCredential]);
         }
