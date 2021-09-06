@@ -783,7 +783,7 @@ enum AppError: Error {
                     .withTypes(types)
                     .withExpirationDate(expire)
                     .withProperties(propsAsString)
-                    .sealed(using: passphrase)
+                    .seal(using: passphrase)
 
                 let ret = NSMutableDictionary()
                 ret.setValue(vc.toString(true), forKey: "credential")
@@ -1008,7 +1008,7 @@ enum AppError: Error {
                     let serviceEndpoint = service["serviceEndpoint"] as! String
 
                     _ = try db.appendService(with: serviceId, type: serviceType, endpoint: serviceEndpoint)
-                    let issuer = try db.sealed(using: storepass)
+                    let issuer = try db.seal(using: storepass)
                     try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
@@ -1048,7 +1048,7 @@ enum AppError: Error {
                     let db = try didDocument.editing();
 
                     _ = try db.removeService(with: serviceDidUrl)
-                    let issuer = try db.sealed(using: storepass)
+                    let issuer = try db.seal(using: storepass)
                     try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
@@ -1089,7 +1089,7 @@ enum AppError: Error {
 
                     let vc = try VerifiableCredential.fromJson(for: credential)
                     _ = try db.appendCredential(with: vc)
-                    let issuer = try db.sealed(using: storepass)
+                    let issuer = try db.seal(using: storepass)
                     try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
@@ -1130,7 +1130,7 @@ enum AppError: Error {
 
                     let vc = try VerifiableCredential.fromJson(for: credential)
                     _ = try db.removeCredential(with: vc.getId()!)
-                    let issuer = try db.sealed(using: storepass)
+                    let issuer = try db.seal(using: storepass)
                     try didStore.storeDid(using: issuer)
 
                     // Update cached document with newly generated one
@@ -1481,7 +1481,7 @@ enum AppError: Error {
                 let presentation = try builder.withCredentials(credentials)
                         .withNonce(nonce)
                         .withRealm(realm)
-                        .sealed(using: storePass);
+                        .seal(using: storePass);
 
                 self.success(command, retAsString: presentation.description)
             }
