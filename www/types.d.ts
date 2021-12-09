@@ -37,7 +37,7 @@ declare module DIDPlugin {
     type DIDStoreFilter = "DID_HAS_PRIVATEKEY" | "DID_NO_PRIVATEKEY" | "DID_ALL";
 
     type MnemonicLanguage =
-        "ENGLISH" | "FRENCH" | "SPANISH" | "CHINESE_SIMPLIFIED" | "CHINESE_TRADITIONAL" | "JAPANESE";
+        "ENGLISH" | "FRENCH" | "SPANISH" | "CHINESE_SIMPLIFIED" | "CHINESE_TRADITIONAL" | "JAPANESE" | "KOREAN" | "ITALIAN" | "CZECH";
 
     /**
      * This is the most usual format when talking about DIDs.

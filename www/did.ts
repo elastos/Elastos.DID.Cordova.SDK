@@ -588,22 +588,28 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
 }
 
 enum NativeMnemonicLanguage {
-    ENGLISH = "english",
-    FRENCH = "french",
-    SPANISH = "spanish",
     CHINESE_SIMPLIFIED = "chinese_simplified",
     CHINESE_TRADITIONAL = "chinese_traditional",
-    JAPANESE = "japanese"
+    CZECH = "czech",
+    ENGLISH = "english",
+    FRENCH = "french",
+    ITALIAN = "italian",
+    JAPANESE = "japanese",
+    KOREAN = "korean",
+    SPANISH = "spanish",
 };
 
 class MnemonicLanguageHelper {
     public static nativeToTS(nativeLanguage: NativeMnemonicLanguage): DIDPlugin.MnemonicLanguage {
         switch (nativeLanguage) {
-            case NativeMnemonicLanguage.FRENCH: return "FRENCH";
-            case NativeMnemonicLanguage.SPANISH: return "SPANISH";
             case NativeMnemonicLanguage.CHINESE_SIMPLIFIED: return "CHINESE_SIMPLIFIED";
             case NativeMnemonicLanguage.CHINESE_TRADITIONAL: return "CHINESE_TRADITIONAL";
+            case NativeMnemonicLanguage.CZECH: return "CZECH";
+            case NativeMnemonicLanguage.FRENCH: return "FRENCH";
+            case NativeMnemonicLanguage.ITALIAN: return "ITALIAN";
             case NativeMnemonicLanguage.JAPANESE: return "JAPANESE";
+            case NativeMnemonicLanguage.KOREAN: return "KOREAN";
+            case NativeMnemonicLanguage.SPANISH: return "SPANISH";
             case NativeMnemonicLanguage.ENGLISH:
             default:
                 return "ENGLISH";
@@ -612,11 +618,14 @@ class MnemonicLanguageHelper {
 
     public static tsToNative(tsLanguage: DIDPlugin.MnemonicLanguage): NativeMnemonicLanguage {
         switch (tsLanguage) {
-            case "FRENCH": return NativeMnemonicLanguage.FRENCH;
-            case "SPANISH": return NativeMnemonicLanguage.SPANISH;
             case "CHINESE_SIMPLIFIED": return NativeMnemonicLanguage.CHINESE_SIMPLIFIED;
             case "CHINESE_TRADITIONAL": return NativeMnemonicLanguage.CHINESE_TRADITIONAL;
+            case "CZECH": return NativeMnemonicLanguage.CZECH;
+            case "FRENCH": return NativeMnemonicLanguage.FRENCH;
+            case "ITALIAN": return NativeMnemonicLanguage.ITALIAN;
             case "JAPANESE": return NativeMnemonicLanguage.JAPANESE;
+            case "KOREAN": return NativeMnemonicLanguage.KOREAN;
+            case "SPANISH": return NativeMnemonicLanguage.SPANISH;
             case "ENGLISH":
             default:
                 return NativeMnemonicLanguage.ENGLISH;
