@@ -113,6 +113,7 @@ public class DIDPlugin extends CordovaPlugin {
     private int errCodeWrongPassword              = 10016;
 
     private int errCodeDidException               = 20000;
+    private int errCodeException                  = 20001;
 
     RootIdentity rootIdentity = null;
 
@@ -134,11 +135,6 @@ public class DIDPlugin extends CordovaPlugin {
 
     private void exceptionProcess(Exception e, CallbackContext cc, String msg) {
         e.printStackTrace();
-        cc.error(e.toString());
-    }
-
-    private void exceptionProcess(DIDException e, CallbackContext cc, String msg) {
-        e.printStackTrace();
 
         try {
             JSONObject errJson = new JSONObject();
@@ -146,8 +142,10 @@ public class DIDPlugin extends CordovaPlugin {
             // Try to specialized the error code
             if (e instanceof WrongPasswordException)
                 errJson.put(keyCode, errCodeWrongPassword);
-            else
+            else if (e instanceof DIDException)
                 errJson.put(keyCode, errCodeDidException);
+            else
+                errJson.put(keyCode, errCodeException);
 
             errJson.put(keyMessage, msg + ": " + e.toString());
             Log.e(TAG, errJson.toString());
