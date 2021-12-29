@@ -177,6 +177,17 @@ enum AppError: Error {
             return
     }
 
+    private func parametersCheckNull(_ command: CDVInvokedUrlCommand) -> Bool {
+        for i in 1 ... command.arguments.count {
+            if command.arguments[i - 1] is NSNull {
+                self.error(command, code: DIDPlugin.errCodeInvalidArg, msg: "arg should not be null")
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private func getDIDDataDir() -> String {
         return NSHomeDirectory() + "/Documents/data/did/"
     }
@@ -1458,6 +1469,10 @@ enum AppError: Error {
         guard command.arguments.count == 6 else {
             self.sendWrongParametersCount(command, expected: 6)
             return
+        }
+
+        if self.parametersCheckNull(command) == false {
+            return;
         }
 
         let didStoreId = command.arguments[0] as! String
