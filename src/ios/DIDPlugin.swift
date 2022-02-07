@@ -647,10 +647,26 @@ enum AppError: Error {
             do {
                 if  let didDocument = self.mDocumentMap[didString] {
                     DIDPlugin.globalDidAdapter?.setPublicationStoreId(didStoreId)
+
+                    let isExpired = didDocument.isExpired
+
+                    let newDoc = try! didDocument.editing().setDefaultExpires().seal(using: storepass)
+
                     // Pass our adapter again here so that the DID SDK will use this one instead of the global
                     // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
                     // DIDBackend instance (Intent plugin, Hive SDK...)
-                    _ = try didDocument.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
+                    if (isExpired) {
+                        _ = try newDoc.publish(with: newDoc.defaultPublicKeyId()!, force: true, using: storepass, adapter: DIDPlugin.globalDidAdapter!)
+                    } else {
+                        _ = try newDoc.publish(using: storepass, adapter: DIDPlugin.globalDidAdapter!)
+                    }
+
+                    if let didStore = self.mDIDStoreMap[didStoreId] {
+                        try! didStore.storeDid(using: newDoc)
+                    }
+
+                    self.mDocumentMap[didString] = newDoc
+
                     self.success(command)
                 }
                 else {

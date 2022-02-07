@@ -22,11 +22,15 @@
 
 package org.elastos.plugins.did;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.os.AsyncTask;
-import android.util.Base64;
-import android.util.Log;
+import java.io.File;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -41,10 +45,10 @@ import org.elastos.did.Mnemonic;
 import org.elastos.did.RootIdentity;
 import org.elastos.did.VerifiableCredential;
 import org.elastos.did.VerifiablePresentation;
+import org.elastos.did.crypto.Base64;
 import org.elastos.did.exception.DIDException;
 import org.elastos.did.exception.DIDResolveException;
 import org.elastos.did.exception.DIDStoreException;
-import org.elastos.did.exception.MalformedDIDException;
 import org.elastos.did.exception.MalformedDocumentException;
 import org.elastos.did.exception.WrongPasswordException;
 import org.elastos.did.jwt.Claims;
@@ -59,15 +63,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.os.AsyncTask;
+import android.util.Log;
 
 /**
  * This class echoes a string called from JavaScript.
@@ -849,14 +848,27 @@ public class DIDPlugin extends CordovaPlugin {
 
         new Thread(() -> {
             try {
-//                DIDStore didStore = mDIDStoreMap.get(didStoreId);
-//                didStore.publishDid(didString, storepass);
                 DIDDocument didDocument = mDocumentMap.get(didString);
                 globalDidAdapter.setPublicationStoreId(didStoreId);
+
+                Boolean isExpired = didDocument.isExpired();
+
+                // The DID will always be up to date.
+                DIDDocument newDoc = didDocument.edit().setDefaultExpires().seal(storepass);
+
                 // Pass our adapter again here so that the DID SDK will use this one instead of the global
                 // instance sent to DIDBackend.initialize(), because many parties usually overwrite that global
                 // DIDBack end instance (Intent plugin, Hive SDK...)
-                didDocument.publish(storepass, globalDidAdapter);
+                if (isExpired) {
+                    newDoc.publish((DIDURL) null, true, storepass, globalDidAdapter);
+                } else {
+                    newDoc.publish(storepass, globalDidAdapter);
+                }
+
+                DIDStore didStore = mDIDStoreMap.get(didStoreId);
+                didStore.storeDid(newDoc);
+                mDocumentMap.put(didString, newDoc);
+
                 callbackContext.success();
             }
             catch (Exception e) {
@@ -969,7 +981,7 @@ public class DIDPlugin extends CordovaPlugin {
 
             VerifiableCredential vc = issuer.issueFor(subjectDid)
                     .id(getDidUrlFragment(credentialId))
-                    .type(typeArray)
+                    .types(typeArray)
                     .expirationDate(expire)
                     .properties(properties.toString())
                     .seal(passphrase);

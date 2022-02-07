@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="@elastosfoundation/elastos-cordova-plugin-did" version="1.0.44" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
+<plugin id="@elastosfoundation/elastos-cordova-plugin-did" version="1.0.45" xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android">
     <name>DID</name>
     <js-module name="DIDPlugin" src="www/did.js">
         <clobbers target="didManager" />
@@ -27,7 +27,7 @@
                 <source url="https://cdn.cocoapods.org/"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="ElastosDIDSDK" spec='~> 2.2.3'/>
+                <pod name="ElastosDIDSDK" spec='~> 2.2.7'/>
                 <pod name="SwiftJWT" spec="~> 3.5.3" swift-version="4"/>
                 <pod name="AnyCodable-FlightSchool" spec='~> 0.2.3'/>
             </pods>
