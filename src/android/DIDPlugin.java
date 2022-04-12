@@ -40,6 +40,7 @@ import org.elastos.did.DIDBackend;
 import org.elastos.did.DIDDocument;
 import org.elastos.did.DIDStore;
 import org.elastos.did.DIDURL;
+import org.elastos.did.Features;
 import org.elastos.did.Issuer;
 import org.elastos.did.Mnemonic;
 import org.elastos.did.RootIdentity;
@@ -85,7 +86,7 @@ public class DIDPlugin extends CordovaPlugin {
     private HashMap<String, DIDDocument> mDocumentMap;
     private HashMap<String, DID> mDIDMap;
     private HashMap<Integer, DIDDocument.PublicKey> mPublicKeyMap;
-    private HashMap<String, VerifiableCredential> mCredentialMap;
+    //private HashMap<String, VerifiableCredential> mCredentialMap;
     private HashMap<String, DIDStore> mDIDStoreMap;
     private HashMap<String, Issuer> mIssuerMap;
 
@@ -120,7 +121,7 @@ public class DIDPlugin extends CordovaPlugin {
         mDocumentMap = new HashMap<>();
         mDIDMap = new HashMap<>();
         mPublicKeyMap = new HashMap<>();
-        mCredentialMap = new HashMap<>();
+        //mCredentialMap = new HashMap<>();
         mDIDStoreMap = new HashMap<>();
         mIssuerMap = new HashMap<>();
 
@@ -179,6 +180,9 @@ public class DIDPlugin extends CordovaPlugin {
                     break;
                 case "setListener":
                     this.setListener(args, callbackContext);
+                    break;
+                case "enableJsonLdContext":
+                    this.enableJsonLdContext(args, callbackContext);
                     break;
                 case "initDidStore":
                     this.initDidStore(args, callbackContext);
@@ -304,7 +308,13 @@ public class DIDPlugin extends CordovaPlugin {
                 case "getPublicKeyBase58":
                     this.getPublicKeyBase58(args, callbackContext);
                     break;
-                //credential
+
+                    // Credential
+                case "VerifiableCredential_toJson":
+                    this.VerifiableCredential_toJson(args, callbackContext);
+                    break;
+
+                //Presentation
                 case "createVerifiablePresentationFromCredentials":
                     this.createVerifiablePresentationFromCredentials(args, callbackContext);
                     break;
@@ -317,6 +327,7 @@ public class DIDPlugin extends CordovaPlugin {
                 case "verifiablePresentationToJson":
                     this.verifiablePresentationToJson(args, callbackContext);
                     break;
+
                 case "DIDManager_parseJWT":
                     this.DIDManager_parseJWT(args, callbackContext);
                     break;
@@ -382,6 +393,14 @@ public class DIDPlugin extends CordovaPlugin {
             result.setKeepCallback(true);
             callbackContext.sendPluginResult(result);
         }
+    }
+
+    private void enableJsonLdContext(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        boolean enable = args.getBoolean(0);
+
+        Features.enableJsonLdContext(enable);
+
+        callbackContext.success();
     }
 
     private void CreateDIDDocumentFromJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -997,6 +1016,10 @@ public class DIDPlugin extends CordovaPlugin {
         catch(DIDException e) {
             exceptionProcess(e, callbackContext, "CreateCredential ");
         }
+        catch(IllegalArgumentException e) {
+            // Maybe because full url credential types are expected but short type passed
+            exceptionProcess(e, callbackContext, "CreateCredential - check short/long credential type style. ");
+        }
     }
 
     private void loadCredential(JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -1034,7 +1057,7 @@ public class DIDPlugin extends CordovaPlugin {
                 return;
             }
 
-            mCredentialMap.put(didUrlString, vc);
+            //mCredentialMap.put(didUrlString, vc);
             JSONObject ret= new JSONObject();
             ret.put("credential", vc.toString(true));
             callbackContext.success(ret);
@@ -1059,7 +1082,7 @@ public class DIDPlugin extends CordovaPlugin {
 
             VerifiableCredential credential = VerifiableCredential.fromJson(credentialJson);
             didStore.storeCredential(credential);
-            mCredentialMap.put(credential.getId().toString(), credential);
+            //mCredentialMap.put(credential.getId().toString(), credential);
             callbackContext.success();
         }
         catch (DIDException e) {
@@ -1599,6 +1622,21 @@ public class DIDPlugin extends CordovaPlugin {
         DIDDocument.PublicKey publicKey = mPublicKeyMap.get(id);
         String keyBase58 = publicKey.getPublicKeyBase58();
         callbackContext.success(keyBase58);
+    }
+
+    private void VerifiableCredential_toJson(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        String didStoreId = args.getString(0);
+        String credentialId = args.getString(1); // Credential ID (did url)
+
+        DIDStore didStore = mDIDStoreMap.get(didStoreId);
+
+        try {
+            String credentialJson = didStore.loadCredential(credentialId).serialize();
+            callbackContext.success(credentialJson);
+        }
+            catch (DIDException e) {
+                exceptionProcess(e, callbackContext, "VerifiableCredential_toJson ");
+            }
     }
 
     private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {

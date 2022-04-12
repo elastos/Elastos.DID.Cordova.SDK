@@ -20,7 +20,7 @@
  * SOFTWARE.
  */
 
- /**
+/**
 * This plugin is the Elastos implementation of W3C's Decentralized Identity specification.
 * Decentralized identities allow users to be owner of their identities, without relying on third party
 * providers.
@@ -72,22 +72,35 @@ declare module DIDPlugin {
     * @param payload     The payload of the IdTransaction.
     * @param memo        The memo of the IdTransaction.
     */
-    type OnCreateIdTransaction = (payload: String, memo: string)=>void;
+    type OnCreateIdTransaction = (payload: String, memo: string) => void;
 
     interface VerifiableCredentialBuilder {
         fromJson(credentialJson: string): DIDPlugin.VerifiableCredential;
     }
 
     interface VerifiableCredential {
-        getId():string;
-        getFragment():string;
-        getTypes():string[];
-        getIssuer():string;
-        getIssuanceDate():Date;
-        getExpirationDate():Date;
-        getSubject():any;
-        getProof():any;
-        toString():Promise<string>;
+        getId(): string;
+        getFragment(): string;
+        getContext(): string[];
+        getTypes(): string[];
+        getIssuer(): string;
+        getIssuanceDate(): Date;
+        getExpirationDate(): Date;
+        getSubject(): any;
+        getProof(): any;
+
+        /**
+         * Simple string representation from the JS model.
+         * Use toJson() instead.
+         *
+         * @deprecated
+         */
+        toString(): Promise<string>;
+
+        /**
+         * JSON string representation of this Verifiable credential.
+         */
+        toJson(): Promise<string>;
     }
 
     interface PublicKey {
@@ -114,15 +127,15 @@ declare module DIDPlugin {
     }
 
     interface DID {
-        getDIDString():string;
-        getMethod(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        getMethodSpecificId(onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        resolveDidDocument(onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        getDIDString(): string;
+        getMethod(onSuccess: (data: any) => void, onError?: (err: any) => void);
+        getMethodSpecificId(onSuccess: (data: any) => void, onError?: (err: any) => void);
+        resolveDidDocument(onSuccess: (didDocument: DIDDocument) => void, onError?: (err: any) => void);
 
         /**
           * Call prepareIssue before issueCredential. It will resolve did.
         */
-        prepareIssuer(onSuccess?: ()=>void);
+        prepareIssuer(onSuccess?: () => void);
 
         /**
          * Issuing a credential is done from a issuer, to a subject (ex: a university issues a credential to
@@ -138,11 +151,11 @@ declare module DIDPlugin {
          * @param onSuccess Callback returning the created VerifiableCredential object in case of success.
          * @param onError Callback returning an error object in case of error.
          */
-        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], validityDays: number, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential)=>void, onError?: (err: any)=>void); // TODO: types for all "any"
+        issueCredential(subjectDID: DIDString, credentialId: CredentialID, types: string[], validityDays: number, properties: any, passphrase: string, onSuccess: (credential: VerifiableCredential) => void, onError?: (err: any) => void); // TODO: types for all "any"
 
-        addCredential(credential: VerifiableCredential, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        deleteCredential(credentialId: CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        loadCredentials(onSuccess: (credentials: VerifiableCredential[])=>void, onError?: (err: any)=>void);
+        addCredential(credential: VerifiableCredential, onSuccess?: () => void, onError?: (err: any) => void);
+        deleteCredential(credentialId: CredentialID, onSuccess?: () => void, onError?: (err: any) => void);
+        loadCredentials(onSuccess: (credentials: VerifiableCredential[]) => void, onError?: (err: any) => void);
         getCredential(credentialId: CredentialID): VerifiableCredential;
 
         /**
@@ -163,7 +176,7 @@ declare module DIDPlugin {
          * @param nonce         Random requested generated challenge code to prevent replay attacks.
          * @param storepass     Store password, used to sign the presentation.
          */
-        createVerifiablePresentation(credentials: VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void);
+        createVerifiablePresentation(credentials: VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: VerifiablePresentation) => void, onError?: (err: any) => void);
     }
 
     interface DIDDocument {
@@ -215,8 +228,8 @@ declare module DIDPlugin {
          */
         removeService(didURL: DIDURL, storePass: string, onSuccess?: () => void, onError?: (err: any) => void);
 
-        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        addCredential(credential: VerifiableCredential, storePass: string, onSuccess?: () => void, onError?: (err: any) => void);
+        deleteCredential(credential: VerifiableCredential, storePass: string, onSuccess?: () => void, onError?: (err: any) => void);
         getCredentials(): DIDPlugin.VerifiableCredential[];
         getCredential(credentialId: CredentialID): VerifiableCredential;
 
@@ -229,9 +242,9 @@ declare module DIDPlugin {
          */
         findCredentials(includedTypes?: string[], includedPropertyName?: string): DIDPlugin.VerifiableCredential[];
 
-        sign(storePass: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);  // TODO: What is "originString" ?
-        verify(signString: string, originString: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
-        signDigest(storePass: string, digest: string, onSuccess: (data: any)=>void, onError?: (err: any)=>void);
+        sign(storePass: string, originString: string, onSuccess: (data: any) => void, onError?: (err: any) => void);  // TODO: What is "originString" ?
+        verify(signString: string, originString: string, onSuccess: (data: any) => void, onError?: (err: any) => void);
+        signDigest(storePass: string, digest: string, onSuccess: (data: any) => void, onError?: (err: any) => void);
 
         /**
          * Initiates a DID document publication process from the local device to the DID sidechain.
@@ -239,7 +252,7 @@ declare module DIDPlugin {
          * During this process, the DID SDK generates a "publish DID" request, and this request is passed
          * to the createIdTransactionCallback() previously setup when calling initDIDStore.
          */
-        publish(storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
+        publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void);
 
         /**
          * Create a JWT, signed by the DID document.
@@ -247,7 +260,7 @@ declare module DIDPlugin {
          * @param properties JSON object that contains the actual information.
          * @param validityDays number of Days at which the JWT will become invalid.
          */
-        createJWT(properties: any, validityDays: number, storepass: string, onSuccess: (token: string)=>void, onError?: (err: any)=>void);
+        createJWT(properties: any, validityDays: number, storepass: string, onSuccess: (token: string) => void, onError?: (err: any) => void);
 
         /**
          * JSON string representation of this DID document.
@@ -256,7 +269,7 @@ declare module DIDPlugin {
     }
 
     interface VerifiablePresentationBuilder {
-        fromJson(json: string, onSuccess: (presentation: VerifiablePresentation)=>void, onError?: (err: any)=>void);
+        fromJson(json: string, onSuccess: (presentation: VerifiablePresentation) => void, onError?: (err: any) => void);
     }
 
     /**
@@ -266,8 +279,8 @@ declare module DIDPlugin {
      */
     interface VerifiablePresentation {
         getCredentials(): VerifiableCredential[];
-        isValid(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
-        isGenuine(onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+        isValid(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void);
+        isGenuine(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void);
 
         /**
          * JSON string representation of this presentation.
@@ -276,8 +289,8 @@ declare module DIDPlugin {
     }
 
     interface DIDStore {
-        getId():string;
-        initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: ()=>void, onError?: (err: any)=>void);
+        getId(): string;
+        initPrivateIdentity(language: MnemonicLanguage, mnemonic: string, passphrase: string, storepass: string, force: Boolean, onSuccess: () => void, onError?: (err: any) => void);
 
         /**
          * Change the didstore password
@@ -285,13 +298,13 @@ declare module DIDPlugin {
          * @param oldPassword  The old password.
          * @param newPassword  The new password.
          */
-        changePassword(oldPassword: string, newPassword: string, onSuccess: ()=>void, onError?: (err: any)=>void);
-        containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean)=>void, onError?: (err: any)=>void);
-        deleteDid(didString: string, onSuccess: ()=>void, onError?: (err: any)=>void);
-        newDid(passphrase: string, alias: string, onSuccess: (did: DID)=>void, onError?: (err: any)=>void);
-        listDids(filter: DIDStoreFilter, onSuccess: (dids: DID[])=>void, onError?: (err: any)=>void); // TODO: "filter" type
-        loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
-        storeDidDocument(didDocument: DIDDocument, alias:string, onSuccess: ()=>void, onError?: (err: any)=>void);
+        changePassword(oldPassword: string, newPassword: string, onSuccess: () => void, onError?: (err: any) => void);
+        containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean) => void, onError?: (err: any) => void);
+        deleteDid(didString: string, onSuccess: () => void, onError?: (err: any) => void);
+        newDid(passphrase: string, alias: string, onSuccess: (did: DID) => void, onError?: (err: any) => void);
+        listDids(filter: DIDStoreFilter, onSuccess: (dids: DID[]) => void, onError?: (err: any) => void); // TODO: "filter" type
+        loadDidDocument(didString: string, onSuccess: (didDocument: DIDDocument) => void, onError?: (err: any) => void);
+        storeDidDocument(didDocument: DIDDocument, alias: string, onSuccess: () => void, onError?: (err: any) => void);
         // updateDidDocument(didDocument: DIDDocument, storepass: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
 
         /**
@@ -308,8 +321,8 @@ declare module DIDPlugin {
          * NOTE: Only data previously saved on chain can be restore. This method cannot restore private credentials
          * kept by the user on his device.
          */
-        synchronize(storepass: string, onSuccess: ()=>void, onError?: (err: any)=>void);
-        exportMnemonic(storePass: string, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
+        synchronize(storepass: string, onSuccess: () => void, onError?: (err: any) => void);
+        exportMnemonic(storePass: string, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void);
     }
 
     /**
@@ -325,16 +338,17 @@ declare module DIDPlugin {
     }
 
     interface DIDManager {
-        getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void);
-        initDidStore(didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore)=>void, onError?: (err: any)=>void);
-        deleteDidStore(didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void);
-        createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void); // TODO: "json" type
-        generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void);
-        isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void);
+        getVersion(onSuccess: (version: string) => void, onError?: (err: any) => void);
+        enableJsonLdContext(enable: boolean, onSuccess: () => void, onError?: (err: any) => void);
+        initDidStore(didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore) => void, onError?: (err: any) => void);
+        deleteDidStore(didStoreId: string, onSuccess?: () => void, onError?: (err: any) => void);
+        createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument) => void, onError?: (err: any) => void); // TODO: "json" type
+        generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void);
+        isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean) => void, onError?: (err: any) => void);
         /**
          * Call setResolverUrl before initDidStore.
          */
-        setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void);
+        setResolverUrl(resolver: string, onSuccess: () => void, onError?: (err: any) => void);
 
         /**
          * Resolve any kind of DID document that does not belong to a local DIDStore. This is useful to
@@ -344,7 +358,7 @@ declare module DIDPlugin {
          *
          * @param forceRemote True will not use previously resolved document stored locally in cache. False will try to load locally then load from chain if nothing found (or expired).
          */
-        resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDDocument)=>void, onError?: (err: any)=>void);
+        resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDDocument) => void, onError?: (err: any) => void);
 
         /**
          * Parses a JWT token and does several things:

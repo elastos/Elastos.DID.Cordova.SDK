@@ -60,9 +60,9 @@ class DIDImpl implements DIDPlugin.DID {
         exec(onSuccess, onError, 'DIDPlugin', 'getMethodSpecificId', [this.didString]);
     }
 
-    resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
+    resolveDidDocument(onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
         var storeId = this.storeId;
-        var _onSuccess = function(ret: {diddoc: string, updated: string}) {
+        var _onSuccess = function (ret: { diddoc: string, updated: string }) {
             var diddoc = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(diddoc.toDIDDocument(storeId));
         }
@@ -74,10 +74,10 @@ class DIDImpl implements DIDPlugin.DID {
         exec(onSuccess, null, 'DIDPlugin', 'prepareIssuer', [this.storeId, this.didString]);
     }
 
-    issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], validityDays: number, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
-        var _onSuccess = function(ret) {
+    issueCredential(subjectDID: DIDPlugin.DIDString, credentialId: DIDPlugin.CredentialID, types: string[], validityDays: number, properties: any, passphrase: string, onSuccess: (credential: DIDPlugin.VerifiableCredential) => void, onError?: (err: any) => void) {
+        var _onSuccess = (ret) => {
             let nativeVc = NativeVerifiableCredential.createFromJson(ret.credential);
-            let credential = nativeVc.toVerifiableCredential();
+            let credential = nativeVc.toVerifiableCredential(this.storeId);
 
             // NOTE: Temporary log to help investigate the JS crash met by "TT" on telegram while
             // creating a new DID - issueCredential() returns null expirationDate and issuanceDate.
@@ -92,13 +92,13 @@ class DIDImpl implements DIDPlugin.DID {
             [this.storeId, this.didString, subjectDID, credentialId, types, validityDays | 0, properties, passphrase]);
     }
 
-    async addCredential(credential: VerifiableCredentialImpl, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+    async addCredential(credential: VerifiableCredentialImpl, onSuccess?: () => void, onError?: (err: any) => void) {
         if (!this.loadedCredentials)
             throw new Error("Load credentials by calling loadCredentials() before calling this.");
 
         try {
             var self = this;
-            var _onSuccess = function(ret) {
+            var _onSuccess = function (ret) {
                 // Add credential to our local model
                 self.loadedCredentials.push(credential);
 
@@ -123,12 +123,12 @@ class DIDImpl implements DIDPlugin.DID {
 
     loadCredentials(onSuccess: (credentials: DIDPlugin.VerifiableCredential[]) => void, onError?: (err: any) => void) {
         var self = this;
-        var _onSuccess = function(ret: {items: string}) {
+        var _onSuccess = (ret: { items: string }) => {
             self.loadedCredentials = [];
             let items = JSON.parse(ret.items);
-            items.map((credentialJson)=>{
+            items.map((credentialJson) => {
                 let nativeCredential = NativeVerifiableCredential.createFromJson(JSON.stringify(credentialJson));
-                self.loadedCredentials.push(nativeCredential.toVerifiableCredential());
+                self.loadedCredentials.push(nativeCredential.toVerifiableCredential(this.storeId));
             });
 
             onSuccess(self.loadedCredentials);
@@ -140,7 +140,7 @@ class DIDImpl implements DIDPlugin.DID {
         if (!this.loadedCredentials)
             throw new Error("Load credentials by calling loadCredentials() before calling getCredential().");
 
-        return this.loadedCredentials.find((c)=>{
+        return this.loadedCredentials.find((c) => {
             return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
         });
     }
@@ -149,14 +149,14 @@ class DIDImpl implements DIDPlugin.DID {
         return Helper.findCredentials(this.loadedCredentials, includedTypes, includedPropertyName);
     }
 
-    deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+    deleteCredential(credentialId: DIDPlugin.CredentialID, onSuccess?: () => void, onError?: (err: any) => void) {
         if (!this.loadedCredentials)
             throw new Error("Load credentials by calling loadCredentials() before calling this.");
 
         var self = this;
-        var _onSuccess = function(ret) {
+        var _onSuccess = function (ret) {
             // Remove credential from our local model
-            let credentialIndex = self.loadedCredentials.findIndex((c)=>{
+            let credentialIndex = self.loadedCredentials.findIndex((c) => {
                 return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
             })
             self.loadedCredentials.splice(credentialIndex, 1);
@@ -183,10 +183,10 @@ class DIDImpl implements DIDPlugin.DID {
         exec(_onSuccess, onError, 'DIDPlugin', 'listCredentials', [this.storeId, this.didString]);
     }*/
 
-    loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential)=>void, onError?: (err: any)=>void) {
-        var _onSuccess = function(ret) {
+    loadCredential(credentialId: DIDPlugin.CredentialID, onSuccess: (credential: DIDPlugin.VerifiableCredential) => void, onError?: (err: any) => void) {
+        var _onSuccess = (ret) => {
             let nativeVc = NativeVerifiableCredential.createFromJson(ret.credential);
-            let credential = nativeVc.toVerifiableCredential();
+            let credential = nativeVc.toVerifiableCredential(this.storeId);
             if (onSuccess)
                 onSuccess(credential);
         }
@@ -197,11 +197,11 @@ class DIDImpl implements DIDPlugin.DID {
     createVerifiablePresentation(credentials: DIDPlugin.VerifiableCredential[], realm: string, nonce: string, storepass: string, onSuccess: (presentation: DIDPlugin.VerifiablePresentation) => void, onError?: (err: any) => void) {
         // Convert our credentials format to java format
         let nativeCredentials: NativeVerifiableCredential[] = [];
-        nativeCredentials = credentials.map((cred)=>{
+        nativeCredentials = credentials.map((cred) => {
             return NativeVerifiableCredential.createFromVerifiableCredential(cred);
         });
 
-        var _onSuccess = function(presentationJson) {
+        var _onSuccess = function (presentationJson) {
             let builder: VerifiablePresentationBuilderImpl = didManager.VerifiablePresentationBuilder as VerifiablePresentationBuilderImpl;
             let presentation = builder.fromNativeJson(presentationJson);
             onSuccess(presentation);
@@ -230,15 +230,15 @@ class NativeDIDDocument {
         let didImpl = new DIDImpl(storeId, this.id, "");
         didDocument.id = didImpl;
 
-        didDocument.created = (this.created?new Date(this.created):null);
-        didDocument.updated = (this.updated?new Date(this.updated):null);
+        didDocument.created = (this.created ? new Date(this.created) : null);
+        didDocument.updated = (this.updated ? new Date(this.updated) : null);
         didDocument.expires = new Date(this.expires);
 
         didDocument.verifiableCredential = []
         if (this.verifiableCredential) { // Could be undefined
-            this.verifiableCredential.forEach((c)=>{
+            this.verifiableCredential.forEach((c) => {
                 let vc = NativeVerifiableCredential.createFromJson(JSON.stringify(c));
-                didDocument.verifiableCredential.push(vc.toVerifiableCredential());
+                didDocument.verifiableCredential.push(vc.toVerifiableCredential(null));
             });
         }
 
@@ -271,21 +271,21 @@ class NativeDIDDocument {
         nativeDidDocument.id = didDocument.getSubject().getDIDString();
 
         if (didDocument.getCreated())
-            nativeDidDocument.created = didDocument.getCreated().toISOString().replace(".000","");
+            nativeDidDocument.created = didDocument.getCreated().toISOString().replace(".000", "");
 
         if (didDocument.getUpdated())
-            nativeDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000","");
+            nativeDidDocument.updated = didDocument.getUpdated().toISOString().replace(".000", "");
 
         if (didDocument.getExpires())
             nativeDidDocument.expires = didDocument.getExpires().toISOString().replace(".000", "");
 
         nativeDidDocument.verifiableCredential = [];
-        didDocument.getCredentials().forEach((c)=>{
+        didDocument.getCredentials().forEach((c) => {
             nativeDidDocument.verifiableCredential.push(NativeVerifiableCredential.createFromVerifiableCredential(c));
         });
 
         nativeDidDocument.service = [];
-        didDocument.getServices().forEach((s)=>{
+        didDocument.getServices().forEach((s) => {
             nativeDidDocument.service.push(NativeService.createFromService(s));
         });
 
@@ -353,7 +353,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     getDefaultPublicKey(onSuccess: (publicKey: DIDPlugin.PublicKey) => void, onError?: (err: any) => void) {
-        var _onSuccess = function(ret: {publickey: string}) {
+        var _onSuccess = function (ret: { publickey: string }) {
             var nativePublicKey = NativePublicKey.createFromJson(ret.publickey);
             onSuccess(nativePublicKey.toPublicKey());
         }
@@ -411,7 +411,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     private deleteLocalServiceByUrl(didUrl: DIDPlugin.DIDURL) {
-        let serviceIndex = this.services.findIndex((s)=>{
+        let serviceIndex = this.services.findIndex((s) => {
             return DIDURL.shortForm(s.getId()) == DIDURL.shortForm(didUrl);
         })
         if (serviceIndex >= 0)
@@ -422,7 +422,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
         let nativeVc = NativeVerifiableCredential.createFromVerifiableCredential(credential);
 
         var self = this;
-        var _onSuccess = function() {
+        var _onSuccess = function () {
             // Also save the credential locally. Remove first if it already exists (update case)
             self.deleteLocalCredential(credential);
             self.verifiableCredential.push(credential);
@@ -435,18 +435,18 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     private deleteLocalCredential(credential: DIDPlugin.VerifiableCredential) {
-        let credentialIndex = this.verifiableCredential.findIndex((c)=>{
+        let credentialIndex = this.verifiableCredential.findIndex((c) => {
             return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credential.getId());
         })
         if (credentialIndex >= 0)
             this.verifiableCredential.splice(credentialIndex, 1);
     }
 
-    deleteCredential(credential: DIDPlugin.VerifiableCredential, storePass: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+    deleteCredential(credential: DIDPlugin.VerifiableCredential, storePass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         let nativeVc = NativeVerifiableCredential.createFromVerifiableCredential(credential);
 
         var self = this;
-        var _onSuccess = function() {
+        var _onSuccess = function () {
             // Also delete the credential locally.
             self.deleteLocalCredential(credential);
 
@@ -458,7 +458,7 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     getCredential(credentialId: DIDPlugin.CredentialID) {
-        return this.verifiableCredential.find((c)=>{
+        return this.verifiableCredential.find((c) => {
             return DIDURL.shortForm(c.getId()) == DIDURL.shortForm(credentialId);
         })
     }
@@ -480,8 +480,8 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     signDigest(storePass: string, digest: string, onSuccess: (data: any) => void, onError?: (err: any) => void) {
-      exec(onSuccess, onError, 'DIDPlugin', 'signDigest', [this.id.getDIDString(), storePass, digest]);
-  }
+        exec(onSuccess, onError, 'DIDPlugin', 'signDigest', [this.id.getDIDString(), storePass, digest]);
+    }
 
     publish(storepass: string, onSuccess?: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'publishDid', [this.storeId, this.id.getDIDString(), storepass]);
@@ -492,10 +492,10 @@ class DIDDocumentImpl implements DIDPlugin.DIDDocument {
     }
 
     toJson(): Promise<string> {
-        return new Promise((resolve, reject)=>{
-            exec((jsonString)=>{
+        return new Promise((resolve, reject) => {
+            exec((jsonString) => {
                 resolve(jsonString);
-            }, (err)=>{
+            }, (err) => {
                 reject(err);
             }, 'DIDPlugin', 'DIDDocument_toJson', [this.id.getDIDString()]);
         });
@@ -515,7 +515,7 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
 
         // Re-create real credential objects based on json data
         presentation.verifiableCredential = [];
-        jsonPresentation.verifiableCredential.map((jsonVc)=>{
+        jsonPresentation.verifiableCredential.map((jsonVc) => {
             let vc = didManager.VerifiableCredentialBuilder.fromJson(JSON.stringify(jsonVc))
             presentation.verifiableCredential.push(vc);
         })
@@ -532,14 +532,14 @@ class VerifiablePresentationBuilderImpl implements DIDPlugin.VerifiablePresentat
         presentation.holder = jsonPresentation.holder;
         presentation.type = jsonPresentation.type;
         presentation.proof = jsonPresentation.proof;
-        presentation.created = (jsonPresentation.created?new Date(jsonPresentation.created):null);
-        presentation.updated = (jsonPresentation.updated?new Date(jsonPresentation.updated):null);
+        presentation.created = (jsonPresentation.created ? new Date(jsonPresentation.created) : null);
+        presentation.updated = (jsonPresentation.updated ? new Date(jsonPresentation.updated) : null);
 
         // Re-create real credential objects based on json data
         presentation.verifiableCredential = [];
-        jsonPresentation.verifiableCredential.map((jsonVc)=>{
+        jsonPresentation.verifiableCredential.map((jsonVc) => {
             let nativeVc = NativeVerifiableCredential.createFromJson(JSON.stringify(jsonVc));
-            let vc = nativeVc.toVerifiableCredential();
+            let vc = nativeVc.toVerifiableCredential(null);
             presentation.verifiableCredential.push(vc);
         })
 
@@ -556,12 +556,12 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     created: Date;
     updated: Date;
 
-    getCredentials(): DIDPlugin.VerifiableCredential[] {
+    getCredentials(): DIDPlugin.VerifiableCredential[] {
         return this.verifiableCredential;
     }
 
     isValid(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
-        var _onSuccess = function(ret) {
+        var _onSuccess = function (ret) {
             if (onSuccess)
                 onSuccess(ret.isvalid);
         }
@@ -569,7 +569,7 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     }
 
     isGenuine(onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
-        var _onSuccess = function(ret) {
+        var _onSuccess = function (ret) {
             if (onSuccess)
                 onSuccess(ret.isgenuine);
         }
@@ -577,10 +577,10 @@ class VerifiablePresentationImpl implements DIDPlugin.VerifiablePresentation {
     }
 
     toJson(): Promise<string> {
-        return new Promise((resolve, reject)=>{
-            exec((presentationString)=>{
+        return new Promise((resolve, reject) => {
+            exec((presentationString) => {
                 resolve(presentationString);
-            }, (err)=>{
+            }, (err) => {
                 reject(err);
             }, 'DIDPlugin', 'verifiablePresentationToJson', [this]);
         })
@@ -652,7 +652,7 @@ enum NativeDIDStoreFilter {
 }
 
 class DIDStoreImpl implements DIDPlugin.DIDStore {
-    objId  = null;
+    objId = null;
 
     getId(): string {
         return this.objId;
@@ -667,7 +667,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     containsPrivateIdentity(onSuccess: (hasPrivateIdentity: boolean) => void, onError?: (err: any) => void) {
-        var _onSuccess = function(ret : string) {
+        var _onSuccess = function (ret: string) {
             onSuccess(ret == "true");
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'containsPrivateIdentity', [this.objId]);
@@ -677,25 +677,25 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDid', [this.objId, didString]);
     }
 
-    newDid(passphrase: string, alias: string, onSuccess: (did: DIDPlugin.DID)=>void, onError?: (err: any)=>void) {
-         var didStoreId = this.objId;
-         var _onSuccess = function(ret) {
-             let didString = ret.did;
-             let did = new DIDImpl(didStoreId, didString, "");
-             did.initEmptyDID();
+    newDid(passphrase: string, alias: string, onSuccess: (did: DIDPlugin.DID) => void, onError?: (err: any) => void) {
+        var didStoreId = this.objId;
+        var _onSuccess = function (ret) {
+            let didString = ret.did;
+            let did = new DIDImpl(didStoreId, didString, "");
+            did.initEmptyDID();
 
-             if (onSuccess)
+            if (onSuccess)
                 onSuccess(did);
-         }
+        }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, alias]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'newDid', [this.objId, passphrase, alias]);
     }
 
-    listDids(filter: DIDPlugin.DIDStoreFilter, onSuccess: (dids: DIDPlugin.DID[])=>void, onError?: (err: any)=>void) {
+    listDids(filter: DIDPlugin.DIDStoreFilter, onSuccess: (dids: DIDPlugin.DID[]) => void, onError?: (err: any) => void) {
         var didStoreId = this.objId;
-        var _onSuccess = function(ret) {
+        var _onSuccess = function (ret) {
             let dids: DIDPlugin.DID[] = [];
-            ret.items.map((item)=>{
+            ret.items.map((item) => {
                 let did = new DIDImpl(didStoreId, item.did, item.alias);
                 dids.push(did);
             });
@@ -706,13 +706,13 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
     }
 
     loadDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
-         var storeId = this.objId;
-         var _onSuccess = function(ret: {diddoc: string, updated: string}) {
-             var nativeDidDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
-             onSuccess(nativeDidDocument.toDIDDocument(storeId));
-         }
+        var storeId = this.objId;
+        var _onSuccess = function (ret: { diddoc: string, updated: string }) {
+            var nativeDidDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
+            onSuccess(nativeDidDocument.toDIDDocument(storeId));
+        }
 
-         exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
+        exec(_onSuccess, onError, 'DIDPlugin', 'loadDid', [this.objId, didString]);
     }
 
     // resolveDidDocument(didString: string, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
@@ -726,7 +726,7 @@ class DIDStoreImpl implements DIDPlugin.DIDStore {
 
     storeDidDocument(didDocument: DIDDocumentImpl, alias: string, onSuccess: () => void, onError?: (err: any) => void) {
         var storeId = this.objId;
-        var _onSuccess = function() {
+        var _onSuccess = function () {
             didDocument.storeId = storeId;
             onSuccess();
         }
@@ -759,7 +759,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     ServiceBuilder: DIDPlugin.ServiceBuilder = new ServiceBuilderImpl();
 
     private createIdTransactionEventList: {
-      [index: string]: DIDManagerEvent
+        [index: string]: DIDManagerEvent
     } = {};
 
     hasSetListener = false;
@@ -784,7 +784,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         return 0;
     }
 
-    getVersion(onSuccess: (version: string)=>void, onError?: (err: any)=>void) {
+    getVersion(onSuccess: (version: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'getVersion', []);
     }
 
@@ -792,11 +792,15 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(eventCallback, null, 'DIDPlugin', 'setListener', [type]);
     }
 
-    initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore)=>void, onError?: (err: any)=>void) {
+    enableJsonLdContext(enable: boolean, onSuccess: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'enableJsonLdContext', [enable]);
+    }
+
+    initDidStore(didStoreId: string, createIdTransactionCallback: DIDPlugin.OnCreateIdTransaction, onSuccess?: (didStore: DIDPlugin.DIDStore) => void, onError?: (err: any) => void) {
         if (!this.hasSetListener) {
             this.setListener(LISTENER_IDTRANSACTION, (event) => {
                 if (this.createIdTransactionEventList[event.didStoreId]) {
-                  this.createIdTransactionEventList[event.didStoreId].callback(event.payload, event.memo);
+                    this.createIdTransactionEventList[event.didStoreId].callback(event.payload, event.memo);
                 }
             });
             this.hasSetListener = true;
@@ -807,7 +811,7 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
             callbackId = this.addCreateIdTransactionCB(didStoreId, createIdTransactionCallback);
         }
 
-        var _onSuccess = function() {
+        var _onSuccess = function () {
             var didStore = new DIDStoreImpl();
             didStore.objId = didStoreId;
             if (onSuccess)
@@ -816,12 +820,12 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(_onSuccess, onError, 'DIDPlugin', 'initDidStore', [didStoreId, callbackId]);
     }
 
-    deleteDidStore(didStoreId: string, onSuccess?: ()=>void, onError?: (err: any)=>void) {
+    deleteDidStore(didStoreId: string, onSuccess?: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDidStore', [didStoreId]);
     }
 
-    createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void){
-        var _onSuccess = function(ret: {diddoc: string, updated: string}) {
+    createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
+        var _onSuccess = function (ret: { diddoc: string, updated: string }) {
             var didDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
             onSuccess(didDocument.toDIDDocument());
         }
@@ -829,23 +833,23 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(_onSuccess, onError, 'DIDPlugin', 'CreateDIDDocumentFromJson', [json]);
     }
 
-    generateMnemonic(language: any, onSuccess: (mnemonic: string)=>void, onError?: (err: any)=>void) {
+    generateMnemonic(language: any, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'generateMnemonic', [MnemonicLanguageHelper.tsToNative(language)]);
     }
 
-    isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean)=>void, onError?: (err: any)=>void) {
-        var _onSuccess = function(ret : string) {
+    isMnemonicValid(language: any, mnemonic: string, onSuccess: (isValid: boolean) => void, onError?: (err: any) => void) {
+        var _onSuccess = function (ret: string) {
             onSuccess(ret == "true");
         }
         exec(_onSuccess, onError, 'DIDPlugin', 'isMnemonicValid', [MnemonicLanguageHelper.tsToNative(language), mnemonic]);
     }
 
-    setResolverUrl(resolver: string, onSuccess: ()=>void, onError?: (err: any)=>void) {
+    setResolverUrl(resolver: string, onSuccess: () => void, onError?: (err: any) => void) {
         exec(onSuccess, onError, 'DIDPlugin', 'setResolverUrl', [resolver]);
     }
 
-    resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDPlugin.DIDDocument)=>void, onError?: (err: any)=>void) {
-        var _onSuccess = function(ret: { diddoc?: string, updated: string }) {
+    resolveDidDocument(didString: string, forceRemote: boolean, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
+        var _onSuccess = function (ret: { diddoc?: string, updated: string }) {
             if (ret.diddoc) {
                 var didDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);
                 onSuccess(didDocument.toDIDDocument());
@@ -857,10 +861,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
     }
 
     parseJWT(shouldVerifySignature: boolean, jwtToken: String): Promise<DIDPlugin.ParseJWTResult> {
-        return new Promise((resolve, reject)=>{
-            exec((ret: DIDPlugin.ParseJWTResult)=>{
+        return new Promise((resolve, reject) => {
+            exec((ret: DIDPlugin.ParseJWTResult) => {
                 resolve(ret);
-            }, (err)=>{
+            }, (err) => {
                 reject(err);
             }, 'DIDPlugin', 'DIDManager_parseJWT', [shouldVerifySignature, jwtToken]);
         })
@@ -872,7 +876,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
     fromJson(credentialJson: string): DIDPlugin.VerifiableCredential {
         try {
             let jsonObj = JSON.parse(credentialJson);
-            let credential = new VerifiableCredentialImpl();
+            let credential = new VerifiableCredentialImpl(null); // null -> dirty, toJson(à) will fail... but ok for now, waiting to replace the DID plugin with DID JS
             Object.assign(credential, jsonObj);
 
             // Override values with non basic (string, number) types
@@ -892,6 +896,7 @@ class VerifiableCredentialBuilderImpl implements DIDPlugin.VerifiableCredentialB
 
 class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     id: DIDPlugin.CredentialID = null; // did:elastos:abc#fragment OR #fragment
+    "@context": string[] = null;
     type: string[] = null;
     issuer: string = null;
     issuanceDate: Date = null;
@@ -899,11 +904,13 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     credentialSubject: any = null;
     proof: any = null;
 
+    constructor(private didStoreId: string) { }
+
     getId(): DIDPlugin.CredentialID {
         return this.id;
     }
 
-    getFragment() : string {
+    getFragment(): string {
         // return new URL(this.id).hash.replace("#", "");
         // NOTE: from xcode 12 / ios 14, probably because of the recently added anti cookies
         // changes by apple, new URL("#name") returns null in safari webview... So we do this manual
@@ -911,35 +918,49 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
         let hashIndex = this.id.indexOf("#");
         if (hashIndex < 0)
             return "";
-        return this.id.substr(hashIndex+1);
+        return this.id.substr(hashIndex + 1);
     }
 
-    getTypes() : string[] {
+    getContext(): string[] {
+        return this["@context"];
+    }
+
+    getTypes(): string[] {
         return this.type;
     }
 
-    getIssuer() : string {
+    getIssuer(): string {
         return this.issuer;
     }
 
-    getIssuanceDate() : Date {
+    getIssuanceDate(): Date {
         return this.issuanceDate;
     }
 
-    getExpirationDate() : Date {
+    getExpirationDate(): Date {
         return this.expirationDate;
     }
 
-    getSubject() : any {
+    getSubject(): any {
         return this.credentialSubject;
     }
 
-    getProof() : any {
+    getProof(): any {
         return this.proof;
     }
 
-    toString() : Promise<string> {
+    toString(): Promise<string> {
         return Promise.resolve(JSON.stringify(this));
+    }
+
+    toJson(): Promise<string> {
+        if (!this.didStoreId) {
+            throw new Error("toJson() cannot be called on this credential, it is not bound to any DID store");
+        }
+
+        return new Promise((resolve, reject) => {
+            exec(resolve, reject, 'DIDPlugin', 'VerifiableCredential_toJson', [this.didStoreId, this.id]);
+        });
     }
 }
 
@@ -965,16 +986,18 @@ class NativeVerifiableCredential {
     issuer: string;
     credentialSubject: any;
     proof: any;
+    "@context": string[];
     type: string[];
 
-    toVerifiableCredential(): DIDPlugin.VerifiableCredential {
-        let credential = new VerifiableCredentialImpl();
+    toVerifiableCredential(didStoreId: string): DIDPlugin.VerifiableCredential {
+        let credential = new VerifiableCredentialImpl(didStoreId);
         credential.id = this.id;
         credential.expirationDate = new Date(this.expirationDate);
         credential.issuanceDate = new Date(this.issuanceDate);
         credential.issuer = this.issuer;
         credential.credentialSubject = this.credentialSubject;
         credential.proof = this.proof;
+        credential["@context"] = this["@context"];
         credential.type = this.type;
         return credential;
     }
@@ -985,11 +1008,12 @@ class NativeVerifiableCredential {
         nativeVc.id = vc.getId();
         // JS Date format is ISO format, including milliseconds, but Java side is expecting
         // no milliseconds, so we make a dirty convertion here.
-        nativeVc.expirationDate = (vc.getExpirationDate()?vc.getExpirationDate().toISOString().replace(".000",""):null);
-        nativeVc.issuanceDate = (vc.getIssuanceDate()?vc.getIssuanceDate().toISOString().replace(".000",""):null);
+        nativeVc.expirationDate = (vc.getExpirationDate() ? vc.getExpirationDate().toISOString().replace(".000", "") : null);
+        nativeVc.issuanceDate = (vc.getIssuanceDate() ? vc.getIssuanceDate().toISOString().replace(".000", "") : null);
         nativeVc.issuer = vc.getIssuer();
         nativeVc.credentialSubject = vc.getSubject();
         nativeVc.proof = vc.getProof();
+        nativeVc["@context"] = vc.getContext();
         nativeVc.type = vc.getTypes();
         return nativeVc;
     }
@@ -1106,10 +1130,10 @@ class Helper {
         if (!credentials)
             return [];
 
-        return credentials.filter((c)=>{
+        return credentials.filter((c) => {
             if (includedTypes) {
                 // Make sure all required types are found
-                let foundTypes = c.getTypes().filter((type)=>{
+                let foundTypes = c.getTypes().filter((type) => {
                     return includedTypes.indexOf(type.trim()) >= 0;
                 });
                 if (foundTypes.length != includedTypes.length)

@@ -238,6 +238,19 @@ enum AppError: Error {
         self.commandDelegate?.send(result, callbackId: command.callbackId)
     }
 
+    @objc func enableJsonLdContext(_ command: CDVInvokedUrlCommand) {
+        guard command.arguments.count == 1 else {
+            self.sendWrongParametersCount(command, expected: 1)
+            return
+        }
+
+        let enable = command.arguments[0] as? Bool ?? false
+
+        Features.enableJsonLdContext(enable)
+
+        self.success(command)
+    }
+
     @objc func initDidStore(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 2 else {
             self.sendWrongParametersCount(command, expected: 2)
@@ -1478,6 +1491,30 @@ enum AppError: Error {
         }
         else {
             self.error(command, retAsString: "No DID found in map for string \(didString)")
+        }
+    }
+
+    @objc func VerifiableCredential_toJson(_ command: CDVInvokedUrlCommand)  {
+        guard command.arguments.count == 2 else {
+            self.sendWrongParametersCount(command, expected: 2)
+            return
+        }
+
+        let didStoreId = command.arguments[0] as! String
+        let credentialId = command.arguments[1] as! String // Credential ID (did url)
+
+        if let didStore = mDIDStoreMap[didStoreId] {
+            do{
+                let credentialJson = try didStore.loadCredential(byId: credentialId)?.description
+                self.success(command, retAsString: credentialJson!)
+            }
+            catch {
+                self.exception(error, command)
+            }
+        }
+        else {
+            self.error(command, retAsString: "No DID store found matching ID \(didStoreId)")
+            return
         }
     }
 
