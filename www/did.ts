@@ -914,7 +914,7 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
         // return new URL(this.id).hash.replace("#", "");
         // NOTE: from xcode 12 / ios 14, probably because of the recently added anti cookies
         // changes by apple, new URL("#name") returns null in safari webview... So we do this manual
-        // dirty fragment parsing
+        // fragment parsing
         let hashIndex = this.id.indexOf("#");
         if (hashIndex < 0)
             return "";
@@ -954,6 +954,10 @@ class VerifiableCredentialImpl implements DIDPlugin.VerifiableCredential {
     }
 
     toJson(): Promise<string> {
+        if (!this.id || !this.id.startsWith("did")) {
+            throw new Error("toJson() cannot be called on this credential, need a full ID, not short form. Received: " + this.id);
+        }
+
         if (!this.didStoreId) {
             throw new Error("toJson() cannot be called on this credential, it is not bound to any DID store");
         }

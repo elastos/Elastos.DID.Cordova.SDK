@@ -1634,9 +1634,9 @@ public class DIDPlugin extends CordovaPlugin {
             String credentialJson = didStore.loadCredential(credentialId).serialize();
             callbackContext.success(credentialJson);
         }
-            catch (DIDException e) {
-                exceptionProcess(e, callbackContext, "VerifiableCredential_toJson ");
-            }
+        catch (DIDException e) {
+            exceptionProcess(e, callbackContext, "VerifiableCredential_toJson ");
+        }
     }
 
     private void createVerifiablePresentationFromCredentials(JSONArray args, CallbackContext callbackContext) throws JSONException {

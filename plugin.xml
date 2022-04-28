@@ -27,7 +27,7 @@
                 <source url="https://cdn.cocoapods.org/"/>
             </config>
             <pods use-frameworks="true">
-                <pod name="ElastosDIDSDK" spec='~> 2.2.10'/>
+                <pod name="ElastosDIDSDK" spec='~> 2.2.11'/>
                 <pod name="SwiftJWT" spec="~> 3.5.3" swift-version="4"/>
                 <pod name="AnyCodable-FlightSchool" spec='~> 0.2.3'/>
             </pods>
