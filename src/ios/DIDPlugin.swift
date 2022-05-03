@@ -164,7 +164,11 @@ enum AppError: Error {
      * Tries to rework a DID SDK exceprtion into something more user friendly. Otherwise, simply throw the original exception.
      */
     private func exception(_ e: Error, _ command: CDVInvokedUrlCommand) {
-        let msg: String = "(" + command.methodName + ") - " + e.localizedDescription
+        var message = e.localizedDescription;
+        if (message.contains("network connection was lost") || message.contains("connection appears to be offline")) {
+            message = "Network error"
+        }
+        let msg: String = "(" + command.methodName + ") - " + message
         self.error(command, code: DIDPlugin.errCodeException, msg: msg)
     }
 
