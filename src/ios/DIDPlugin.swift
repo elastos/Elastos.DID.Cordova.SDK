@@ -974,7 +974,7 @@ enum AppError: Error {
                 var credentials: [Any] = []
                 for url in unloadedCredentials {
                     if let credential = try didStore.loadCredential(byId: url) {
-                        let credAsJson = try JSONSerialization.jsonObject(with: credential.description.data(using: .utf8)!, options:[])
+                        let credAsJson = try JSONSerialization.jsonObject(with: credential.toString(true).data(using: .utf8)!, options:[])
                         credentials.append(credAsJson)
                     }
                     else {
