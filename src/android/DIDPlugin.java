@@ -190,6 +190,9 @@ public class DIDPlugin extends CordovaPlugin {
                 case "deleteDidStore":
                     this.deleteDidStore(args, callbackContext);
                     break;
+                case "reset":
+                    this.reset(args, callbackContext);
+                    break;
                 case "CreateDIDDocumentFromJson":
                     this.CreateDIDDocumentFromJson(args, callbackContext);
                     break;
@@ -498,6 +501,17 @@ public class DIDPlugin extends CordovaPlugin {
 
         java.io.File dirFile = new java.io.File(dataDir);
         deleteFile(dirFile);
+        callbackContext.success();
+    }
+
+    private void reset(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        mDocumentMap = new HashMap<>();
+        mDIDMap = new HashMap<>();
+        mPublicKeyMap = new HashMap<>();
+        //mCredentialMap = new HashMap<>();
+        mDIDStoreMap = new HashMap<>();
+        mIssuerMap = new HashMap<>();
+
         callbackContext.success();
     }
 

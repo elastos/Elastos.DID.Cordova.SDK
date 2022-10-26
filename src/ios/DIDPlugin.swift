@@ -317,7 +317,18 @@ enum AppError: Error {
         }
 
         self.success(command)
-     }
+    }
+
+    @objc func reset(_ command: CDVInvokedUrlCommand) {
+        mDIDStoreMap = [:]
+        mDIDMap = [:]
+        mDocumentMap = [:]
+        mIssuerMap = [:]
+        mDidAdapterMap = [:]
+        mCredentialMap = [:]
+
+        self.success(command)
+    }
 
     @objc func generateMnemonic(_ command: CDVInvokedUrlCommand) {
         guard command.arguments.count == 1 else {

@@ -824,6 +824,10 @@ class DIDManagerImpl implements DIDPlugin.DIDManager {
         exec(onSuccess, onError, 'DIDPlugin', 'deleteDidStore', [didStoreId]);
     }
 
+    reset(onSuccess?: () => void, onError?: (err: any) => void) {
+        exec(onSuccess, onError, 'DIDPlugin', 'reset', []);
+    }
+
     createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDPlugin.DIDDocument) => void, onError?: (err: any) => void) {
         var _onSuccess = function (ret: { diddoc: string, updated: string }) {
             var didDocument = NativeDIDDocument.createFromJson(ret.diddoc, ret.updated);

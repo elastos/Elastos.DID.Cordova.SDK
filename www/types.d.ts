@@ -342,6 +342,7 @@ declare module DIDPlugin {
         enableJsonLdContext(enable: boolean, onSuccess: () => void, onError?: (err: any) => void);
         initDidStore(didStoreId: string, createIdTransactionCallback: OnCreateIdTransaction, onSuccess?: (didStore: DIDStore) => void, onError?: (err: any) => void);
         deleteDidStore(didStoreId: string, onSuccess?: () => void, onError?: (err: any) => void);
+        reset(onSuccess?: () => void, onError?: (err: any) => void);
         createDIDDocumentFromJson(json: any, onSuccess: (didDocument: DIDDocument) => void, onError?: (err: any) => void); // TODO: "json" type
         generateMnemonic(language: MnemonicLanguage, onSuccess: (mnemonic: string) => void, onError?: (err: any) => void);
         isMnemonicValid(language: MnemonicLanguage, mnemonic: string, onSuccess: (isValid: boolean) => void, onError?: (err: any) => void);

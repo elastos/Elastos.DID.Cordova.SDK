@@ -1,6 +1,6 @@
 {
   "name": "@elastosfoundation/elastos-cordova-plugin-did",
-  "version": "1.0.50",
+  "version": "1.0.51",
   "description": "Elastos DID Plugin",
   "cordova": {
     "id": "@elastosfoundation/elastos-cordova-plugin-did",
@@ -32,5 +32,8 @@
     "gen-docs": "jsdoc2md --template \"jsdoc2md/README.hbs\" \"www/did.js\" > README.md",
     "prepublishOnly": "tsc -build www/tsconfig.json"
   },
-  "types": "./www/types.d.ts"
+  "types": "./www/types.d.ts",
+  "dependencies": {
+    "typescript": "^4.8.4"
+  }
 }
