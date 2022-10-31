@@ -28,5 +28,5 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.elastos.did:didsdk:2.2.+'
+    implementation 'org.elastos.did:didsdk:2.2.4'
 }
