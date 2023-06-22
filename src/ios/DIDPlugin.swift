@@ -1520,7 +1520,7 @@ enum AppError: Error {
 
         if let didStore = mDIDStoreMap[didStoreId] {
             do{
-                let credentialJson = try didStore.loadCredential(byId: credentialId)?.description
+                let credentialJson = try didStore.loadCredential(byId: credentialId)?.toString(true)
                 self.success(command, retAsString: credentialJson!)
             }
             catch {
